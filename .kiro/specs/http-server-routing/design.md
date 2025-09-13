@@ -37,136 +37,245 @@ graph TB
 
 ### Component Architecture
 
-The HTTP server will be structured using clean architecture principles:
+The HTTP server follows standard Kratos application structure:
 
-- **Transport Layer**: Kratos HTTP server with middleware chain
-- **Handler Layer**: HTTP request handlers that convert HTTP requests to application calls
-- **Application Layer**: Business logic orchestration (future implementation)
-- **Domain Layer**: Core business entities and rules (future implementation)
-- **Infrastructure Layer**: External dependencies and configurations
+- **Entry Point**: `cmd/server/main.go` - Application bootstrap and Kratos app initialization
+- **Server Factory**: `internal/infrastructure/transport/http/server.go` - HTTP server creation and configuration
+- **Handlers**: `internal/infrastructure/transport/http/handlers/` - HTTP request handlers
+- **Wire Providers**: Dependency injection setup for server components
+- **Configuration**: `configs/` - YAML configuration files
 
 ## Components and Interfaces
 
-### 1. HTTP Server Component
+### 1. Application Entry Point
+
+**Location**: `cmd/server/main.go`
+
+```go
+package main
+
+import (
+    "flag"
+    "os"
+
+    "github.com/go-kratos/kratos/v2"
+    "github.com/go-kratos/kratos/v2/config"
+    "github.com/go-kratos/kratos/v2/config/file"
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/transport/http"
+)
+
+var (
+    flagconf = flag.String("conf", "../../configs", "config path, eg: -conf config.yaml")
+)
+
+func main() {
+    flag.Parse()
+    
+    c := config.New(
+        config.WithSource(
+            file.NewSource(*flagconf),
+        ),
+    )
+    
+    logger := log.NewStdLogger(os.Stdout)
+    
+    app, cleanup, err := wireApp(c.Server, logger)
+    if err != nil {
+        panic(err)
+    }
+    defer cleanup()
+    
+    if err := app.Run(); err != nil {
+        panic(err)
+    }
+}
+
+func newApp(logger log.Logger, hs *http.Server) *kratos.App {
+    return kratos.New(
+        kratos.Name("goro-server"),
+        kratos.Version("v1.0.0"),
+        kratos.Logger(logger),
+        kratos.Server(hs),
+    )
+}
+```
+
+### 2. HTTP Server Factory
 
 **Location**: `internal/infrastructure/transport/http/server.go`
 
 ```go
-type Server struct {
-    httpServer *http.Server
-    router     *mux.Router
-    middleware []Middleware
-    config     *Config
-    logger     log.Logger
-}
-
-type Config struct {
-    Port            int
-    ReadTimeout     time.Duration
-    WriteTimeout    time.Duration
-    ShutdownTimeout time.Duration
-    TLSConfig       *tls.Config
+func NewHTTPServer(c *conf.Server, logger log.Logger, healthHandler *HealthHandler) *http.Server {
+    var opts = []http.ServerOption{
+        http.Address(c.Http.Addr),
+        http.Timeout(c.Http.Timeout.AsDuration()),
+        http.Middleware(
+            recovery.Recovery(),
+            logging.Server(logger),
+        ),
+    }
+    
+    srv := http.NewServer(opts...)
+    srv.Route("/health").GET(healthHandler.Check)
+    
+    return srv
 }
 ```
 
 **Responsibilities**:
-- Initialize and configure Kratos HTTP server
-- Manage server lifecycle (start, stop, graceful shutdown)
-- Register middleware and routes
-- Handle HTTP/1.1 and HTTP/2 protocols
+- Create and configure Kratos HTTP server
+- Register routes and handlers
+- Apply middleware chain
 
-### 2. Router Component
+### 3. Wire Dependency Injection
 
-**Location**: `internal/infrastructure/transport/http/router.go`
+**Location**: `cmd/server/wire.go`
 
 ```go
-type Router interface {
-    GET(path string, handler HandlerFunc, middleware ...Middleware)
-    POST(path string, handler HandlerFunc, middleware ...Middleware)
-    PUT(path string, handler HandlerFunc, middleware ...Middleware)
-    DELETE(path string, handler HandlerFunc, middleware ...Middleware)
-    PATCH(path string, handler HandlerFunc, middleware ...Middleware)
-    HEAD(path string, handler HandlerFunc, middleware ...Middleware)
-    OPTIONS(path string, handler HandlerFunc, middleware ...Middleware)
-    Group(prefix string, middleware ...Middleware) *RouterGroup
-}
+//go:build wireinject
+// +build wireinject
 
-type HandlerFunc func(ctx context.Context, req *http.Request) (*http.Response, error)
+package main
+
+import (
+    "github.com/go-kratos/kratos/v2"
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/google/wire"
+)
+
+func wireApp(*conf.Server, log.Logger) (*kratos.App, func(), error) {
+    panic(wire.Build(
+        newApp,
+        NewHTTPServer,
+        NewHealthHandler,
+    ))
+}
 ```
 
 **Responsibilities**:
-- Route HTTP requests to appropriate handlers
-- Support path parameters and wildcards
-- Handle method-specific routing
-- Provide route grouping capabilities
+- Wire together all application dependencies
+- Generate dependency injection code at compile time
+- Provide clean separation of concerns
 
-### 3. Middleware System
+### 3. Kratos Middleware Integration
 
 **Location**: `internal/infrastructure/transport/http/middleware/`
 
-```go
-type Middleware func(HandlerFunc) HandlerFunc
+Custom middleware following Kratos v2 patterns:
 
-type MiddlewareChain struct {
-    middlewares []Middleware
+```go
+import (
+    "github.com/go-kratos/kratos/v2/middleware"
+    "github.com/go-kratos/kratos/v2/middleware/logging"
+    "github.com/go-kratos/kratos/v2/middleware/recovery"
+    "github.com/go-kratos/kratos/v2/transport/http"
+)
+
+// Custom CORS middleware for HTTP transport
+func CORS() http.FilterFunc {
+    return func(next http.FilterFunc) http.FilterFunc {
+        return func(ctx http.Context) error {
+            ctx.Response().Header().Set("Access-Control-Allow-Origin", "*")
+            ctx.Response().Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+            if ctx.Request().Method == "OPTIONS" {
+                return ctx.String(200, "")
+            }
+            return next(ctx)
+        }
+    }
 }
 
-func (mc *MiddlewareChain) Use(middleware ...Middleware)
-func (mc *MiddlewareChain) Handler(handler HandlerFunc) HandlerFunc
+// Custom timeout middleware
+func Timeout(timeout time.Duration) middleware.Middleware {
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            ctx, cancel := context.WithTimeout(ctx, timeout)
+            defer cancel()
+            return handler(ctx, req)
+        }
+    }
+}
 ```
 
 **Core Middleware Components**:
-- **Logging Middleware**: Request/response logging with structured output
-- **Recovery Middleware**: Panic recovery and error handling
-- **CORS Middleware**: Cross-origin resource sharing support
-- **Timeout Middleware**: Request timeout handling
-- **Metrics Middleware**: Performance monitoring (future)
+- **Built-in Recovery**: `recovery.Recovery()` for panic handling
+- **Built-in Logging**: `logging.Server(logger)` for request logging
+- **Custom CORS Filter**: HTTP-specific CORS handling
+- **Custom Timeout**: Context-based request timeouts
 
-### 4. Handler Registry
+### 4. HTTP Handlers
 
 **Location**: `internal/infrastructure/transport/http/handlers/`
 
+Handlers following idiomatic Kratos patterns:
+
 ```go
-type HandlerRegistry struct {
-    handlers map[string]map[string]HandlerFunc
-    logger   log.Logger
+import (
+    "github.com/go-kratos/kratos/v2/transport/http"
+    "github.com/go-kratos/kratos/v2/log"
+)
+
+type HealthHandler struct {
+    logger log.Logger
 }
 
-func (hr *HandlerRegistry) Register(method, path string, handler HandlerFunc)
-func (hr *HandlerRegistry) GetHandler(method, path string) (HandlerFunc, bool)
+func NewHealthHandler(logger log.Logger) *HealthHandler {
+    return &HealthHandler{logger: logger}
+}
+
+func (h *HealthHandler) Check(ctx http.Context) error {
+    return ctx.JSON(200, map[string]interface{}{
+        "status": "ok",
+        "timestamp": time.Now().Unix(),
+    })
+}
+
+func (h *HealthHandler) Status(ctx http.Context) error {
+    // Path parameters: ctx.Vars()["id"]
+    // Query parameters: ctx.Query("param")
+    return ctx.JSON(200, map[string]string{"service": "running"})
+}
 ```
 
 **Standard Handlers**:
-- **Health Handler**: Server health checks (`GET /health`)
-- **Options Handler**: CORS preflight and method discovery
-- **Not Found Handler**: 404 responses for unmatched routes
-- **Method Not Allowed Handler**: 405 responses for unsupported methods
+- **Health Handler**: Server health checks with proper JSON responses
+- **Error Handlers**: Use Kratos error handling with proper HTTP status codes
+- **Parameter Extraction**: Use ctx.Vars() for path params, ctx.Query() for query params
+- **Response Handling**: Use ctx.JSON(), ctx.String(), ctx.Blob() for responses
 
 ## Data Models
 
-### HTTP Request Context
+### Kratos HTTP Context
+
+Kratos provides the http.Context interface for request/response handling:
 
 ```go
-type RequestContext struct {
-    RequestID   string
-    Method      string
-    Path        string
-    Headers     http.Header
-    QueryParams url.Values
-    PathParams  map[string]string
-    Body        io.ReadCloser
-    StartTime   time.Time
-}
-```
+import "github.com/go-kratos/kratos/v2/transport/http"
 
-### HTTP Response Model
-
-```go
-type Response struct {
-    StatusCode int
-    Headers    http.Header
-    Body       []byte
-    Error      error
+// Access request data through Kratos context
+func handler(ctx http.Context) error {
+    // Request method and path
+    method := ctx.Request().Method
+    path := ctx.Request().URL.Path
+    
+    // Headers
+    userAgent := ctx.Request().Header.Get("User-Agent")
+    
+    // Path parameters
+    id := ctx.Vars()["id"]
+    
+    // Query parameters  
+    filter := ctx.Query("filter")
+    
+    // Request body
+    var req SomeRequest
+    if err := ctx.Bind(&req); err != nil {
+        return err
+    }
+    
+    // Response
+    return ctx.JSON(200, map[string]string{"result": "success"})
 }
 ```
 
@@ -196,17 +305,34 @@ type TLSConfig struct {
 
 ## Error Handling
 
-### Error Types
+### Kratos Error Handling
 
 ```go
-type HTTPError struct {
-    Code    int    `json:"code"`
-    Message string `json:"message"`
-    Details string `json:"details,omitempty"`
-}
+import (
+    "github.com/go-kratos/kratos/v2/errors"
+    "github.com/go-kratos/kratos/v2/transport/http"
+)
 
-func (e *HTTPError) Error() string
-func NewHTTPError(code int, message string) *HTTPError
+// Define domain errors
+var (
+    ErrNotFound = errors.NotFound("RESOURCE_NOT_FOUND", "resource not found")
+    ErrBadRequest = errors.BadRequest("INVALID_REQUEST", "invalid request parameters")
+)
+
+// Handler with proper error handling
+func (h *Handler) GetResource(ctx http.Context) error {
+    id := ctx.Vars()["id"]
+    if id == "" {
+        return ErrBadRequest
+    }
+    
+    resource, err := h.service.GetResource(ctx, id)
+    if err != nil {
+        return ErrNotFound
+    }
+    
+    return ctx.JSON(200, resource)
+}
 ```
 
 ### Error Handling Strategy
@@ -281,6 +407,14 @@ func NewHTTPError(code int, message string) *HTTPError
 - Integrate with Kratos logging and metrics systems
 - Use Kratos configuration management for server settings
 
+### Dependency Injection and Clean Architecture
+
+- Use Google Wire for compile-time dependency injection
+- Define domain interfaces in the domain layer with infrastructure implementations
+- Maintain strict layer separation with dependencies pointing inward
+- Create Wire provider sets for each architectural layer
+- Ensure testability through interface-based design
+
 ### Performance Optimizations
 
 - Connection pooling and keep-alive support
@@ -295,6 +429,14 @@ func NewHTTPError(code int, message string) *HTTPError
 - Header size limits and validation
 - Secure default configurations
 
+### Configuration Management
+
+- YAML-based configuration with environment variable overrides
+- Configuration validation with clear error messages
+- Sensible defaults for all settings
+- Hot-reload capabilities for non-critical settings (future enhancement)
+- Environment-specific configuration profiles
+
 ### Monitoring and Observability
 
 - Structured logging with request correlation IDs
@@ -302,4 +444,4 @@ func NewHTTPError(code int, message string) *HTTPError
 - Health check endpoints for load balancers
 - Graceful shutdown with connection draining
 
-This design provides a solid foundation for the Solid pod server's HTTP infrastructure while maintaining flexibility for future enhancements and Solid protocol-specific features.
+This design provides a solid foundation for the Solid pod server's HTTP infrastructure while maintaining flexibility for future enhancements and Solid protocol-specific features. The clean architecture approach ensures maintainability and testability while the Kratos framework provides production-ready HTTP server capabilities.
