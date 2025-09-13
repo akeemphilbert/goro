@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Set up event infrastructure with pericarp WatermillEventDispatcher
+- [x] 1. Set up event infrastructure with pericarp WatermillEventDispatcher
   - Configure WatermillEventDispatcher from pericarp library
   - Set up event bus infrastructure for domain events
   - Create Wire providers for event dispatcher dependency injection
