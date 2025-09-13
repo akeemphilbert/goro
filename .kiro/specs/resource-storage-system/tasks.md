@@ -7,14 +7,14 @@
   - Write unit tests for event dispatcher configuration
   - _Requirements: 4.1, 4.3_
 
-- [ ] 2. Set up domain layer foundation with pericarp integration
+- [x] 2. Set up domain layer foundation with pericarp integration
   - Create Resource domain entity using pericarp library
   - Implement methods for RDF format instantiation (JSON-LD, RDF/XML, Turtle)
   - Integrate with WatermillEventDispatcher for domain event dispatching
   - Write unit tests for Resource entity and format conversion methods
   - _Requirements: 1.1, 1.2, 1.3, 4.1_
 
-- [ ] 3. Implement repository interface and error handling
+- [x] 3. Implement repository interface and error handling
   - Define ResourceRepository interface in domain layer
   - Create custom error types for storage operations
   - Implement error wrapping with context information
