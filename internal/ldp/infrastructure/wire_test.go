@@ -1,6 +1,8 @@
 package infrastructure
 
 import (
+	"context"
+	"os"
 	"testing"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
@@ -44,4 +46,42 @@ func TestEventInfrastructureSetIntegration(t *testing.T) {
 		err = closer.Close()
 		assert.NoError(t, err)
 	}
+}
+func TestRDFInfrastructureSetIntegration(t *testing.T) {
+	// This test verifies that the RDF Wire set can be used to create dependencies
+	converter := NewRDFConverter()
+	if converter == nil {
+		t.Fatal("RDFInfrastructureSet should provide a valid RDFConverter")
+	}
+
+	// Test basic functionality
+	if !converter.ValidateFormat("application/ld+json") {
+		t.Error("RDFConverter should validate JSON-LD format")
+	}
+}
+
+func TestStorageInfrastructureSetIntegration(t *testing.T) {
+	// Clean up any existing test data
+	defer func() {
+		os.RemoveAll("./data")
+	}()
+
+	// This test verifies that the Storage Wire set can be used to create dependencies
+	repo, err := NewFileSystemRepositoryProvider()
+	require.NoError(t, err)
+	require.NotNil(t, repo)
+
+	// Verify it implements the domain interface
+	var _ domain.ResourceRepository = repo
+
+	// Test basic functionality
+	ctx := context.Background()
+	testResource := domain.NewResource("wire-test", "text/plain", []byte("test data"))
+
+	err = repo.Store(ctx, testResource)
+	assert.NoError(t, err)
+
+	exists, err := repo.Exists(ctx, "wire-test")
+	assert.NoError(t, err)
+	assert.True(t, exists)
 }

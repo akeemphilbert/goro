@@ -11,3 +11,20 @@ import (
 var EventInfrastructureSet = wire.NewSet(
 	NewEventDispatcher,
 )
+
+// RDFInfrastructureSet provides all RDF-related dependencies
+var RDFInfrastructureSet = wire.NewSet(
+	NewRDFConverter,
+)
+
+// StorageInfrastructureSet provides all storage-related dependencies
+var StorageInfrastructureSet = wire.NewSet(
+	NewFileSystemRepositoryProvider,
+)
+
+// InfrastructureSet provides all infrastructure dependencies
+var InfrastructureSet = wire.NewSet(
+	EventInfrastructureSet,
+	RDFInfrastructureSet,
+	StorageInfrastructureSet,
+)

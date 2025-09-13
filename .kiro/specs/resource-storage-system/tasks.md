@@ -21,14 +21,14 @@
   - Write unit tests for error handling scenarios
   - _Requirements: 4.4, 4.5, 5.1, 5.5_
 
-- [ ] 4. Create RDF format converter component
+- [x] 4. Create RDF format converter component
   - Implement RDFConverter for format conversion between JSON-LD, RDF/XML, and Turtle
   - Add format validation methods
   - Ensure semantic meaning preservation during conversion
   - Write unit tests for all format conversion combinations
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 5. Build file system repository implementation
+- [x] 5. Build file system repository implementation
   - Create FileSystemRepository implementing ResourceRepository interface
   - Implement file storage with metadata preservation
   - Add checksum generation and validation for data integrity
