@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Requirements to Features",
+  "description": "Automatically updates corresponding feature files in the features folder using Gherkin syntax when requirements documents are created or modified",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/requirements*.md",
+      "**/requirements*.txt",
+      "**/requirements*.doc",
+      "**/requirements*.docx",
+      "**/req*.md",
+      "**/spec*.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A requirements document has been updated. Please analyze the requirements and create or update the corresponding feature file in the features/ folder using proper Gherkin syntax. Follow BDD best practices from https://automationpanda.com/2017/01/30/bdd-101-writing-good-gherkin/ including:\n\n1. Use clear, concise scenario titles\n2. Write scenarios from the user's perspective\n3. Use Given-When-Then structure properly\n4. Keep scenarios focused and atomic\n5. Use meaningful examples and data\n6. Avoid technical implementation details\n7. Make scenarios readable by non-technical stakeholders\n\nThe feature file should be named based on the requirement document and placed in the features/ directory. Include appropriate feature descriptions, background steps if needed, and comprehensive scenario coverage."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "New Main Task Workflow",
+  "description": "Automatically commits current work, creates a new branch for the main task, and prepares the workspace for development",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "./kiro/specs/*/tasks.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "I need to start working on a new main task. Please: 1) Commit all current changes with a descriptive commit message, 2) Create a new branch with an appropriate name based on the task, 3) Switch to the new branch, and 4) Provide guidance on next steps for the main task development following our Go-Kratos architecture patterns."
+  }
+}
