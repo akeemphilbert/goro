@@ -36,7 +36,7 @@
   - Write unit tests for repository operations
   - _Requirements: 2.1, 2.2, 2.3, 4.1, 4.2_
 
-- [ ] 6. Implement storage service in application layer
+- [x] 6. Implement storage service in application layer
   - Create StorageService orchestrating storage operations
   - Add content negotiation for format selection
   - Implement streaming support for large files
