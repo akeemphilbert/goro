@@ -6,6 +6,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
@@ -50,7 +52,7 @@ func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {
 		grpc.Address(c.Addr),
 	}
 	if c.Timeout != 0 {
-		opts = append(opts, grpc.Timeout(c.Timeout))
+		opts = append(opts, grpc.Timeout(time.Duration(c.Timeout)))
 	}
 
 	srv := grpc.NewServer(opts...)

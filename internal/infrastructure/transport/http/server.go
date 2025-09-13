@@ -17,10 +17,10 @@ import (
 func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler) *http.Server {
 	var opts = []http.ServerOption{
 		http.Address(c.Addr),
-		http.Timeout(c.Timeout),
+		http.Timeout(time.Duration(c.Timeout)),
 		http.Middleware(
 			recovery.Recovery(),
-			middleware.Timeout(30*time.Second), // 30 second timeout for requests
+			middleware.Timeout(time.Duration(c.Timeout)), // Use configured timeout
 			middleware.StructuredLogging(logger),
 		),
 		http.Filter(
@@ -30,7 +30,7 @@ func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.Heal
 
 	// Add shutdown timeout if configured
 	if c.ShutdownTimeout > 0 {
-		log.Infof("Configuring HTTP server shutdown timeout: %v", c.ShutdownTimeout)
+		log.Infof("Configuring HTTP server shutdown timeout: %v", time.Duration(c.ShutdownTimeout))
 		// Note: Kratos uses the timeout option for both request and shutdown timeout
 		// We'll handle graceful shutdown at the app level
 	}

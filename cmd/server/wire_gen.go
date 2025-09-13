@@ -15,6 +15,7 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	http2 "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/google/wire"
+	"time"
 )
 
 import (
@@ -56,7 +57,7 @@ var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, han
 func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {
 	var opts = []grpc.ServerOption{grpc.Network(c.Network), grpc.Address(c.Addr)}
 	if c.Timeout != 0 {
-		opts = append(opts, grpc.Timeout(c.Timeout))
+		opts = append(opts, grpc.Timeout(time.Duration(c.Timeout)))
 	}
 
 	srv := grpc.NewServer(opts...)

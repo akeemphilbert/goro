@@ -37,13 +37,13 @@ func TestGracefulShutdown(t *testing.T) {
 				HTTP: &conf.HTTP{
 					Network:         "tcp",
 					Addr:            ":0", // Use random port for testing
-					Timeout:         5 * time.Second,
-					ShutdownTimeout: 2 * time.Second,
+					Timeout:         conf.Duration(5 * time.Second),
+					ShutdownTimeout: conf.Duration(2 * time.Second),
 				},
 				GRPC: &conf.GRPC{
 					Network: "tcp",
 					Addr:    ":0", // Use random port for testing
-					Timeout: 5 * time.Second,
+					Timeout: conf.Duration(5 * time.Second),
 				},
 			}
 			config.HTTP.SetDefaults()
@@ -89,13 +89,13 @@ func TestGracefulShutdownWithActiveConnections(t *testing.T) {
 		HTTP: &conf.HTTP{
 			Network:         "tcp",
 			Addr:            ":0", // Use random port for testing
-			Timeout:         5 * time.Second,
-			ShutdownTimeout: 3 * time.Second,
+			Timeout:         conf.Duration(5 * time.Second),
+			ShutdownTimeout: conf.Duration(3 * time.Second),
 		},
 		GRPC: &conf.GRPC{
 			Network: "tcp",
 			Addr:    ":0", // Use random port for testing
-			Timeout: 5 * time.Second,
+			Timeout: conf.Duration(5 * time.Second),
 		},
 	}
 	config.HTTP.SetDefaults()
@@ -155,13 +155,13 @@ func TestShutdownTimeout(t *testing.T) {
 		HTTP: &conf.HTTP{
 			Network:         "tcp",
 			Addr:            ":0",
-			Timeout:         5 * time.Second,
-			ShutdownTimeout: 100 * time.Millisecond, // Very short timeout
+			Timeout:         conf.Duration(5 * time.Second),
+			ShutdownTimeout: conf.Duration(100 * time.Millisecond), // Very short timeout
 		},
 		GRPC: &conf.GRPC{
 			Network: "tcp",
 			Addr:    ":0",
-			Timeout: 5 * time.Second,
+			Timeout: conf.Duration(5 * time.Second),
 		},
 	}
 	config.HTTP.SetDefaults()
@@ -204,13 +204,13 @@ func TestResourceCleanup(t *testing.T) {
 		HTTP: &conf.HTTP{
 			Network:         "tcp",
 			Addr:            ":0",
-			Timeout:         5 * time.Second,
-			ShutdownTimeout: 2 * time.Second,
+			Timeout:         conf.Duration(5 * time.Second),
+			ShutdownTimeout: conf.Duration(2 * time.Second),
 		},
 		GRPC: &conf.GRPC{
 			Network: "tcp",
 			Addr:    ":0",
-			Timeout: 5 * time.Second,
+			Timeout: conf.Duration(5 * time.Second),
 		},
 	}
 	config.HTTP.SetDefaults()
@@ -257,13 +257,13 @@ func TestKratosAppLifecycleManagement(t *testing.T) {
 		HTTP: &conf.HTTP{
 			Network:         "tcp",
 			Addr:            ":0",
-			Timeout:         5 * time.Second,
-			ShutdownTimeout: 2 * time.Second,
+			Timeout:         conf.Duration(5 * time.Second),
+			ShutdownTimeout: conf.Duration(2 * time.Second),
 		},
 		GRPC: &conf.GRPC{
 			Network: "tcp",
 			Addr:    ":0",
-			Timeout: 5 * time.Second,
+			Timeout: conf.Duration(5 * time.Second),
 		},
 	}
 	config.HTTP.SetDefaults()

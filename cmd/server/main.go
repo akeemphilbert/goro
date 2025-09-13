@@ -36,7 +36,7 @@ func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server, config *conf.Se
 	// Configure shutdown timeout from HTTP config
 	var shutdownTimeout time.Duration = 10 * time.Second // default
 	if config.HTTP != nil && config.HTTP.ShutdownTimeout > 0 {
-		shutdownTimeout = config.HTTP.ShutdownTimeout
+		shutdownTimeout = time.Duration(config.HTTP.ShutdownTimeout)
 	}
 
 	return kratos.New(
@@ -132,7 +132,7 @@ func setupSignalHandling(logger log.Logger, config *conf.Server) (context.Contex
 			// Get shutdown timeout from configuration
 			shutdownTimeout := 10 * time.Second // default
 			if config.HTTP != nil && config.HTTP.ShutdownTimeout > 0 {
-				shutdownTimeout = config.HTTP.ShutdownTimeout
+				shutdownTimeout = time.Duration(config.HTTP.ShutdownTimeout)
 			}
 
 			log.Infof("Shutdown timeout configured: %v", shutdownTimeout)

@@ -1,10 +1,13 @@
 package conf
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Bootstrap is the configuration structure for the application
@@ -20,14 +23,14 @@ type Server struct {
 
 // HTTP holds the HTTP server configuration
 type HTTP struct {
-	Network         string        `yaml:"network"`
-	Addr            string        `yaml:"addr"`
-	Timeout         time.Duration `yaml:"timeout"`
-	ReadTimeout     time.Duration `yaml:"read_timeout"`
-	WriteTimeout    time.Duration `yaml:"write_timeout"`
-	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
-	MaxHeaderBytes  int           `yaml:"max_header_bytes"`
-	TLS             TLS           `yaml:"tls"`
+	Network         string   `yaml:"network"`
+	Addr            string   `yaml:"addr"`
+	Timeout         Duration `yaml:"timeout"`
+	ReadTimeout     Duration `yaml:"read_timeout"`
+	WriteTimeout    Duration `yaml:"write_timeout"`
+	ShutdownTimeout Duration `yaml:"shutdown_timeout"`
+	MaxHeaderBytes  int      `yaml:"max_header_bytes"`
+	TLS             TLS      `yaml:"tls"`
 }
 
 // TLS holds the TLS configuration for HTTPS
@@ -37,11 +40,56 @@ type TLS struct {
 	KeyFile  string `yaml:"key_file"`
 }
 
+// Duration is a custom type that can unmarshal from YAML strings
+type Duration time.Duration
+
+// UnmarshalYAML implements yaml.Unmarshaler for Duration
+func (d *Duration) UnmarshalYAML(value *yaml.Node) error {
+	var s string
+	if err := value.Decode(&s); err != nil {
+		return err
+	}
+
+	duration, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+
+	*d = Duration(duration)
+	return nil
+}
+
+// MarshalYAML implements yaml.Marshaler for Duration
+func (d Duration) MarshalYAML() (interface{}, error) {
+	return time.Duration(d).String(), nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler for Duration
+func (d *Duration) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	duration, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+
+	*d = Duration(duration)
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler for Duration
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
 // GRPC holds the gRPC server configuration
 type GRPC struct {
-	Network string        `yaml:"network"`
-	Addr    string        `yaml:"addr"`
-	Timeout time.Duration `yaml:"timeout"`
+	Network string   `yaml:"network"`
+	Addr    string   `yaml:"addr"`
+	Timeout Duration `yaml:"timeout"`
 }
 
 // SetDefaults sets default values for HTTP configuration
@@ -53,16 +101,16 @@ func (h *HTTP) SetDefaults() {
 		h.Addr = ":8080"
 	}
 	if h.Timeout == 0 {
-		h.Timeout = 30 * time.Second
+		h.Timeout = Duration(30 * time.Second)
 	}
 	if h.ReadTimeout == 0 {
-		h.ReadTimeout = 30 * time.Second
+		h.ReadTimeout = Duration(30 * time.Second)
 	}
 	if h.WriteTimeout == 0 {
-		h.WriteTimeout = 30 * time.Second
+		h.WriteTimeout = Duration(30 * time.Second)
 	}
 	if h.ShutdownTimeout == 0 {
-		h.ShutdownTimeout = 10 * time.Second
+		h.ShutdownTimeout = Duration(10 * time.Second)
 	}
 	if h.MaxHeaderBytes == 0 {
 		h.MaxHeaderBytes = 1048576 // 1MB

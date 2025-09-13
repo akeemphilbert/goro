@@ -35,13 +35,13 @@ func TestSignalHandling(t *testing.T) {
 				HTTP: &conf.HTTP{
 					Network:         "tcp",
 					Addr:            ":0",
-					Timeout:         5 * time.Second,
-					ShutdownTimeout: 2 * time.Second,
+					Timeout:         conf.Duration(5 * time.Second),
+					ShutdownTimeout: conf.Duration(2 * time.Second),
 				},
 				GRPC: &conf.GRPC{
 					Network: "tcp",
 					Addr:    ":0",
-					Timeout: 5 * time.Second,
+					Timeout: conf.Duration(5 * time.Second),
 				},
 			}
 			config.HTTP.SetDefaults()
@@ -109,13 +109,13 @@ func TestConfigurableShutdownTimeout(t *testing.T) {
 				HTTP: &conf.HTTP{
 					Network:         "tcp",
 					Addr:            ":0",
-					Timeout:         5 * time.Second,
-					ShutdownTimeout: tt.shutdownTimeout,
+					Timeout:         conf.Duration(5 * time.Second),
+					ShutdownTimeout: conf.Duration(tt.shutdownTimeout),
 				},
 				GRPC: &conf.GRPC{
 					Network: "tcp",
 					Addr:    ":0",
-					Timeout: 5 * time.Second,
+					Timeout: conf.Duration(5 * time.Second),
 				},
 			}
 			config.HTTP.SetDefaults()
@@ -175,13 +175,13 @@ func TestForcedTerminationAfterTimeout(t *testing.T) {
 		HTTP: &conf.HTTP{
 			Network:         "tcp",
 			Addr:            ":0",
-			Timeout:         5 * time.Second,
-			ShutdownTimeout: 100 * time.Millisecond, // Very short timeout
+			Timeout:         conf.Duration(5 * time.Second),
+			ShutdownTimeout: conf.Duration(100 * time.Millisecond), // Very short timeout
 		},
 		GRPC: &conf.GRPC{
 			Network: "tcp",
 			Addr:    ":0",
-			Timeout: 5 * time.Second,
+			Timeout: conf.Duration(5 * time.Second),
 		},
 	}
 	config.HTTP.SetDefaults()
@@ -237,13 +237,13 @@ func TestSignalHandlingInMainFunction(t *testing.T) {
 				HTTP: &conf.HTTP{
 					Network:         "tcp",
 					Addr:            ":0",
-					Timeout:         5 * time.Second,
-					ShutdownTimeout: 2 * time.Second,
+					Timeout:         conf.Duration(5 * time.Second),
+					ShutdownTimeout: conf.Duration(2 * time.Second),
 				},
 				GRPC: &conf.GRPC{
 					Network: "tcp",
 					Addr:    ":0",
-					Timeout: 5 * time.Second,
+					Timeout: conf.Duration(5 * time.Second),
 				},
 			}
 			config.HTTP.SetDefaults()
