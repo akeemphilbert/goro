@@ -60,7 +60,7 @@
   - Write integration tests for HTTP endpoints
   - _Requirements: 1.2, 2.1, 5.1, 5.2_
 
-- [ ] 9. Create event handlers using pericarp event system
+- [x] 9. Create event handlers using pericarp event system
   - Implement ResourceEventHandler for EntityEvent processing using pericarp patterns
   - Add event persistence to file system through event handlers
   - Wire up event handlers with WatermillEventDispatcher

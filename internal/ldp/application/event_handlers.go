@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
@@ -11,13 +14,26 @@ import (
 
 // ResourceEventHandler handles resource events and updates the repository accordingly
 type ResourceEventHandler struct {
-	repo domain.ResourceRepository
+	repo                  domain.ResourceRepository
+	eventLogPath          string
+	enableFilePersistence bool
 }
 
 // NewResourceEventHandler creates a new resource event handler
 func NewResourceEventHandler(repo domain.ResourceRepository) *ResourceEventHandler {
 	return &ResourceEventHandler{
-		repo: repo,
+		repo:                  repo,
+		eventLogPath:          "pod-data/events",
+		enableFilePersistence: true,
+	}
+}
+
+// NewResourceEventHandlerWithConfig creates a new resource event handler with custom configuration
+func NewResourceEventHandlerWithConfig(repo domain.ResourceRepository, eventLogPath string, enableFilePersistence bool) *ResourceEventHandler {
+	return &ResourceEventHandler{
+		repo:                  repo,
+		eventLogPath:          eventLogPath,
+		enableFilePersistence: enableFilePersistence,
 	}
 }
 
@@ -60,6 +76,11 @@ func (h *ResourceEventHandler) Handle(ctx context.Context, envelope pericarpdoma
 
 // handleResourceCreated handles resource created events
 func (h *ResourceEventHandler) handleResourceCreated(ctx context.Context, event *pericarpdomain.EntityEvent) error {
+	// Persist event to file system first
+	if err := h.persistEventToFileSystem(event); err != nil {
+		return fmt.Errorf("failed to persist created event to file system: %w", err)
+	}
+
 	// Extract resource data from event payload
 	resource, err := h.reconstructResourceFromEvent(event)
 	if err != nil {
@@ -77,6 +98,11 @@ func (h *ResourceEventHandler) handleResourceCreated(ctx context.Context, event 
 
 // handleResourceUpdated handles resource updated events
 func (h *ResourceEventHandler) handleResourceUpdated(ctx context.Context, event *pericarpdomain.EntityEvent) error {
+	// Persist event to file system first
+	if err := h.persistEventToFileSystem(event); err != nil {
+		return fmt.Errorf("failed to persist updated event to file system: %w", err)
+	}
+
 	// Extract resource data from event payload
 	resource, err := h.reconstructResourceFromEvent(event)
 	if err != nil {
@@ -94,6 +120,11 @@ func (h *ResourceEventHandler) handleResourceUpdated(ctx context.Context, event 
 
 // handleResourceDeleted handles resource deleted events
 func (h *ResourceEventHandler) handleResourceDeleted(ctx context.Context, event *pericarpdomain.EntityEvent) error {
+	// Persist event to file system first
+	if err := h.persistEventToFileSystem(event); err != nil {
+		return fmt.Errorf("failed to persist deleted event to file system: %w", err)
+	}
+
 	// Delete the resource from the repository
 	if err := h.repo.Delete(ctx, event.AggregateID()); err != nil {
 		return fmt.Errorf("failed to delete resource from repository: %w", err)
@@ -134,6 +165,74 @@ func (h *ResourceEventHandler) reconstructResourceFromEvent(event *pericarpdomai
 	resource.MarkEventsAsCommitted()
 
 	return resource, nil
+}
+
+// persistEventToFileSystem persists an event to the file system for audit trail
+func (h *ResourceEventHandler) persistEventToFileSystem(event *pericarpdomain.EntityEvent) error {
+	if !h.enableFilePersistence {
+		return nil // Skip persistence if disabled
+	}
+
+	// Create event log directory structure: pod-data/events/{date}/
+	now := time.Now()
+	dateDir := now.Format("2006-01-02")
+	eventDir := filepath.Join(h.eventLogPath, dateDir)
+
+	// Ensure directory exists
+	if err := os.MkdirAll(eventDir, 0755); err != nil {
+		return fmt.Errorf("failed to create event directory %s: %w", eventDir, err)
+	}
+
+	// Create event log entry
+	eventEntry := map[string]interface{}{
+		"eventID":     fmt.Sprintf("%s-%d", event.AggregateID(), now.UnixNano()),
+		"timestamp":   now.Format(time.RFC3339),
+		"entityType":  event.EntityType,
+		"eventType":   event.Type,
+		"aggregateID": event.AggregateID(),
+		"payload":     json.RawMessage(event.Payload()),
+	}
+
+	// Marshal event to JSON (single line for easier parsing)
+	eventJSON, err := json.Marshal(eventEntry)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event to JSON: %w", err)
+	}
+
+	// Write to event log file (append mode)
+	logFile := filepath.Join(eventDir, "events.log")
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open event log file %s: %w", logFile, err)
+	}
+	defer file.Close()
+
+	// Write event entry with newline
+	if _, err := file.Write(append(eventJSON, '\n')); err != nil {
+		return fmt.Errorf("failed to write event to log file: %w", err)
+	}
+
+	return nil
+}
+
+// GetEventLogPath returns the current event log path
+func (h *ResourceEventHandler) GetEventLogPath() string {
+	return h.eventLogPath
+}
+
+// SetEventLogPath sets the event log path
+func (h *ResourceEventHandler) SetEventLogPath(path string) {
+	h.eventLogPath = path
+}
+
+// IsFilePersistenceEnabled returns whether file persistence is enabled
+func (h *ResourceEventHandler) IsFilePersistenceEnabled() bool {
+	return h.enableFilePersistence
+}
+
+// SetFilePersistenceEnabled enables or disables file persistence
+func (h *ResourceEventHandler) SetFilePersistenceEnabled(enabled bool) {
+	h.enableFilePersistence = enabled
 }
 
 // EventHandlerRegistrar registers event handlers with the event dispatcher
