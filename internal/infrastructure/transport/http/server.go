@@ -2,22 +2,28 @@ package http
 
 import (
 	"crypto/tls"
+	"time"
 
 	"github.com/akeemphilbert/goro/internal/conf"
+	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http/handlers"
+	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http/middleware"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/http"
 )
 
 // NewHTTPServer creates a new HTTP server with the given configuration and logger
-func NewHTTPServer(c *conf.HTTP, logger log.Logger) *http.Server {
+func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler) *http.Server {
 	var opts = []http.ServerOption{
 		http.Address(c.Addr),
 		http.Timeout(c.Timeout),
 		http.Middleware(
 			recovery.Recovery(),
-			logging.Server(logger),
+			middleware.Timeout(30*time.Second), // 30 second timeout for requests
+			middleware.StructuredLogging(logger),
+		),
+		http.Filter(
+			middleware.CORS(), // Add CORS support
 		),
 	}
 
@@ -37,20 +43,23 @@ func NewHTTPServer(c *conf.HTTP, logger log.Logger) *http.Server {
 	srv := http.NewServer(opts...)
 
 	// Register basic routes
-	RegisterRoutes(srv)
+	RegisterRoutes(srv, healthHandler, requestResponseHandler)
 
 	return srv
 }
 
 // RegisterRoutes registers basic routes on the HTTP server
-func RegisterRoutes(srv *http.Server) {
-	// Basic health check route
-	srv.Route("/health").GET("/", func(ctx http.Context) error {
-		return ctx.JSON(200, map[string]interface{}{
-			"status":    "ok",
-			"timestamp": "2024-01-01T00:00:00Z",
-		})
-	})
+func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler) {
+	// Health check route using the proper handler
+	srv.Route("/health").GET("/", healthHandler.Check)
+
+	// Status route with path parameters and error handling
+	srv.Route("/status").GET("/{id}", healthHandler.Status)
+
+	// Request/Response processing demonstration routes
+	srv.Route("/demo").GET("/path/{id}", requestResponseHandler.GetWithPathParams)
+	srv.Route("/demo").GET("/query", requestResponseHandler.GetWithQueryParams)
+	srv.Route("/demo").GET("/json", requestResponseHandler.GetJSONResponse)
 
 	// Basic status route
 	srv.Route("/status").GET("/", func(ctx http.Context) error {

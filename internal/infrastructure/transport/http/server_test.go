@@ -6,11 +6,14 @@ import (
 	"time"
 
 	"github.com/akeemphilbert/goro/internal/conf"
+	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http/handlers"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
 func TestNewHTTPServer(t *testing.T) {
 	logger := log.NewStdLogger(nil)
+	healthHandler := handlers.NewHealthHandler(logger)
+	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
 	tests := []struct {
 		name   string
@@ -44,7 +47,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewHTTPServer(tt.config, logger)
+			server := NewHTTPServer(tt.config, logger, healthHandler, requestResponseHandler)
 			if server == nil {
 				t.Fatal("NewHTTPServer() returned nil")
 			}
@@ -58,6 +61,8 @@ func TestNewHTTPServer(t *testing.T) {
 
 func TestNewHTTPServerWithMiddleware(t *testing.T) {
 	logger := log.NewStdLogger(nil)
+	healthHandler := handlers.NewHealthHandler(logger)
+	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":8080",
@@ -68,7 +73,7 @@ func TestNewHTTPServerWithMiddleware(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger)
+	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
@@ -79,6 +84,8 @@ func TestNewHTTPServerWithMiddleware(t *testing.T) {
 
 func TestServerOptions(t *testing.T) {
 	logger := log.NewStdLogger(nil)
+	healthHandler := handlers.NewHealthHandler(logger)
+	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0", // Use port 0 for testing to avoid conflicts
@@ -89,7 +96,7 @@ func TestServerOptions(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger)
+	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
@@ -111,6 +118,8 @@ func TestServerOptions(t *testing.T) {
 }
 func TestRouteRegistration(t *testing.T) {
 	logger := log.NewStdLogger(nil)
+	healthHandler := handlers.NewHealthHandler(logger)
+	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0",
@@ -121,13 +130,13 @@ func TestRouteRegistration(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger)
+	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
 
 	// Test basic route registration
-	RegisterRoutes(server)
+	RegisterRoutes(server, healthHandler, requestResponseHandler)
 
 	// Verify server can start with registered routes
 	ctx := context.Background()
@@ -146,6 +155,8 @@ func TestRouteRegistration(t *testing.T) {
 
 func TestRouteGroups(t *testing.T) {
 	logger := log.NewStdLogger(nil)
+	healthHandler := handlers.NewHealthHandler(logger)
+	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0",
@@ -156,7 +167,7 @@ func TestRouteGroups(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger)
+	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
@@ -181,6 +192,8 @@ func TestRouteGroups(t *testing.T) {
 
 func TestPathParameters(t *testing.T) {
 	logger := log.NewStdLogger(nil)
+	healthHandler := handlers.NewHealthHandler(logger)
+	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0",
@@ -191,7 +204,7 @@ func TestPathParameters(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger)
+	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}

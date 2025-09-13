@@ -8,10 +8,11 @@ package main
 
 import (
 	"github.com/akeemphilbert/goro/internal/conf"
+	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http"
+	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http/handlers"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/google/wire"
 )
 
@@ -23,8 +24,10 @@ import (
 
 // wireApp init kratos application.
 func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error) {
-	http := server.HTTP
-	httpServer := NewHTTPServer(http, logger)
+	confHTTP := server.HTTP
+	healthHandler := handlers.NewHealthHandler(logger)
+	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
+	httpServer := http.NewHTTPServer(confHTTP, logger, healthHandler, requestResponseHandler)
 	grpc := server.GRPC
 	grpcServer := NewGRPCServer(grpc, logger)
 	app := newApp(logger, httpServer, grpcServer)
@@ -35,21 +38,7 @@ func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error
 // wire.go:
 
 // ProviderSet is the provider set for Wire dependency injection
-var ProviderSet = wire.NewSet(
-	NewHTTPServer,
-	NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"),
-)
-
-// NewHTTPServer creates a new HTTP server
-func NewHTTPServer(c *conf.HTTP, logger log.Logger) *http.Server {
-	var opts = []http.ServerOption{http.Network(c.Network), http.Address(c.Addr)}
-	if c.Timeout != 0 {
-		opts = append(opts, http.Timeout(c.Timeout))
-	}
-
-	srv := http.NewServer(opts...)
-	return srv
-}
+var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, handlers.NewRequestResponseHandler, NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"))
 
 // NewGRPCServer creates a new gRPC server
 func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {
