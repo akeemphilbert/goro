@@ -1,0 +1,11 @@
+server:
+  http:
+    network: tcp
+    addr: ":8080"
+    timeout: 30s
+    read_timeout: 30s
+    write_timeout: 30s
+  grpc:
+    network: tcp
+    addr: ":9000"
+    timeout: 30s
