@@ -41,6 +41,7 @@ var ProviderSet = wire.NewSet(
 	httpServer.NewHTTPServer,
 	handlers.NewHealthHandler,
 	handlers.NewRequestResponseHandler,
+	NewResourceHandlerWithDependencies,
 	NewGRPCServer,
 	wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"),
 )

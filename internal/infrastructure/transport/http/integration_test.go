@@ -336,7 +336,7 @@ func createTestServer(t *testing.T) (*kratosHttp.Server, string, func()) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	baseURL := "http://localhost:18080"
 
 	cleanup := func() {

@@ -14,7 +14,49 @@ import (
 )
 
 // NewHTTPServer creates a new HTTP server with the given configuration and logger
-func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler) *http.Server {
+func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler) *http.Server {
+	var opts = []http.ServerOption{
+		http.Address(c.Addr),
+		http.Timeout(time.Duration(c.Timeout)),
+		http.Middleware(
+			recovery.Recovery(),
+			middleware.Timeout(time.Duration(c.Timeout)), // Use configured timeout
+			middleware.StructuredLogging(logger),
+		),
+		http.Filter(
+			middleware.CORS(),               // Add CORS support
+			middleware.ContentNegotiation(), // Add content negotiation for RDF formats
+		),
+	}
+
+	// Add shutdown timeout if configured
+	if c.ShutdownTimeout > 0 {
+		log.Infof("Configuring HTTP server shutdown timeout: %v", time.Duration(c.ShutdownTimeout))
+		// Note: Kratos uses the timeout option for both request and shutdown timeout
+		// We'll handle graceful shutdown at the app level
+	}
+
+	// Add TLS support if enabled
+	if c.TLS.Enabled {
+		tlsConfig, err := createTLSConfig(c.TLS, logger)
+		if err != nil {
+			log.Errorf("Failed to create TLS configuration: %v", err)
+		} else {
+			opts = append(opts, http.TLSConfig(tlsConfig))
+			log.Infof("HTTPS server enabled with TLS configuration")
+		}
+	}
+
+	srv := http.NewServer(opts...)
+
+	// Register basic routes
+	RegisterRoutes(srv, healthHandler, requestResponseHandler, resourceHandler)
+
+	return srv
+}
+
+// NewHTTPServerWithoutResourceHandler creates a new HTTP server without resource handler for backward compatibility
+func NewHTTPServerWithoutResourceHandler(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler) *http.Server {
 	var opts = []http.ServerOption{
 		http.Address(c.Addr),
 		http.Timeout(time.Duration(c.Timeout)),
@@ -48,14 +90,14 @@ func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.Heal
 
 	srv := http.NewServer(opts...)
 
-	// Register basic routes
-	RegisterRoutes(srv, healthHandler, requestResponseHandler)
+	// Register basic routes without resource handler
+	RegisterBasicRoutes(srv, healthHandler, requestResponseHandler)
 
 	return srv
 }
 
-// RegisterRoutes registers basic routes on the HTTP server
-func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler) {
+// RegisterBasicRoutes registers basic routes without resource endpoints
+func RegisterBasicRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler) {
 	// Health check route using the proper handler
 	srv.Route("/health").GET("/", healthHandler.Check)
 
@@ -73,6 +115,47 @@ func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, req
 			"service": "running",
 		})
 	})
+}
+
+// RegisterResourceRoutes registers resource storage endpoints
+func RegisterResourceRoutes(srv *http.Server, resourceHandler *handlers.ResourceHandler) {
+	// Resource collection endpoints
+	resourceRoute := srv.Route("/resources")
+
+	// Collection operations
+	resourceRoute.POST("/", resourceHandler.PostResource)
+	resourceRoute.OPTIONS("/", resourceHandler.OptionsResource)
+
+	// Individual resource operations
+	resourceRoute.GET("/{id}", resourceHandler.GetResource)
+	resourceRoute.PUT("/{id}", resourceHandler.PutResource)
+	resourceRoute.DELETE("/{id}", resourceHandler.DeleteResource)
+	resourceRoute.HEAD("/{id}", resourceHandler.HeadResource)
+	resourceRoute.OPTIONS("/{id}", resourceHandler.OptionsResource)
+}
+
+// RegisterRoutes registers basic routes on the HTTP server
+func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler) {
+	// Health check route using the proper handler
+	srv.Route("/health").GET("/", healthHandler.Check)
+
+	// Status route with path parameters and error handling
+	srv.Route("/status").GET("/{id}", healthHandler.Status)
+
+	// Request/Response processing demonstration routes
+	srv.Route("/demo").GET("/path/{id}", requestResponseHandler.GetWithPathParams)
+	srv.Route("/demo").GET("/query", requestResponseHandler.GetWithQueryParams)
+	srv.Route("/demo").GET("/json", requestResponseHandler.GetJSONResponse)
+
+	// Basic status route
+	srv.Route("/status").GET("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{
+			"service": "running",
+		})
+	})
+
+	// Resource storage endpoints
+	RegisterResourceRoutes(srv, resourceHandler)
 }
 
 // RegisterRouteGroups registers route groups for organized routing

@@ -11,6 +11,7 @@ import (
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	"github.com/go-kratos/kratos/v2/log"
 	khttp "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/segmentio/ksuid"
 )
 
 // StorageServiceInterface defines the interface for storage operations
@@ -78,6 +79,11 @@ func (h *ResourceHandler) PostResource(ctx khttp.Context) error {
 	id := ""
 	if len(vars["id"]) > 0 {
 		id = vars["id"][0]
+	}
+
+	// Generate ID if not provided (for POST to collection)
+	if id == "" {
+		id = h.generateResourceID()
 	}
 
 	// Get content type from request
@@ -437,4 +443,11 @@ func (h *ResourceHandler) generateETag(resource *domain.Resource) string {
 	// Simple ETag generation based on resource ID and content hash
 	// In production, this could be more sophisticated
 	return fmt.Sprintf("%s-%d", resource.ID(), len(resource.GetData()))
+}
+
+// generateResourceID generates a unique resource ID using KSUID
+func (h *ResourceHandler) generateResourceID() string {
+	// Generate a KSUID which provides lexicographically sortable, globally unique identifiers
+	// KSUIDs are 27-character base62-encoded strings that include a timestamp component
+	return ksuid.New().String()
 }

@@ -47,7 +47,7 @@ func TestNewHTTPServer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewHTTPServer(tt.config, logger, healthHandler, requestResponseHandler)
+			server := NewHTTPServerWithoutResourceHandler(tt.config, logger, healthHandler, requestResponseHandler)
 			if server == nil {
 				t.Fatal("NewHTTPServer() returned nil")
 			}
@@ -73,7 +73,7 @@ func TestNewHTTPServerWithMiddleware(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
@@ -96,7 +96,7 @@ func TestServerOptions(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
@@ -130,13 +130,13 @@ func TestRouteRegistration(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
 
 	// Test basic route registration
-	RegisterRoutes(server, healthHandler, requestResponseHandler)
+	RegisterBasicRoutes(server, healthHandler, requestResponseHandler)
 
 	// Verify server can start with registered routes
 	ctx := context.Background()
@@ -167,7 +167,7 @@ func TestRouteGroups(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}
@@ -204,7 +204,7 @@ func TestPathParameters(t *testing.T) {
 		MaxHeaderBytes:  1048576,
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("NewHTTPServer() returned nil")
 	}

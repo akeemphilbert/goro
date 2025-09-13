@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
-	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
 	"github.com/google/wire"
@@ -12,8 +11,8 @@ import (
 
 // ProviderSet is the Wire provider set for the application layer
 var ProviderSet = wire.NewSet(
-	NewStorageService,
-	wire.Bind(new(FormatConverter), new(*infrastructure.RDFConverter)),
+	NewStorageServiceProvider,
+	NewEventHandlerRegistrarProvider,
 )
 
 // NewStorageServiceProvider creates a StorageService with all dependencies and registers event handlers

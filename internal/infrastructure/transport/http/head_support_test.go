@@ -20,7 +20,7 @@ func TestHEADMethodSupport(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register HEAD test routes
 	RegisterHEADTestRoutes(server)
@@ -134,7 +134,7 @@ func TestHEADMethodWithDifferentContentTypes(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register content type test routes
 	RegisterContentTypeTestRoutes(server)
@@ -217,7 +217,7 @@ func TestHEADMethodErrorHandling(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register error test routes
 	RegisterErrorTestRoutes(server)

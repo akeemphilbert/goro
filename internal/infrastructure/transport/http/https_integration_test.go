@@ -50,7 +50,7 @@ func TestHTTPS_EndToEnd(t *testing.T) {
 	}
 
 	// Create HTTPS server
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("Failed to create HTTPS server")
 	}
@@ -175,7 +175,7 @@ func TestHTTP_vs_HTTPS_Comparison(t *testing.T) {
 			},
 		}
 
-		server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+		server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 		if server == nil {
 			t.Fatal("Failed to create HTTP server")
 		}
@@ -240,7 +240,7 @@ func TestHTTP_vs_HTTPS_Comparison(t *testing.T) {
 			},
 		}
 
-		server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+		server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 		if server == nil {
 			t.Fatal("Failed to create HTTPS server")
 		}

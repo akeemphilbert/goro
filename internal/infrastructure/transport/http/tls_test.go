@@ -34,7 +34,7 @@ func TestNewHTTPServer_TLS_Disabled(t *testing.T) {
 		},
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("Expected server to be created, got nil")
 	}
@@ -75,7 +75,7 @@ func TestNewHTTPServer_TLS_Enabled_ValidCerts(t *testing.T) {
 		},
 	}
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("Expected server to be created, got nil")
 	}
@@ -100,7 +100,7 @@ func TestNewHTTPServer_TLS_Enabled_InvalidCerts(t *testing.T) {
 	}
 
 	// This should not panic, but should log an error
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 	if server == nil {
 		t.Fatal("Expected server to be created even with invalid certs, got nil")
 	}
@@ -348,7 +348,7 @@ func TestTLS_ServerOptions(t *testing.T) {
 			healthHandler := handlers.NewHealthHandler(logger)
 			requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-			server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+			server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 			if server == nil {
 				t.Errorf("Expected server to be created, got nil")
 			}
@@ -714,7 +714,7 @@ func TestTLS_IntegrationWithServer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewHTTPServer(tt.config, logger, healthHandler, requestResponseHandler)
+			server := NewHTTPServerWithoutResourceHandler(tt.config, logger, healthHandler, requestResponseHandler)
 
 			if tt.wantErr {
 				if server != nil {

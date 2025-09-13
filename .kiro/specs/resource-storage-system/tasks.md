@@ -52,7 +52,7 @@
   - Write unit tests for HTTP handler operations
   - _Requirements: 1.2, 1.5, 2.1, 2.4, 5.2, 5.5_
 
-- [-] 8. Set up HTTP routing and middleware integration
+- [x] 8. Set up HTTP routing and middleware integration
   - Configure Kratos HTTP server routing for resource endpoints
   - Integrate CORS middleware for cross-origin requests
   - Add request logging and timeout middleware

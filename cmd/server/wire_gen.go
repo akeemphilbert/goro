@@ -29,7 +29,11 @@ func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error
 	confHTTP := server.HTTP
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
-	httpServer := http.NewHTTPServer(confHTTP, logger, healthHandler, requestResponseHandler)
+	resourceHandler, err := NewResourceHandlerWithDependencies(logger)
+	if err != nil {
+		return nil, nil, err
+	}
+	httpServer := http.NewHTTPServer(confHTTP, logger, healthHandler, requestResponseHandler, resourceHandler)
 	grpc := server.GRPC
 	grpcServer := NewGRPCServer(grpc, logger)
 	app, cleanup := newAppWithCleanup(logger, httpServer, grpcServer, server)
@@ -51,7 +55,9 @@ func newAppWithCleanup(logger log.Logger, hs *http2.Server, gs *grpc.Server, con
 }
 
 // ProviderSet is the provider set for Wire dependency injection
-var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, handlers.NewRequestResponseHandler, NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"))
+var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, handlers.NewRequestResponseHandler, NewResourceHandlerWithDependencies,
+	NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"),
+)
 
 // NewGRPCServer creates a new gRPC server
 func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {

@@ -22,7 +22,7 @@ func TestOPTIONSMethodDiscovery(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register routes with different method combinations
 	RegisterOPTIONSTestRoutes(server)
@@ -117,7 +117,7 @@ func TestOPTIONSCORSPreflight(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register test routes
 	RegisterOPTIONSTestRoutes(server)
@@ -210,7 +210,7 @@ func TestOPTIONSWithPathParameters(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register parameterized routes
 	RegisterParameterizedOPTIONSRoutes(server)

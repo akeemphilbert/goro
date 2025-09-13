@@ -48,6 +48,15 @@ func NewFileSystemRepositoryProvider() (domain.ResourceRepository, error) {
 	return repo, nil
 }
 
+// NewFileSystemRepositoryWithPath provides a FileSystemRepository with a specific base path
+func NewFileSystemRepositoryWithPath(basePath string) (domain.ResourceRepository, error) {
+	repo, err := NewFileSystemRepository(basePath)
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
+}
+
 // Store saves a resource to the file system with metadata and checksum validation
 func (r *FileSystemRepository) Store(ctx context.Context, resource *domain.Resource) error {
 	if resource == nil {

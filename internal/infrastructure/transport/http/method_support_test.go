@@ -23,7 +23,7 @@ func TestHTTPMethodSupport(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register method-specific routes for testing
 	RegisterMethodSpecificRoutes(server)
@@ -164,7 +164,7 @@ func TestMethodNotAllowed(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register a route that only supports GET
 	server.Route("/api/get-only").GET("/", func(ctx kratoshttp.Context) error {
@@ -195,7 +195,7 @@ func TestMultipleMethodsOnSameRoute(t *testing.T) {
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 
-	server := NewHTTPServer(config, logger, healthHandler, requestResponseHandler)
+	server := NewHTTPServerWithoutResourceHandler(config, logger, healthHandler, requestResponseHandler)
 
 	// Register multiple methods on same route
 	route := server.Route("/api/multi")
