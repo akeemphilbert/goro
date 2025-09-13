@@ -329,10 +329,10 @@ func createTestServer(t *testing.T) (*kratosHttp.Server, string, func()) {
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":18080",
-		Timeout:         30 * time.Second,
-		ReadTimeout:     30 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 5 * time.Second,
+		Timeout:         conf.Duration(30 * time.Second),
+		ReadTimeout:     conf.Duration(30 * time.Second),
+		WriteTimeout:    conf.Duration(30 * time.Second),
+		ShutdownTimeout: conf.Duration(5 * time.Second),
 		MaxHeaderBytes:  1048576,
 	}
 

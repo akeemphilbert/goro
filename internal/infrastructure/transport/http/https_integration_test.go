@@ -41,7 +41,7 @@ func TestHTTPS_EndToEnd(t *testing.T) {
 	config := &conf.HTTP{
 		Network: "tcp",
 		Addr:    ":0", // Let OS assign a free port
-		Timeout: 30 * time.Second,
+		Timeout: conf.Duration(30 * time.Second),
 		TLS: conf.TLS{
 			Enabled:  true,
 			CertFile: certFile,
@@ -169,7 +169,7 @@ func TestHTTP_vs_HTTPS_Comparison(t *testing.T) {
 		config := &conf.HTTP{
 			Network: "tcp",
 			Addr:    ":0",
-			Timeout: 30 * time.Second,
+			Timeout: conf.Duration(30 * time.Second),
 			TLS: conf.TLS{
 				Enabled: false,
 			},
@@ -232,7 +232,7 @@ func TestHTTP_vs_HTTPS_Comparison(t *testing.T) {
 		config := &conf.HTTP{
 			Network: "tcp",
 			Addr:    ":0",
-			Timeout: 30 * time.Second,
+			Timeout: conf.Duration(30 * time.Second),
 			TLS: conf.TLS{
 				Enabled:  true,
 				CertFile: certFile,

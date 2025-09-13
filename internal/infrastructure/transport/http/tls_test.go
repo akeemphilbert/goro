@@ -28,7 +28,7 @@ func TestNewHTTPServer_TLS_Disabled(t *testing.T) {
 	config := &conf.HTTP{
 		Network: "tcp",
 		Addr:    ":8080",
-		Timeout: 30 * time.Second,
+		Timeout: conf.Duration(30 * time.Second),
 		TLS: conf.TLS{
 			Enabled: false,
 		},
@@ -67,7 +67,7 @@ func TestNewHTTPServer_TLS_Enabled_ValidCerts(t *testing.T) {
 	config := &conf.HTTP{
 		Network: "tcp",
 		Addr:    ":8081",
-		Timeout: 30 * time.Second,
+		Timeout: conf.Duration(30 * time.Second),
 		TLS: conf.TLS{
 			Enabled:  true,
 			CertFile: certFile,
@@ -91,7 +91,7 @@ func TestNewHTTPServer_TLS_Enabled_InvalidCerts(t *testing.T) {
 	config := &conf.HTTP{
 		Network: "tcp",
 		Addr:    ":8082",
-		Timeout: 30 * time.Second,
+		Timeout: conf.Duration(30 * time.Second),
 		TLS: conf.TLS{
 			Enabled:  true,
 			CertFile: "nonexistent.crt",
@@ -341,7 +341,7 @@ func TestTLS_ServerOptions(t *testing.T) {
 			config := &conf.HTTP{
 				Network: "tcp",
 				Addr:    ":0", // Use port 0 to let OS assign a free port
-				Timeout: 30 * time.Second,
+				Timeout: conf.Duration(30 * time.Second),
 				TLS:     tt.tlsConfig,
 			}
 
@@ -675,7 +675,7 @@ func TestTLS_IntegrationWithServer(t *testing.T) {
 			config: &conf.HTTP{
 				Network: "tcp",
 				Addr:    ":0",
-				Timeout: 30 * time.Second,
+				Timeout: conf.Duration(30 * time.Second),
 				TLS: conf.TLS{
 					Enabled:  true,
 					CertFile: certFile,
@@ -689,7 +689,7 @@ func TestTLS_IntegrationWithServer(t *testing.T) {
 			config: &conf.HTTP{
 				Network: "tcp",
 				Addr:    ":0",
-				Timeout: 30 * time.Second,
+				Timeout: conf.Duration(30 * time.Second),
 				TLS: conf.TLS{
 					Enabled: false,
 				},
@@ -701,7 +701,7 @@ func TestTLS_IntegrationWithServer(t *testing.T) {
 			config: &conf.HTTP{
 				Network: "tcp",
 				Addr:    ":0",
-				Timeout: 30 * time.Second,
+				Timeout: conf.Duration(30 * time.Second),
 				TLS: conf.TLS{
 					Enabled:  true,
 					CertFile: "nonexistent.crt",

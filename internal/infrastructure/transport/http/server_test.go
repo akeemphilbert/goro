@@ -24,10 +24,10 @@ func TestNewHTTPServer(t *testing.T) {
 			config: &conf.HTTP{
 				Network:         "tcp",
 				Addr:            ":8080",
-				Timeout:         30 * time.Second,
-				ReadTimeout:     30 * time.Second,
-				WriteTimeout:    30 * time.Second,
-				ShutdownTimeout: 10 * time.Second,
+				Timeout:         conf.Duration(30 * time.Second),
+				ReadTimeout:     conf.Duration(30 * time.Second),
+				WriteTimeout:    conf.Duration(30 * time.Second),
+				ShutdownTimeout: conf.Duration(10 * time.Second),
 				MaxHeaderBytes:  1048576,
 			},
 		},
@@ -36,10 +36,10 @@ func TestNewHTTPServer(t *testing.T) {
 			config: &conf.HTTP{
 				Network:         "tcp",
 				Addr:            ":9090",
-				Timeout:         60 * time.Second,
-				ReadTimeout:     45 * time.Second,
-				WriteTimeout:    45 * time.Second,
-				ShutdownTimeout: 15 * time.Second,
+				Timeout:         conf.Duration(60 * time.Second),
+				ReadTimeout:     conf.Duration(45 * time.Second),
+				WriteTimeout:    conf.Duration(45 * time.Second),
+				ShutdownTimeout: conf.Duration(15 * time.Second),
 				MaxHeaderBytes:  2097152,
 			},
 		},
@@ -66,10 +66,10 @@ func TestNewHTTPServerWithMiddleware(t *testing.T) {
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":8080",
-		Timeout:         30 * time.Second,
-		ReadTimeout:     30 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 10 * time.Second,
+		Timeout:         conf.Duration(30 * time.Second),
+		ReadTimeout:     conf.Duration(30 * time.Second),
+		WriteTimeout:    conf.Duration(30 * time.Second),
+		ShutdownTimeout: conf.Duration(10 * time.Second),
 		MaxHeaderBytes:  1048576,
 	}
 
@@ -89,10 +89,10 @@ func TestServerOptions(t *testing.T) {
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0", // Use port 0 for testing to avoid conflicts
-		Timeout:         30 * time.Second,
-		ReadTimeout:     30 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 10 * time.Second,
+		Timeout:         conf.Duration(30 * time.Second),
+		ReadTimeout:     conf.Duration(30 * time.Second),
+		WriteTimeout:    conf.Duration(30 * time.Second),
+		ShutdownTimeout: conf.Duration(10 * time.Second),
 		MaxHeaderBytes:  1048576,
 	}
 
@@ -123,10 +123,10 @@ func TestRouteRegistration(t *testing.T) {
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0",
-		Timeout:         30 * time.Second,
-		ReadTimeout:     30 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 10 * time.Second,
+		Timeout:         conf.Duration(30 * time.Second),
+		ReadTimeout:     conf.Duration(30 * time.Second),
+		WriteTimeout:    conf.Duration(30 * time.Second),
+		ShutdownTimeout: conf.Duration(10 * time.Second),
 		MaxHeaderBytes:  1048576,
 	}
 
@@ -160,10 +160,10 @@ func TestRouteGroups(t *testing.T) {
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0",
-		Timeout:         30 * time.Second,
-		ReadTimeout:     30 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 10 * time.Second,
+		Timeout:         conf.Duration(30 * time.Second),
+		ReadTimeout:     conf.Duration(30 * time.Second),
+		WriteTimeout:    conf.Duration(30 * time.Second),
+		ShutdownTimeout: conf.Duration(10 * time.Second),
 		MaxHeaderBytes:  1048576,
 	}
 
@@ -197,10 +197,10 @@ func TestPathParameters(t *testing.T) {
 	config := &conf.HTTP{
 		Network:         "tcp",
 		Addr:            ":0",
-		Timeout:         30 * time.Second,
-		ReadTimeout:     30 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 10 * time.Second,
+		Timeout:         conf.Duration(30 * time.Second),
+		ReadTimeout:     conf.Duration(30 * time.Second),
+		WriteTimeout:    conf.Duration(30 * time.Second),
+		ShutdownTimeout: conf.Duration(10 * time.Second),
 		MaxHeaderBytes:  1048576,
 	}
 
