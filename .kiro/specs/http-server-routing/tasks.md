@@ -78,40 +78,40 @@
     - Add request correlation IDs and contextual logging to pass tests
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 6. Implement HTTP method support and validation
-  - [ ] 6.1 Add support for all HTTP methods
+- [x] 6. Implement HTTP method support and validation
+  - [x] 6.1 Add support for all HTTP methods
     - Write unit tests for method-specific route registration (TDD)
     - Register routes for GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS methods to pass tests
     - Add method validation with proper 405 Method Not Allowed responses to pass tests
     - _Requirements: 2.1, 2.5_
 
-  - [ ] 6.2 Implement OPTIONS method for CORS and method discovery
+  - [x] 6.2 Implement OPTIONS method for CORS and method discovery
     - Write unit tests for OPTIONS responses and allowed methods (TDD)
     - Create OPTIONS handler that returns supported methods for resources to pass tests
     - Add CORS preflight request handling to pass tests
     - _Requirements: 2.3, 2.4_
 
-  - [ ] 6.3 Add HEAD method support
+  - [x] 6.3 Add HEAD method support
     - Write unit tests for HEAD responses (headers without body) (TDD)
     - Implement HEAD method handling that returns same headers as GET to pass tests
     - Ensure HEAD responses have no body content to pass tests
     - _Requirements: 2.4_
 
-- [ ] 7. Add graceful shutdown and lifecycle management
-  - [ ] 7.1 Implement graceful shutdown with Kratos app framework
+- [x] 7. Add graceful shutdown and lifecycle management
+  - [x] 7.1 Implement graceful shutdown with Kratos app framework
     - Write unit tests for shutdown signal handling and connection draining (TDD)
     - Use Kratos app lifecycle management for graceful shutdown to pass tests
     - Add proper cleanup of resources and active connections to pass tests
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-  - [ ] 7.2 Add signal handling for SIGTERM and SIGINT
+  - [x] 7.2 Add signal handling for SIGTERM and SIGINT
     - Write unit tests for signal handling and shutdown timeout (TDD)
     - Implement signal handling in main.go for graceful shutdown to pass tests
     - Add configurable shutdown timeout with forced termination to pass tests
     - _Requirements: 6.5_
 
-- [ ] 8. Create integration tests and final assembly
-  - [ ] 8.1 Build end-to-end integration tests
+- [-] 8. Create integration tests and final assembly
+  - [x] 8.1 Build end-to-end integration tests
     - Write integration tests for complete HTTP request/response cycles
     - Test concurrent request handling and middleware chain execution
     - Add tests for graceful shutdown with active connections

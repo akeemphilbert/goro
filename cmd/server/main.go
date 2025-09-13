@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
@@ -28,7 +32,13 @@ var (
 	flagconf = flag.String("conf", "../../configs", "config path, eg: -conf config.yaml")
 )
 
-func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server) *kratos.App {
+func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server, config *conf.Server) *kratos.App {
+	// Configure shutdown timeout from HTTP config
+	var shutdownTimeout time.Duration = 10 * time.Second // default
+	if config.HTTP != nil && config.HTTP.ShutdownTimeout > 0 {
+		shutdownTimeout = config.HTTP.ShutdownTimeout
+	}
+
 	return kratos.New(
 		kratos.ID(Name),
 		kratos.Name(Name),
@@ -39,6 +49,7 @@ func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server) *kratos.App {
 			hs,
 			gs,
 		),
+		kratos.StopTimeout(shutdownTimeout),
 	)
 }
 
@@ -79,10 +90,69 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer cleanup()
+	defer func() {
+		log.Info("Cleaning up resources...")
+		cleanup()
+		log.Info("Cleanup completed")
+	}()
+
+	// Set up signal handling for graceful shutdown
+	_, cancel := setupSignalHandling(logger, bc.Server)
+	defer cancel()
 
 	// start and wait for stop signal
+	log.Info("Starting application...")
 	if err := app.Run(); err != nil {
+		log.Errorf("Application error: %v", err)
 		panic(err)
 	}
+	log.Info("Application stopped gracefully")
+}
+
+// setupSignalHandling configures signal handling for graceful shutdown
+func setupSignalHandling(logger log.Logger, config *conf.Server) (context.Context, context.CancelFunc) {
+	// Create context for signal handling
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Create channel to receive OS signals
+	sigChan := make(chan os.Signal, 1)
+
+	// Register the channel to receive specific signals
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	// Start goroutine to handle signals
+	go func() {
+		defer signal.Stop(sigChan)
+
+		select {
+		case sig := <-sigChan:
+			log.Infof("Received signal: %v", sig)
+			log.Info("Initiating graceful shutdown...")
+
+			// Get shutdown timeout from configuration
+			shutdownTimeout := 10 * time.Second // default
+			if config.HTTP != nil && config.HTTP.ShutdownTimeout > 0 {
+				shutdownTimeout = config.HTTP.ShutdownTimeout
+			}
+
+			log.Infof("Shutdown timeout configured: %v", shutdownTimeout)
+
+			// Cancel the context to signal shutdown
+			cancel()
+
+			// Set up forced termination after timeout
+			go func() {
+				time.Sleep(shutdownTimeout + 5*time.Second) // Add buffer for cleanup
+				log.Warn("Forced termination after shutdown timeout")
+				os.Exit(1)
+			}()
+
+		case <-ctx.Done():
+			// Context was cancelled, stop signal handling
+			return
+		}
+	}()
+
+	log.Info("Signal handling configured for SIGTERM and SIGINT")
+	return ctx, cancel
 }

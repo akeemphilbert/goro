@@ -61,8 +61,8 @@ func CORSWithConfig(config CORSConfig) khttp.FilterFunc {
 				w.Header().Set("Access-Control-Max-Age", strconv.Itoa(config.MaxAge))
 			}
 
-			// Handle preflight OPTIONS request
-			if r.Method == "OPTIONS" {
+			// Handle preflight OPTIONS request (only if it has CORS headers)
+			if r.Method == "OPTIONS" && (r.Header.Get("Access-Control-Request-Method") != "" || r.Header.Get("Access-Control-Request-Headers") != "") {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}

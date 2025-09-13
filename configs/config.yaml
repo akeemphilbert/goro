@@ -1,7 +1,10 @@
 server:
   http:
     network: tcp
-    addr: ":8080"
+    addr: ":8081"
+    max_header_bytes: 1048576
+    tls:
+      enabled: false
   grpc:
     network: tcp
-    addr: ":9000"
+    addr: ":9001"

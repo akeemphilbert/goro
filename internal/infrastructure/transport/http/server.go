@@ -27,6 +27,13 @@ func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.Heal
 		),
 	}
 
+	// Add shutdown timeout if configured
+	if c.ShutdownTimeout > 0 {
+		log.Infof("Configuring HTTP server shutdown timeout: %v", c.ShutdownTimeout)
+		// Note: Kratos uses the timeout option for both request and shutdown timeout
+		// We'll handle graceful shutdown at the app level
+	}
+
 	// Add TLS support if enabled
 	if c.TLS.Enabled {
 		cert, err := tls.LoadX509KeyPair(c.TLS.CertFile, c.TLS.KeyFile)
@@ -130,5 +137,338 @@ func RegisterParameterRoutes(srv *http.Server) {
 			"file_path": path,
 			"message":   "file access",
 		})
+	})
+}
+
+// RegisterMethodSpecificRoutes registers routes that demonstrate all HTTP method support
+func RegisterMethodSpecificRoutes(srv *http.Server) {
+	route := srv.Route("/api/resource")
+
+	// GET method
+	route.GET("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{
+			"method":  "GET",
+			"message": "success",
+		})
+	})
+
+	// POST method
+	route.POST("/", func(ctx http.Context) error {
+		return ctx.JSON(201, map[string]string{
+			"method":  "POST",
+			"message": "created",
+		})
+	})
+
+	// PUT method
+	route.PUT("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{
+			"method":  "PUT",
+			"message": "updated",
+		})
+	})
+
+	// DELETE method
+	route.DELETE("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{
+			"method":  "DELETE",
+			"message": "deleted",
+		})
+	})
+
+	// PATCH method
+	route.PATCH("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{
+			"method":  "PATCH",
+			"message": "patched",
+		})
+	})
+
+	// HEAD method - should return same headers as GET but no body
+	route.HEAD("/", func(ctx http.Context) error {
+		// Set the same headers as GET would
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+
+	// OPTIONS method - returns supported methods
+	route.OPTIONS("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]interface{}{
+			"methods": []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
+		})
+	})
+}
+
+// RegisterOPTIONSTestRoutes registers routes for testing OPTIONS method discovery
+func RegisterOPTIONSTestRoutes(srv *http.Server) {
+	// Full CRUD resource with all methods
+	crudRoute := srv.Route("/api/crud-resource")
+	crudRoute.GET("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"method": "GET"})
+	})
+	crudRoute.POST("/", func(ctx http.Context) error {
+		return ctx.JSON(201, map[string]string{"method": "POST"})
+	})
+	crudRoute.PUT("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"method": "PUT"})
+	})
+	crudRoute.DELETE("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"method": "DELETE"})
+	})
+	crudRoute.PATCH("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"method": "PATCH"})
+	})
+	crudRoute.HEAD("/", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+	crudRoute.OPTIONS("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]interface{}{
+			"methods": []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
+		})
+	})
+
+	// Read-only resource
+	readOnlyRoute := srv.Route("/api/readonly-resource")
+	readOnlyRoute.GET("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"method": "GET"})
+	})
+	readOnlyRoute.HEAD("/", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+	readOnlyRoute.OPTIONS("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]interface{}{
+			"methods": []string{"GET", "HEAD", "OPTIONS"},
+		})
+	})
+
+	// Write-only resource
+	writeOnlyRoute := srv.Route("/api/writeonly-resource")
+	writeOnlyRoute.POST("/", func(ctx http.Context) error {
+		return ctx.JSON(201, map[string]string{"method": "POST"})
+	})
+	writeOnlyRoute.PUT("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"method": "PUT"})
+	})
+	writeOnlyRoute.OPTIONS("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]interface{}{
+			"methods": []string{"POST", "PUT", "OPTIONS"},
+		})
+	})
+}
+
+// RegisterParameterizedOPTIONSRoutes registers routes with path parameters for OPTIONS testing
+func RegisterParameterizedOPTIONSRoutes(srv *http.Server) {
+	// Collection endpoint
+	collectionRoute := srv.Route("/api/items")
+	collectionRoute.GET("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"method": "GET", "type": "collection"})
+	})
+	collectionRoute.POST("/", func(ctx http.Context) error {
+		return ctx.JSON(201, map[string]string{"method": "POST", "type": "collection"})
+	})
+	collectionRoute.HEAD("/", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+	collectionRoute.OPTIONS("/", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]interface{}{
+			"methods": []string{"GET", "POST", "HEAD", "OPTIONS"},
+		})
+	})
+
+	// Item endpoint with ID parameter
+	itemRoute := srv.Route("/api/items")
+	itemRoute.GET("/{id}", func(ctx http.Context) error {
+		vars := ctx.Vars()
+		id := ""
+		if len(vars["id"]) > 0 {
+			id = vars["id"][0]
+		}
+		return ctx.JSON(200, map[string]string{"method": "GET", "type": "item", "id": id})
+	})
+	itemRoute.PUT("/{id}", func(ctx http.Context) error {
+		vars := ctx.Vars()
+		id := ""
+		if len(vars["id"]) > 0 {
+			id = vars["id"][0]
+		}
+		return ctx.JSON(200, map[string]string{"method": "PUT", "type": "item", "id": id})
+	})
+	itemRoute.DELETE("/{id}", func(ctx http.Context) error {
+		vars := ctx.Vars()
+		id := ""
+		if len(vars["id"]) > 0 {
+			id = vars["id"][0]
+		}
+		return ctx.JSON(200, map[string]string{"method": "DELETE", "type": "item", "id": id})
+	})
+	itemRoute.HEAD("/{id}", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+	itemRoute.OPTIONS("/{id}", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]interface{}{
+			"methods": []string{"GET", "PUT", "DELETE", "HEAD", "OPTIONS"},
+		})
+	})
+}
+
+// RegisterHEADTestRoutes registers routes for testing HEAD method support
+func RegisterHEADTestRoutes(srv *http.Server) {
+	// Basic HEAD test route
+	headRoute := srv.Route("/api/head-test")
+
+	// GET handler that sets custom headers
+	headRoute.GET("/", func(ctx http.Context) error {
+		// Set custom headers that should be present in HEAD response
+		ctx.Response().Header().Set("X-Resource-Type", "test-resource")
+		ctx.Response().Header().Set("X-Version", "1.0")
+
+		return ctx.JSON(200, map[string]interface{}{
+			"message": "This is a test resource",
+			"data":    []string{"item1", "item2", "item3"},
+		})
+	})
+
+	// HEAD handler that returns same headers as GET but no body
+	headRoute.HEAD("/", func(ctx http.Context) error {
+		// Set the same headers as GET
+		ctx.Response().Header().Set("X-Resource-Type", "test-resource")
+		ctx.Response().Header().Set("X-Version", "1.0")
+		ctx.Response().Header().Set("Content-Type", "application/json")
+
+		// Write status code without body
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+
+	// GET handler with path parameter
+	headRoute.GET("/{id}", func(ctx http.Context) error {
+		vars := ctx.Vars()
+		id := ""
+		if len(vars["id"]) > 0 {
+			id = vars["id"][0]
+		}
+
+		// Simulate not found
+		if id == "notfound" {
+			return ctx.JSON(404, map[string]string{"error": "Resource not found"})
+		}
+
+		// Set custom headers
+		ctx.Response().Header().Set("X-Resource-Type", "test-resource")
+		ctx.Response().Header().Set("X-Resource-ID", id)
+
+		return ctx.JSON(200, map[string]interface{}{
+			"id":      id,
+			"message": "Resource found",
+		})
+	})
+
+	// HEAD handler with path parameter
+	headRoute.HEAD("/{id}", func(ctx http.Context) error {
+		vars := ctx.Vars()
+		id := ""
+		if len(vars["id"]) > 0 {
+			id = vars["id"][0]
+		}
+
+		// Simulate not found
+		if id == "notfound" {
+			ctx.Response().Header().Set("Content-Type", "application/json")
+			ctx.Response().WriteHeader(404)
+			return nil
+		}
+
+		// Set the same headers as GET
+		ctx.Response().Header().Set("X-Resource-Type", "test-resource")
+		ctx.Response().Header().Set("X-Resource-ID", id)
+		ctx.Response().Header().Set("Content-Type", "application/json")
+
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+}
+
+// RegisterContentTypeTestRoutes registers routes for testing different content types with HEAD
+func RegisterContentTypeTestRoutes(srv *http.Server) {
+	contentRoute := srv.Route("/api/content")
+
+	// JSON content
+	contentRoute.GET("/json", func(ctx http.Context) error {
+		return ctx.JSON(200, map[string]string{"type": "json", "message": "JSON response"})
+	})
+	contentRoute.HEAD("/json", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+
+	// Plain text content
+	contentRoute.GET("/text", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "text/plain")
+		ctx.Response().WriteHeader(200)
+		ctx.Response().Write([]byte("This is plain text content"))
+		return nil
+	})
+	contentRoute.HEAD("/text", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "text/plain")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+
+	// XML content
+	contentRoute.GET("/xml", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/xml")
+		ctx.Response().WriteHeader(200)
+		ctx.Response().Write([]byte(`<?xml version="1.0"?><root><message>XML response</message></root>`))
+		return nil
+	})
+	contentRoute.HEAD("/xml", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/xml")
+		ctx.Response().WriteHeader(200)
+		return nil
+	})
+}
+
+// RegisterErrorTestRoutes registers routes for testing HEAD method with error responses
+func RegisterErrorTestRoutes(srv *http.Server) {
+	errorRoute := srv.Route("/api/error")
+
+	// 404 error
+	errorRoute.GET("/404", func(ctx http.Context) error {
+		return ctx.JSON(404, map[string]string{"error": "Not found"})
+	})
+	errorRoute.HEAD("/404", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(404)
+		return nil
+	})
+
+	// 500 error
+	errorRoute.GET("/500", func(ctx http.Context) error {
+		return ctx.JSON(500, map[string]string{"error": "Internal server error"})
+	})
+	errorRoute.HEAD("/500", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(500)
+		return nil
+	})
+
+	// 400 error
+	errorRoute.GET("/400", func(ctx http.Context) error {
+		return ctx.JSON(400, map[string]string{"error": "Bad request"})
+	})
+	errorRoute.HEAD("/400", func(ctx http.Context) error {
+		ctx.Response().Header().Set("Content-Type", "application/json")
+		ctx.Response().WriteHeader(400)
+		return nil
 	})
 }

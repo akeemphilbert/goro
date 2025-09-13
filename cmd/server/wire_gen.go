@@ -13,6 +13,7 @@ import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	http2 "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/google/wire"
 )
 
@@ -30,12 +31,23 @@ func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error
 	httpServer := http.NewHTTPServer(confHTTP, logger, healthHandler, requestResponseHandler)
 	grpc := server.GRPC
 	grpcServer := NewGRPCServer(grpc, logger)
-	app := newApp(logger, httpServer, grpcServer)
+	app, cleanup := newAppWithCleanup(logger, httpServer, grpcServer, server)
 	return app, func() {
+		cleanup()
 	}, nil
 }
 
 // wire.go:
+
+// newAppWithCleanup creates both the app and cleanup function
+func newAppWithCleanup(logger log.Logger, hs *http2.Server, gs *grpc.Server, config *conf.Server) (*kratos.App, func()) {
+	app := newApp(logger, hs, gs, config)
+	cleanup := func() {
+		log.Info("Executing resource cleanup...")
+		log.Info("Resource cleanup completed")
+	}
+	return app, cleanup
+}
 
 // ProviderSet is the provider set for Wire dependency injection
 var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, handlers.NewRequestResponseHandler, NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"))

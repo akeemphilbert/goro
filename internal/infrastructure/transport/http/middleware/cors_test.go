@@ -59,13 +59,13 @@ func TestCORS(t *testing.T) {
 		{
 			name:           "OPTIONS request without origin",
 			method:         "OPTIONS",
-			expectedStatus: 204,
+			expectedStatus: 200,
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "*",
 				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,PATCH,HEAD,OPTIONS",
 				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
 			},
-			shouldCallNext: false,
+			shouldCallNext: true,
 		},
 	}
 

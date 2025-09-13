@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -22,7 +23,7 @@ func TestWireAppCreation(t *testing.T) {
 	}
 
 	// Create test logger
-	logger := log.NewStdLogger(nil)
+	logger := log.NewStdLogger(os.Stdout)
 
 	// Test that wireApp can create the application
 	app, cleanup, err := wireApp(serverConf, logger)
@@ -56,7 +57,7 @@ func TestGRPCServerCreation(t *testing.T) {
 	}
 
 	// Create test logger
-	logger := log.NewStdLogger(nil)
+	logger := log.NewStdLogger(os.Stdout)
 
 	// Test that NewGRPCServer can create gRPC server
 	server := NewGRPCServer(grpcConf, logger)
@@ -85,7 +86,7 @@ func TestProviderSetIntegration(t *testing.T) {
 		},
 	}
 
-	logger := log.NewStdLogger(nil)
+	logger := log.NewStdLogger(os.Stdout)
 
 	// This should not panic or fail
 	app, cleanup, err := wireApp(serverConf, logger)
