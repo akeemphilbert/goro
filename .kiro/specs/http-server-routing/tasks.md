@@ -117,7 +117,7 @@
     - Add tests for graceful shutdown with active connections
     - _Requirements: 1.1, 1.2, 1.3, 6.2, 6.3_
 
-  - [ ] 8.2 Add TLS/HTTPS support configuration
+  - [x] 8.2 Add TLS/HTTPS support configuration
     - Write unit tests for TLS configuration and certificate loading (TDD)
     - Add TLS configuration options to server config to pass tests
     - Implement HTTPS server creation with configurable certificates to pass tests

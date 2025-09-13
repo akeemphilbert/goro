@@ -1,0 +1,32 @@
+# Example configuration for HTTPS server
+# Copy this to config.yaml and update the certificate paths
+
+server:
+  http:
+    network: tcp
+    addr: ":8443"  # Standard HTTPS port
+    timeout: 30s
+    read_timeout: 30s
+    write_timeout: 30s
+    shutdown_timeout: 10s
+    max_header_bytes: 1048576
+    tls:
+      enabled: true
+      cert_file: "/path/to/your/server.crt"
+      key_file: "/path/to/your/server.key"
+  grpc:
+    network: tcp
+    addr: ":9001"
+    timeout: 30s
+
+# TLS Security Features:
+# - Minimum TLS version: 1.2
+# - Maximum TLS version: 1.3
+# - Secure cipher suites for TLS 1.2
+# - Modern elliptic curves (X25519, P-256, P-384)
+# - Server cipher suite preference enabled
+# - Session tickets enabled for performance
+# - No client certificate required by default
+
+# To generate self-signed certificates for testing:
+# openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -days 365 -nodes -subj "/CN=localhost"

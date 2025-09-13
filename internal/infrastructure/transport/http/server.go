@@ -2,6 +2,7 @@ package http
 
 import (
 	"crypto/tls"
+	"fmt"
 	"time"
 
 	"github.com/akeemphilbert/goro/internal/conf"
@@ -36,14 +37,12 @@ func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.Heal
 
 	// Add TLS support if enabled
 	if c.TLS.Enabled {
-		cert, err := tls.LoadX509KeyPair(c.TLS.CertFile, c.TLS.KeyFile)
+		tlsConfig, err := createTLSConfig(c.TLS, logger)
 		if err != nil {
-			log.Errorf("Failed to load TLS certificates: %v", err)
+			log.Errorf("Failed to create TLS configuration: %v", err)
 		} else {
-			tlsConfig := &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
 			opts = append(opts, http.TLSConfig(tlsConfig))
+			log.Infof("HTTPS server enabled with TLS configuration")
 		}
 	}
 
@@ -471,4 +470,63 @@ func RegisterErrorTestRoutes(srv *http.Server) {
 		ctx.Response().WriteHeader(400)
 		return nil
 	})
+}
+
+// createTLSConfig creates a TLS configuration from the provided TLS settings
+func createTLSConfig(tlsConf conf.TLS, logger log.Logger) (*tls.Config, error) {
+	if !tlsConf.Enabled {
+		return nil, fmt.Errorf("TLS is not enabled")
+	}
+
+	// Validate certificate files exist and are readable
+	if tlsConf.CertFile == "" {
+		return nil, fmt.Errorf("TLS certificate file path is empty")
+	}
+	if tlsConf.KeyFile == "" {
+		return nil, fmt.Errorf("TLS private key file path is empty")
+	}
+
+	// Load the certificate and private key
+	cert, err := tls.LoadX509KeyPair(tlsConf.CertFile, tlsConf.KeyFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load TLS certificate and key: %w", err)
+	}
+
+	// Create TLS configuration with security best practices
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+
+		// Security configurations
+		MinVersion: tls.VersionTLS12, // Minimum TLS 1.2
+		MaxVersion: tls.VersionTLS13, // Maximum TLS 1.3
+
+		// Cipher suites for TLS 1.2 (TLS 1.3 cipher suites are not configurable)
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		},
+
+		// Prefer server cipher suites
+		PreferServerCipherSuites: true,
+
+		// Curve preferences
+		CurvePreferences: []tls.CurveID{
+			tls.X25519,
+			tls.CurveP256,
+			tls.CurveP384,
+		},
+
+		// Enable session tickets for performance
+		SessionTicketsDisabled: false,
+
+		// Client authentication (can be configured later if needed)
+		ClientAuth: tls.NoClientCert,
+	}
+
+	log.Infof("TLS configuration created successfully with certificate from %s", tlsConf.CertFile)
+	return tlsConfig, nil
 }

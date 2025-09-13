@@ -2,9 +2,16 @@ server:
   http:
     network: tcp
     addr: ":8081"
+    timeout: 30s
+    read_timeout: 30s
+    write_timeout: 30s
+    shutdown_timeout: 10s
     max_header_bytes: 1048576
     tls:
       enabled: false
+      # cert_file: "/path/to/server.crt"
+      # key_file: "/path/to/server.key"
   grpc:
     network: tcp
     addr: ":9001"
+    timeout: 30s
