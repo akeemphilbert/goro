@@ -44,7 +44,7 @@
   - Write unit tests for service operations
   - _Requirements: 1.2, 2.1, 3.2, 3.4, 5.1_
 
-- [ ] 7. Create HTTP handlers for storage requests
+- [x] 7. Create HTTP handlers for storage requests
   - Implement ResourceHandler for HTTP storage operations (GET, PUT, POST, DELETE)
   - Add content negotiation middleware for RDF format selection
   - Implement request validation and error response handling
