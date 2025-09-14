@@ -101,3 +101,27 @@ type RoleWriteRepository interface {
 	Delete(ctx context.Context, id string) error
 	SeedSystemRoles(ctx context.Context) error
 }
+
+// Service interfaces
+
+// WebIDGenerator defines the interface for WebID generation and validation
+type WebIDGenerator interface {
+	GenerateWebID(ctx context.Context, userID, email, userName string) (string, error)
+	GenerateWebIDDocument(ctx context.Context, webID, email, userName string) (string, error)
+	ValidateWebID(ctx context.Context, webID string) error
+	IsUniqueWebID(ctx context.Context, webID string) (bool, error)
+	GenerateAlternativeWebID(ctx context.Context, baseWebID string) (string, error)
+}
+
+// FileStorage defines the interface for file storage operations
+type FileStorage interface {
+	StoreUserProfile(ctx context.Context, userID string, profile *User) error
+	LoadUserProfile(ctx context.Context, userID string) (*User, error)
+	DeleteUserProfile(ctx context.Context, userID string) error
+	StoreWebIDDocument(ctx context.Context, userID, webIDDoc string) error
+	LoadWebIDDocument(ctx context.Context, userID string) (string, error)
+	DeleteWebIDDocument(ctx context.Context, userID string) error
+	StoreAccountData(ctx context.Context, accountID string, account *Account) error
+	LoadAccountData(ctx context.Context, accountID string) (*Account, error)
+	DeleteAccountData(ctx context.Context, accountID string) error
+}
