@@ -38,7 +38,7 @@
   - Create hierarchy navigation and path resolution functionality
   - _Requirements: 1.4, 5.1, 5.2, 5.3_
 
-- [ ] 5. Create container HTTP handlers and routing (TDD)
+- [x] 5. Create container HTTP handlers and routing (TDD)
   - Write unit tests for HTTP handler operations
   - Write unit tests for LDP-compliant endpoint behavior
   - Write unit tests for container retrieval with member listing
@@ -51,7 +51,7 @@
   - Add HEAD and OPTIONS support for container resources
   - _Requirements: 2.1, 2.2, 2.5, 5.4_
 
-- [ ] 6. Implement container content negotiation (TDD)
+- [x] 6. Implement container content negotiation (TDD)
   - Write unit tests for container format conversion
   - Write unit tests for RDF serialization of container metadata
   - Write unit tests for LDP membership triple generation

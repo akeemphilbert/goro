@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
+	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
 
@@ -22,6 +23,7 @@ type ContainerListing struct {
 type ContainerService struct {
 	containerRepo     domain.ContainerRepository
 	unitOfWorkFactory func() pericarpdomain.UnitOfWork
+	rdfConverter      *infrastructure.ContainerRDFConverter
 	mu                sync.RWMutex // For concurrent access handling
 }
 
@@ -29,10 +31,12 @@ type ContainerService struct {
 func NewContainerService(
 	containerRepo domain.ContainerRepository,
 	unitOfWorkFactory func() pericarpdomain.UnitOfWork,
+	rdfConverter *infrastructure.ContainerRDFConverter,
 ) *ContainerService {
 	return &ContainerService{
 		containerRepo:     containerRepo,
 		unitOfWorkFactory: unitOfWorkFactory,
+		rdfConverter:      rdfConverter,
 	}
 }
 
@@ -592,4 +596,169 @@ func (s *ContainerService) ContainerExists(ctx context.Context, id string) (bool
 	}
 
 	return exists, nil
+}
+
+// GetContainerWithFormat retrieves a container and converts it to the specified RDF format
+func (s *ContainerService) GetContainerWithFormat(ctx context.Context, id, format, baseURI string) ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Validate input
+	if id == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("container ID cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"container ID cannot be empty",
+		).WithOperation("GetContainerWithFormat")
+	}
+
+	if format == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("format cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"format cannot be empty",
+		).WithOperation("GetContainerWithFormat")
+	}
+
+	if baseURI == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("base URI cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"base URI cannot be empty",
+		).WithOperation("GetContainerWithFormat")
+	}
+
+	// Get container from repository
+	container, err := s.containerRepo.GetContainer(ctx, id)
+	if err != nil {
+		if domain.IsResourceNotFound(err) {
+			return nil, domain.ErrResourceNotFound.WithOperation("GetContainerWithFormat").WithContext("containerID", id)
+		}
+		return nil, domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to retrieve container",
+		).WithOperation("GetContainerWithFormat").WithContext("containerID", id)
+	}
+
+	// Convert to requested format
+	switch format {
+	case "text/turtle":
+		return s.rdfConverter.ConvertToTurtle(container, baseURI)
+	case "application/ld+json":
+		return s.rdfConverter.ConvertToJSONLD(container, baseURI)
+	case "application/rdf+xml":
+		return s.rdfConverter.ConvertToRDFXML(container, baseURI)
+	default:
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("unsupported format: %s", format),
+			domain.ErrInvalidFormat.Code,
+			"unsupported RDF format",
+		).WithOperation("GetContainerWithFormat").WithContext("format", format)
+	}
+}
+
+// ListContainerMembersWithFormat lists container members and returns them in the specified RDF format
+func (s *ContainerService) ListContainerMembersWithFormat(ctx context.Context, containerID, format, baseURI string, pagination domain.PaginationOptions) ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Validate input
+	if containerID == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("container ID cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"container ID cannot be empty",
+		).WithOperation("ListContainerMembersWithFormat")
+	}
+
+	if format == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("format cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"format cannot be empty",
+		).WithOperation("ListContainerMembersWithFormat")
+	}
+
+	if baseURI == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("base URI cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"base URI cannot be empty",
+		).WithOperation("ListContainerMembersWithFormat")
+	}
+
+	// Validate pagination options
+	if !pagination.IsValid() {
+		pagination = domain.GetDefaultPagination()
+	}
+
+	// Get container from repository to access its members
+	container, err := s.containerRepo.GetContainer(ctx, containerID)
+	if err != nil {
+		if domain.IsResourceNotFound(err) {
+			return nil, domain.ErrResourceNotFound.WithOperation("ListContainerMembersWithFormat").WithContext("containerID", containerID)
+		}
+		return nil, domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to retrieve container for member listing",
+		).WithOperation("ListContainerMembersWithFormat").WithContext("containerID", containerID)
+	}
+
+	// Convert to requested format (this will include membership triples)
+	switch format {
+	case "text/turtle":
+		return s.rdfConverter.ConvertToTurtle(container, baseURI)
+	case "application/ld+json":
+		return s.rdfConverter.ConvertToJSONLD(container, baseURI)
+	case "application/rdf+xml":
+		return s.rdfConverter.ConvertToRDFXML(container, baseURI)
+	default:
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("unsupported format: %s", format),
+			domain.ErrInvalidFormat.Code,
+			"unsupported RDF format",
+		).WithOperation("ListContainerMembersWithFormat").WithContext("format", format)
+	}
+}
+
+// GenerateMembershipTriples generates LDP membership triples for a container
+func (s *ContainerService) GenerateMembershipTriples(ctx context.Context, containerID, baseURI string) ([]infrastructure.ContainerTriple, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Validate input
+	if containerID == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("container ID cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"container ID cannot be empty",
+		).WithOperation("GenerateMembershipTriples")
+	}
+
+	if baseURI == "" {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("base URI cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"base URI cannot be empty",
+		).WithOperation("GenerateMembershipTriples")
+	}
+
+	// Get container from repository
+	container, err := s.containerRepo.GetContainer(ctx, containerID)
+	if err != nil {
+		if domain.IsResourceNotFound(err) {
+			return nil, domain.ErrResourceNotFound.WithOperation("GenerateMembershipTriples").WithContext("containerID", containerID)
+		}
+		return nil, domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to retrieve container for membership triples",
+		).WithOperation("GenerateMembershipTriples").WithContext("containerID", containerID)
+	}
+
+	// Generate membership triples using the RDF converter
+	triples := s.rdfConverter.GenerateMembershipTriples(container, baseURI)
+	return triples, nil
 }

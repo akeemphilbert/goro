@@ -145,6 +145,12 @@ var (
 		Code:    "INVALID_CONTAINER_TYPE",
 		Message: "unsupported container type",
 	}
+
+	// ErrInvalidFormat indicates an invalid format was specified
+	ErrInvalidFormat = &StorageError{
+		Code:    "INVALID_FORMAT",
+		Message: "invalid format specified",
+	}
 )
 
 // NewStorageError creates a new storage error with the given code and message

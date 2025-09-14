@@ -15,6 +15,7 @@ var InfrastructureSet = wire.NewSet(
 	NewOptimizedFileSystemRepositoryProvider,
 	NewFileSystemContainerRepositoryProvider,
 	NewRDFConverter,
+	NewContainerRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
 	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),
@@ -29,6 +30,7 @@ var OptimizedInfrastructureSet = wire.NewSet(
 	NewOptimizedFileSystemRepositoryProvider,
 	NewFileSystemContainerRepositoryProvider,
 	NewRDFConverter,
+	NewContainerRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
 	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),

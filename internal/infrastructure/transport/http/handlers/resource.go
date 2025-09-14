@@ -15,16 +15,6 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-// StorageServiceInterface defines the interface for storage operations
-type StorageServiceInterface interface {
-	StoreResource(ctx context.Context, id string, data []byte, contentType string) (*domain.Resource, error)
-	RetrieveResource(ctx context.Context, id string, acceptFormat string) (*domain.Resource, error)
-	DeleteResource(ctx context.Context, id string) error
-	ResourceExists(ctx context.Context, id string) (bool, error)
-	StreamResource(ctx context.Context, id string, acceptFormat string) (io.ReadCloser, string, error)
-	StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (*domain.Resource, error)
-}
-
 // ResourceHandler handles HTTP storage operations for resources
 type ResourceHandler struct {
 	storageService StorageServiceInterface

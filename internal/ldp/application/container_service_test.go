@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
+	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -150,7 +151,8 @@ func setupContainerServiceTest() (*ContainerService, *MockContainerRepository, *
 		return mockUoW
 	}
 
-	service := NewContainerService(mockRepo, unitOfWorkFactory)
+	rdfConverter := infrastructure.NewContainerRDFConverter()
+	service := NewContainerService(mockRepo, unitOfWorkFactory, rdfConverter)
 	return service, mockRepo, mockUoW
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
+	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	"github.com/google/wire"
 )
@@ -39,9 +40,10 @@ func NewContainerServiceProvider(
 	containerRepo domain.ContainerRepository,
 	unitOfWorkFactory func() pericarpdomain.UnitOfWork,
 	eventDispatcher pericarpdomain.EventDispatcher,
+	rdfConverter *infrastructure.ContainerRDFConverter,
 ) (*ContainerService, error) {
 	// Create the container service
-	service := NewContainerService(containerRepo, unitOfWorkFactory)
+	service := NewContainerService(containerRepo, unitOfWorkFactory, rdfConverter)
 
 	// Register container event handlers to update repository after events are committed
 	registrar := NewEventHandlerRegistrar(eventDispatcher)
