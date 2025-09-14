@@ -177,7 +177,7 @@ export class StorageClient {
       (options.contentLength && options.contentLength > 1024 * 1024);
 
     const response = await this.makeRequest(url, {
-      method: 'POST',
+      method: 'PUT',
       headers,
       body
     });
