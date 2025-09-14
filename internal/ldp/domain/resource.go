@@ -288,3 +288,9 @@ type ResourceMetadata struct {
 	UpdatedAt      time.Time              `json:"updatedAt"`
 	Tags           map[string]interface{} `json:"tags"`
 }
+
+// FormatConverter defines the interface for RDF format conversion
+type FormatConverter interface {
+	Convert(data []byte, fromFormat, toFormat string) ([]byte, error)
+	ValidateFormat(format string) bool
+}

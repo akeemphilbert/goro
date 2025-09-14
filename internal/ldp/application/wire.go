@@ -11,13 +11,14 @@ import (
 // ProviderSet is the Wire provider set for the application layer
 var ProviderSet = wire.NewSet(
 	NewStorageServiceProvider,
+	NewContainerServiceProvider,
 	NewEventHandlerRegistrarProvider,
 )
 
 // NewStorageServiceProvider creates a StorageService with all dependencies and registers event handlers
 func NewStorageServiceProvider(
 	repo domain.StreamingResourceRepository,
-	converter FormatConverter,
+	converter domain.FormatConverter,
 	unitOfWorkFactory func() pericarpdomain.UnitOfWork,
 	eventDispatcher pericarpdomain.EventDispatcher,
 ) (*StorageService, error) {
@@ -28,6 +29,24 @@ func NewStorageServiceProvider(
 	registrar := NewEventHandlerRegistrar(eventDispatcher)
 	if err := registrar.RegisterAllHandlers(repo); err != nil {
 		return nil, fmt.Errorf("failed to register event handlers: %w", err)
+	}
+
+	return service, nil
+}
+
+// NewContainerServiceProvider creates a ContainerService with all dependencies and registers event handlers
+func NewContainerServiceProvider(
+	containerRepo domain.ContainerRepository,
+	unitOfWorkFactory func() pericarpdomain.UnitOfWork,
+	eventDispatcher pericarpdomain.EventDispatcher,
+) (*ContainerService, error) {
+	// Create the container service
+	service := NewContainerService(containerRepo, unitOfWorkFactory)
+
+	// Register container event handlers to update repository after events are committed
+	registrar := NewEventHandlerRegistrar(eventDispatcher)
+	if err := registrar.RegisterContainerEventHandler(NewContainerEventHandler(containerRepo)); err != nil {
+		return nil, fmt.Errorf("failed to register container event handlers: %w", err)
 	}
 
 	return service, nil

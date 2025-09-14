@@ -1,7 +1,6 @@
 package infrastructure
 
 import (
-	"github.com/akeemphilbert/goro/internal/ldp/application"
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
@@ -18,7 +17,7 @@ var InfrastructureSet = wire.NewSet(
 	NewRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
-	wire.Bind(new(application.FormatConverter), new(*RDFConverter)),
+	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),
 	wire.Bind(new(pericarpdomain.EventStore), new(*pericarpinfra.GormEventStore)),
 )
 
@@ -32,7 +31,7 @@ var OptimizedInfrastructureSet = wire.NewSet(
 	NewRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
-	wire.Bind(new(application.FormatConverter), new(*RDFConverter)),
+	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),
 	wire.Bind(new(pericarpdomain.EventStore), new(*pericarpinfra.GormEventStore)),
 )
 

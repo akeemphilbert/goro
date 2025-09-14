@@ -12,11 +12,7 @@ import (
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
 
-// FormatConverter defines the interface for RDF format conversion
-type FormatConverter interface {
-	Convert(data []byte, fromFormat, toFormat string) ([]byte, error)
-	ValidateFormat(format string) bool
-}
+// FormatConverter is imported from domain layer to avoid import cycles
 
 // UnitOfWorkFactory creates new UnitOfWork instances
 type UnitOfWorkFactory func() pericarpdomain.UnitOfWork
@@ -24,7 +20,7 @@ type UnitOfWorkFactory func() pericarpdomain.UnitOfWork
 // StorageService orchestrates storage operations with content negotiation and streaming support
 type StorageService struct {
 	repo              domain.StreamingResourceRepository
-	converter         FormatConverter
+	converter         domain.FormatConverter
 	unitOfWorkFactory UnitOfWorkFactory
 	mu                sync.RWMutex // For concurrent access handling
 }
@@ -32,7 +28,7 @@ type StorageService struct {
 // NewStorageService creates a new storage service instance
 func NewStorageService(
 	repo domain.StreamingResourceRepository,
-	converter FormatConverter,
+	converter domain.FormatConverter,
 	unitOfWorkFactory UnitOfWorkFactory,
 ) *StorageService {
 	return &StorageService{
