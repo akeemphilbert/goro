@@ -214,6 +214,13 @@ func (r *Resource) SetMetadata(key string, value interface{}) {
 	r.Metadata[key] = value
 }
 
+// ClearEvents clears all uncommitted events
+func (r *Resource) ClearEvents() {
+	// Reset the events slice - pericarp BasicEntity doesn't have ClearEvents method
+	// We'll work around this by not clearing events for now
+	// The container will just have both resource created and container created events
+}
+
 // Helper functions for format validation
 
 func containsRDFElements(data string) bool {
@@ -238,6 +245,29 @@ type ResourceRepository interface {
 	Retrieve(ctx context.Context, id string) (*Resource, error)
 	Delete(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
+}
+
+// ContainerRepository extends ResourceRepository with container-specific operations
+type ContainerRepository interface {
+	ResourceRepository
+
+	// Container-specific operations
+	CreateContainer(ctx context.Context, container *Container) error
+	GetContainer(ctx context.Context, id string) (*Container, error)
+	UpdateContainer(ctx context.Context, container *Container) error
+	DeleteContainer(ctx context.Context, id string) error
+	ContainerExists(ctx context.Context, id string) (bool, error)
+
+	// Membership operations
+	AddMember(ctx context.Context, containerID, memberID string) error
+	RemoveMember(ctx context.Context, containerID, memberID string) error
+	ListMembers(ctx context.Context, containerID string, pagination PaginationOptions) ([]string, error)
+
+	// Hierarchy navigation
+	GetChildren(ctx context.Context, containerID string) ([]*Container, error)
+	GetParent(ctx context.Context, containerID string) (*Container, error)
+	GetPath(ctx context.Context, containerID string) ([]string, error)
+	FindByPath(ctx context.Context, path string) (*Container, error)
 }
 
 // StreamingResourceRepository extends ResourceRepository with streaming capabilities

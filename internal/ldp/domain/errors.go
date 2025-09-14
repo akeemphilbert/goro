@@ -101,6 +101,44 @@ var (
 		Code:    "CHECKSUM_MISMATCH",
 		Message: "checksum validation failed",
 	}
+
+	// Container-specific errors
+
+	// ErrContainerNotFound indicates a container was not found
+	ErrContainerNotFound = &StorageError{
+		Code:    "CONTAINER_NOT_FOUND",
+		Message: "container not found",
+	}
+
+	// ErrContainerNotEmpty indicates a container contains resources and cannot be deleted
+	ErrContainerNotEmpty = &StorageError{
+		Code:    "CONTAINER_NOT_EMPTY",
+		Message: "container contains resources",
+	}
+
+	// ErrCircularReference indicates a circular reference in container hierarchy
+	ErrCircularReference = &StorageError{
+		Code:    "CIRCULAR_REFERENCE",
+		Message: "circular container reference",
+	}
+
+	// ErrInvalidHierarchy indicates an invalid container hierarchy
+	ErrInvalidHierarchy = &StorageError{
+		Code:    "INVALID_HIERARCHY",
+		Message: "invalid container hierarchy",
+	}
+
+	// ErrMembershipConflict indicates a membership already exists
+	ErrMembershipConflict = &StorageError{
+		Code:    "MEMBERSHIP_CONFLICT",
+		Message: "membership already exists",
+	}
+
+	// ErrInvalidContainerType indicates an unsupported container type
+	ErrInvalidContainerType = &StorageError{
+		Code:    "INVALID_CONTAINER_TYPE",
+		Message: "unsupported container type",
+	}
 )
 
 // NewStorageError creates a new storage error with the given code and message
@@ -173,6 +211,66 @@ func IsDataCorruption(err error) bool {
 func IsFormatConversion(err error) bool {
 	if storageErr, ok := GetStorageError(err); ok {
 		return storageErr.Code == ErrFormatConversion.Code
+	}
+	return false
+}
+
+// Container error helper functions
+
+// NewContainerError creates a new container-specific storage error
+func NewContainerError(code, message string) *StorageError {
+	return NewStorageError(code, message)
+}
+
+// WrapContainerError wraps an existing error with container error context
+func WrapContainerError(err error, code, message string) *StorageError {
+	return WrapStorageError(err, code, message)
+}
+
+// IsContainerNotFound checks if an error indicates a container was not found
+func IsContainerNotFound(err error) bool {
+	if storageErr, ok := GetStorageError(err); ok {
+		return storageErr.Code == ErrContainerNotFound.Code
+	}
+	return false
+}
+
+// IsContainerNotEmpty checks if an error indicates a container is not empty
+func IsContainerNotEmpty(err error) bool {
+	if storageErr, ok := GetStorageError(err); ok {
+		return storageErr.Code == ErrContainerNotEmpty.Code
+	}
+	return false
+}
+
+// IsCircularReference checks if an error indicates a circular reference
+func IsCircularReference(err error) bool {
+	if storageErr, ok := GetStorageError(err); ok {
+		return storageErr.Code == ErrCircularReference.Code
+	}
+	return false
+}
+
+// IsInvalidHierarchy checks if an error indicates an invalid hierarchy
+func IsInvalidHierarchy(err error) bool {
+	if storageErr, ok := GetStorageError(err); ok {
+		return storageErr.Code == ErrInvalidHierarchy.Code
+	}
+	return false
+}
+
+// IsMembershipConflict checks if an error indicates a membership conflict
+func IsMembershipConflict(err error) bool {
+	if storageErr, ok := GetStorageError(err); ok {
+		return storageErr.Code == ErrMembershipConflict.Code
+	}
+	return false
+}
+
+// IsInvalidContainerType checks if an error indicates an invalid container type
+func IsInvalidContainerType(err error) bool {
+	if storageErr, ok := GetStorageError(err); ok {
+		return storageErr.Code == ErrInvalidContainerType.Code
 	}
 	return false
 }
