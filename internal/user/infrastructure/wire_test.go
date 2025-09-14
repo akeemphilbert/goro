@@ -66,7 +66,8 @@ func TestWireProviders(t *testing.T) {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideUserRepository(userDB)
+		cache := ProvideCache()
+		repo, err := ProvideUserRepository(userDB, cache)
 		if err != nil {
 			t.Errorf("ProvideUserRepository failed: %v", err)
 		}
@@ -102,7 +103,8 @@ func TestWireProviders(t *testing.T) {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideRoleRepository(userDB)
+		cache := ProvideCache()
+		repo, err := ProvideRoleRepository(userDB, cache)
 		if err != nil {
 			t.Errorf("ProvideRoleRepository failed: %v", err)
 		}
@@ -328,7 +330,8 @@ func TestDatabaseMigrationIntegration(t *testing.T) {
 
 	// Verify system roles were seeded
 	ctx := context.Background()
-	roleRepo, err := ProvideRoleRepository(userDB)
+	cache := ProvideCache()
+	roleRepo, err := ProvideRoleRepository(userDB, cache)
 	if err != nil {
 		t.Fatalf("Failed to create role repository: %v", err)
 	}

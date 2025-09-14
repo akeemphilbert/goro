@@ -256,7 +256,7 @@
     - Test error scenarios and edge cases across the entire system
     - _Requirements: 1.5, 2.5, 3.5, 6.5_
 
-- [-] 11. Write BDD feature tests following TDD
+- [x] 11. Write BDD feature tests following TDD
   - [x] 11.1 Write failing BDD scenarios for user lifecycle
     - Create Gherkin scenarios for user registration with WebID creation that initially fail
     - Write scenarios for user profile management and self-deletion that fail initially
@@ -264,7 +264,7 @@
     - Write step definitions that fail until implementation is complete
     - _Requirements: 1.1, 1.2, 2.1, 2.2, 5.1, 5.2, 6.1, 6.2_
 
-  - [-] 11.2 Write failing BDD scenarios for account management
+  - [x] 11.2 Write failing BDD scenarios for account management
     - Create Gherkin scenarios for account creation and ownership that initially fail
     - Write invitation workflow scenarios (invite, accept, expire) that fail initially
     - Create membership management scenarios (add, remove, role updates) that fail
@@ -272,21 +272,21 @@
     - Write step definitions that fail until full implementation is complete
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 12. Write performance tests and implement optimizations
-  - [ ] 12.1 Write failing performance tests
+- [x] 12. Write performance tests and implement optimizations
+  - [x] 12.1 Write failing performance tests
     - Create performance tests for database query patterns that initially fail performance targets
     - Write tests for caching effectiveness that fail without caching implementation
     - Create tests for membership query performance that fail without optimization
     - Write load tests for concurrent operations that fail without proper indexing
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [ ] 12.2 Implement optimizations to make performance tests pass
+  - [x] 12.2 Implement optimizations to make performance tests pass
     - Add database indexes for common query patterns to satisfy query performance tests
     - Implement caching for frequently accessed data (users, roles) to pass caching tests
     - Optimize membership queries with proper projections to satisfy membership performance tests
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [ ] 12.3 Write comprehensive load and scalability tests
+  - [x] 12.3 Write comprehensive load and scalability tests
     - Create load tests for concurrent user registration and authentication operations
     - Write scalability tests for system performance with large numbers of users and accounts
     - Test membership query performance with many members per account

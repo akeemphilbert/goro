@@ -11,11 +11,11 @@ import (
 // UserModel represents the GORM model for users table
 type UserModel struct {
 	ID        string    `gorm:"primaryKey;type:varchar(255)"`
-	WebID     string    `gorm:"uniqueIndex;not null;type:varchar(500)"`
-	Email     string    `gorm:"uniqueIndex;not null;type:varchar(255)"`
-	Name      string    `gorm:"type:varchar(255)"`
-	Status    string    `gorm:"not null;type:varchar(50)"`
-	CreatedAt time.Time `gorm:"not null"`
+	WebID     string    `gorm:"uniqueIndex:idx_user_webid;not null;type:varchar(500)"`
+	Email     string    `gorm:"uniqueIndex:idx_user_email;not null;type:varchar(255)"`
+	Name      string    `gorm:"index:idx_user_name;type:varchar(255)"`
+	Status    string    `gorm:"index:idx_user_status;not null;type:varchar(50)"`
+	CreatedAt time.Time `gorm:"index:idx_user_created;not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 }
 
@@ -99,12 +99,12 @@ func (r *RoleModel) UpdateRole(ctx context.Context, name, description, permissio
 // AccountModel represents the GORM model for accounts table
 type AccountModel struct {
 	ID          string    `gorm:"primaryKey;type:varchar(255)"`
-	OwnerID     string    `gorm:"not null;type:varchar(255);index"`
+	OwnerID     string    `gorm:"not null;type:varchar(255);index:idx_account_owner"`
 	Owner       UserModel `gorm:"foreignKey:OwnerID;references:ID;constraint:OnDelete:CASCADE"`
-	Name        string    `gorm:"not null;type:varchar(255)"`
+	Name        string    `gorm:"not null;type:varchar(255);index:idx_account_name"`
 	Description string    `gorm:"type:text"`
 	Settings    string    `gorm:"type:text"` // JSON serialized AccountSettings
-	CreatedAt   time.Time `gorm:"not null"`
+	CreatedAt   time.Time `gorm:"index:idx_account_created;not null"`
 	UpdatedAt   time.Time `gorm:"not null"`
 }
 
@@ -159,15 +159,15 @@ func (a *AccountModel) TransferOwnership(ctx context.Context, newOwnerID string)
 // AccountMemberModel represents the GORM model for account membership (projection from events)
 type AccountMemberModel struct {
 	ID        string       `gorm:"primaryKey;type:varchar(255)"`
-	AccountID string       `gorm:"not null;type:varchar(255);index;uniqueIndex:idx_account_user"`
+	AccountID string       `gorm:"not null;type:varchar(255);index:idx_member_account;uniqueIndex:idx_account_user"`
 	Account   AccountModel `gorm:"foreignKey:AccountID;references:ID;constraint:OnDelete:CASCADE"`
-	UserID    string       `gorm:"not null;type:varchar(255);index;uniqueIndex:idx_account_user"`
+	UserID    string       `gorm:"not null;type:varchar(255);index:idx_member_user;uniqueIndex:idx_account_user"`
 	User      UserModel    `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	RoleID    string       `gorm:"not null;type:varchar(255)"`
+	RoleID    string       `gorm:"not null;type:varchar(255);index:idx_member_role"`
 	Role      RoleModel    `gorm:"foreignKey:RoleID;references:ID;constraint:OnDelete:CASCADE"`
-	InvitedBy string       `gorm:"type:varchar(255)"`
+	InvitedBy string       `gorm:"type:varchar(255);index:idx_member_inviter"`
 	Inviter   *UserModel   `gorm:"foreignKey:InvitedBy;references:ID;constraint:OnDelete:SET NULL"`
-	JoinedAt  time.Time    `gorm:"not null"`
+	JoinedAt  time.Time    `gorm:"index:idx_member_joined;not null"`
 	CreatedAt time.Time    `gorm:"not null"`
 	UpdatedAt time.Time    `gorm:"not null"`
 }
@@ -212,16 +212,16 @@ func (m *AccountMemberModel) UpdateInviter(ctx context.Context, inviterID string
 // InvitationModel represents the GORM model for invitations table
 type InvitationModel struct {
 	ID        string       `gorm:"primaryKey;type:varchar(255)"`
-	AccountID string       `gorm:"not null;type:varchar(255);index"`
+	AccountID string       `gorm:"not null;type:varchar(255);index:idx_invitation_account"`
 	Account   AccountModel `gorm:"foreignKey:AccountID;references:ID;constraint:OnDelete:CASCADE"`
-	Email     string       `gorm:"not null;type:varchar(255)"`
-	RoleID    string       `gorm:"not null;type:varchar(255)"`
+	Email     string       `gorm:"not null;type:varchar(255);index:idx_invitation_email"`
+	RoleID    string       `gorm:"not null;type:varchar(255);index:idx_invitation_role"`
 	Role      RoleModel    `gorm:"foreignKey:RoleID;references:ID;constraint:OnDelete:CASCADE"`
-	Token     string       `gorm:"uniqueIndex;not null;type:varchar(255)"`
-	InvitedBy string       `gorm:"not null;type:varchar(255)"`
+	Token     string       `gorm:"uniqueIndex:idx_invitation_token;not null;type:varchar(255)"`
+	InvitedBy string       `gorm:"not null;type:varchar(255);index:idx_invitation_inviter"`
 	Inviter   UserModel    `gorm:"foreignKey:InvitedBy;references:ID;constraint:OnDelete:CASCADE"`
-	Status    string       `gorm:"not null;type:varchar(50)"` // pending, accepted, expired, revoked
-	ExpiresAt time.Time    `gorm:"not null"`
+	Status    string       `gorm:"index:idx_invitation_status;not null;type:varchar(50)"` // pending, accepted, expired, revoked
+	ExpiresAt time.Time    `gorm:"index:idx_invitation_expires;not null"`
 	CreatedAt time.Time    `gorm:"not null"`
 	UpdatedAt time.Time    `gorm:"not null"`
 }

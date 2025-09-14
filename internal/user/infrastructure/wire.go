@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
 	"github.com/google/wire"
@@ -28,12 +29,17 @@ func ProvideUserDatabase(db *gorm.DB) (*gorm.DB, error) {
 	return db, nil
 }
 
-// Repository Providers (Read-only)
-func ProvideUserRepository(db *gorm.DB) (domain.UserRepository, error) {
+// ProvideCache provides an in-memory cache for user management
+func ProvideCache() Cache {
+	return NewInMemoryCache(5 * time.Minute) // 5 minute TTL
+}
+
+// Repository Providers (Read-only) - now with caching and optimization
+func ProvideUserRepository(db *gorm.DB, cache Cache) (domain.UserRepository, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database cannot be nil")
 	}
-	return NewGormUserRepository(db), nil
+	return NewOptimizedGormUserRepository(db, cache), nil
 }
 
 func ProvideAccountRepository(db *gorm.DB) (domain.AccountRepository, error) {
@@ -43,18 +49,19 @@ func ProvideAccountRepository(db *gorm.DB) (domain.AccountRepository, error) {
 	return NewGormAccountRepository(db), nil
 }
 
-func ProvideRoleRepository(db *gorm.DB) (domain.RoleRepository, error) {
+func ProvideRoleRepository(db *gorm.DB, cache Cache) (domain.RoleRepository, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database cannot be nil")
 	}
-	return NewGormRoleRepository(db), nil
+	baseRepo := NewGormRoleRepository(db)
+	return NewCachedRoleRepository(baseRepo, cache), nil
 }
 
 func ProvideAccountMemberRepository(db *gorm.DB) (domain.AccountMemberRepository, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database cannot be nil")
 	}
-	return NewGormAccountMemberRepository(db), nil
+	return NewOptimizedGormAccountMemberRepository(db), nil
 }
 
 func ProvideInvitationRepository(db *gorm.DB) (domain.InvitationRepository, error) {
@@ -112,6 +119,7 @@ var UserInfrastructureProviderSet = wire.NewSet(
 	ProvideUserDatabase,
 	ProvideWebIDGenerator,
 	ProvideFileStorage,
+	ProvideCache,
 )
 
 var UserRepositoryProviderSet = wire.NewSet(
