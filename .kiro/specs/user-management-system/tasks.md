@@ -183,29 +183,29 @@
     - Add atomic entity relationship management through events to pass relationship tests
     - _Requirements: 3.4, 3.5_
 
-- [ ] 8. Write tests and implement HTTP handlers
-  - [ ] 8.1 Write failing tests for user management HTTP handlers
+- [x] 8. Write tests and implement HTTP handlers
+  - [x] 8.1 Write failing tests for user management HTTP handlers
     - Create test files for user registration endpoint with input validation scenarios
     - Write tests for user profile management endpoints (GET, PUT) with various inputs
     - Test user deletion endpoint with confirmation requirements and edge cases
     - Test proper HTTP status codes and error responses for all scenarios
     - _Requirements: 1.1, 1.2, 2.1, 2.2, 6.1, 6.2_
 
-  - [ ] 8.2 Implement user HTTP handlers to make tests pass
+  - [x] 8.2 Implement user HTTP handlers to make tests pass
     - Create user registration endpoint with input validation to satisfy validation tests
     - Implement user profile management endpoints (GET, PUT) to pass profile tests
     - Create user deletion endpoint with confirmation requirements to satisfy deletion tests
     - Add proper HTTP status codes and error responses to pass response tests
     - _Requirements: 1.1, 1.2, 2.1, 2.2, 6.1, 6.2_
 
-  - [ ] 8.3 Write failing tests for account management HTTP handlers
+  - [x] 8.3 Write failing tests for account management HTTP handlers
     - Create test files for account creation and management endpoint scenarios
     - Write tests for invitation endpoints (create, accept, list) with validation
     - Test membership management endpoints (add, remove, update role) with permissions
     - Test role-based access control validation for all protected endpoints
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 8.4 Implement account HTTP handlers to make tests pass
+  - [x] 8.4 Implement account HTTP handlers to make tests pass
     - Create account creation and management endpoints to satisfy creation tests
     - Implement invitation endpoints (create, accept, list) to pass invitation tests
     - Create membership management endpoints to satisfy membership tests
