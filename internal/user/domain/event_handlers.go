@@ -337,7 +337,27 @@ func NewEventTypeDispatcher() *EventTypeDispatcher {
 
 // DispatchEvent dispatches an EntityEvent to the appropriate handler based on event type
 func (d *EventTypeDispatcher) DispatchEvent(event *EntityEvent, handlers EventHandlers) error {
-	switch event.EventType() {
+	// Handle events based on entity type and event type
+	switch event.EntityType {
+	case "user":
+		return d.dispatchUserEvent(event, handlers)
+	case "account":
+		return d.dispatchAccountEvent(event, handlers)
+	case "invitation":
+		return d.dispatchInvitationEvent(event, handlers)
+	case "role":
+		return d.dispatchRoleEvent(event, handlers)
+	case "account_member":
+		return d.dispatchAccountMemberEvent(event, handlers)
+	default:
+		// Unknown entity type, ignore
+		return nil
+	}
+}
+
+// dispatchUserEvent handles user-related events
+func (d *EventTypeDispatcher) dispatchUserEvent(event *EntityEvent, handlers EventHandlers) error {
+	switch event.Type {
 	case EventTypeUserCreated:
 		if handlers.UserCreated != nil {
 			data, err := d.unmarshaler.UnmarshalUserCreatedEvent(event)
@@ -394,6 +414,13 @@ func (d *EventTypeDispatcher) DispatchEvent(event *EntityEvent, handlers EventHa
 			}
 			return handlers.WebIDGenerated(data)
 		}
+	}
+	return nil
+}
+
+// dispatchAccountEvent handles account-related events
+func (d *EventTypeDispatcher) dispatchAccountEvent(event *EntityEvent, handlers EventHandlers) error {
+	switch event.Type {
 	case EventTypeAccountCreated:
 		if handlers.AccountCreated != nil {
 			data, err := d.unmarshaler.UnmarshalAccountCreatedEvent(event)
@@ -442,6 +469,13 @@ func (d *EventTypeDispatcher) DispatchEvent(event *EntityEvent, handlers EventHa
 			}
 			return handlers.AccountMemberRoleUpdated(data)
 		}
+	}
+	return nil
+}
+
+// dispatchInvitationEvent handles invitation-related events
+func (d *EventTypeDispatcher) dispatchInvitationEvent(event *EntityEvent, handlers EventHandlers) error {
+	switch event.Type {
 	case EventTypeInvitationCreated:
 		if handlers.InvitationCreated != nil {
 			data, err := d.unmarshaler.UnmarshalInvitationCreatedEvent(event)
@@ -482,6 +516,13 @@ func (d *EventTypeDispatcher) DispatchEvent(event *EntityEvent, handlers EventHa
 			}
 			return handlers.MemberInvited(data)
 		}
+	}
+	return nil
+}
+
+// dispatchRoleEvent handles role-related events
+func (d *EventTypeDispatcher) dispatchRoleEvent(event *EntityEvent, handlers EventHandlers) error {
+	switch event.Type {
 	case EventTypeRoleCreated:
 		if handlers.RoleCreated != nil {
 			data, err := d.unmarshaler.UnmarshalRoleCreatedEvent(event)
@@ -498,25 +539,39 @@ func (d *EventTypeDispatcher) DispatchEvent(event *EntityEvent, handlers EventHa
 			}
 			return handlers.RoleUpdated(data)
 		}
-	case EventTypeRolePermissionAdded:
-		if handlers.RolePermissionAdded != nil {
-			data, err := d.unmarshaler.UnmarshalRolePermissionAddedEvent(event)
+	}
+	return nil
+}
+
+// dispatchAccountMemberEvent handles account member-related events
+func (d *EventTypeDispatcher) dispatchAccountMemberEvent(event *EntityEvent, handlers EventHandlers) error {
+	switch event.Type {
+	case EventTypeMemberAdded:
+		if handlers.AccountMemberAdded != nil {
+			data, err := d.unmarshaler.UnmarshalAccountMemberAddedEvent(event)
 			if err != nil {
 				return err
 			}
-			return handlers.RolePermissionAdded(data)
+			return handlers.AccountMemberAdded(data)
 		}
-	case EventTypeRolePermissionRemoved:
-		if handlers.RolePermissionRemoved != nil {
-			data, err := d.unmarshaler.UnmarshalRolePermissionRemovedEvent(event)
+	case EventTypeMemberRemoved:
+		if handlers.AccountMemberRemoved != nil {
+			data, err := d.unmarshaler.UnmarshalAccountMemberRemovedEvent(event)
 			if err != nil {
 				return err
 			}
-			return handlers.RolePermissionRemoved(data)
+			return handlers.AccountMemberRemoved(data)
+		}
+	case EventTypeMemberRoleUpdated:
+		if handlers.AccountMemberRoleUpdated != nil {
+			data, err := d.unmarshaler.UnmarshalAccountMemberRoleUpdatedEvent(event)
+			if err != nil {
+				return err
+			}
+			return handlers.AccountMemberRoleUpdated(data)
 		}
 	}
-
-	return nil // No handler found, silently ignore
+	return nil
 }
 
 // EventHandlers contains all possible event handler functions

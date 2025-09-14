@@ -108,7 +108,7 @@
   - [x] 5.3 Write failing tests for file storage
     - Create test files for user data file storage with temporary directories
     - Write tests for file storage structure for user profiles and WebID documents
-    - Test atomic file operations for user data persistence and cleanup
+- Test atomic file operations for user data persistence and cleanup
     - _Requirements: 2.2, 6.3, 6.4_
 
   - [x] 5.4 Implement file storage to make tests pass
@@ -117,8 +117,8 @@
     - Add file cleanup for user deletion operations to satisfy cleanup tests
     - _Requirements: 2.2, 6.3, 6.4_
 
-- [ ] 6. Write tests and implement application services
-  - [ ] 6.1 Write failing tests for UserService
+- [-] 6. Write tests and implement application services
+  - [x] 6.1 Write failing tests for UserService
     - Create test files for UserService with mocked dependencies
     - Write tests for RegisterUser method with validation and WebID generation scenarios
     - Test UpdateProfile method with change detection and validation
@@ -127,7 +127,7 @@
     - Test domain event emission for all operations
     - _Requirements: 1.1, 1.2, 2.1, 2.2, 5.1, 5.2, 5.3, 6.1, 6.2_
 
-  - [ ] 6.2 Implement UserService to make tests pass
+  - [x] 6.2 Implement UserService to make tests pass
     - Create RegisterUser method with validation and WebID generation to satisfy tests
     - Implement UpdateProfile method with change detection to pass update tests
     - Create DeleteAccount method with proper cleanup validation to satisfy deletion tests
@@ -135,7 +135,7 @@
     - Emit appropriate domain events for all operations to satisfy event tests
     - _Requirements: 1.1, 1.2, 2.1, 2.2, 5.1, 5.2, 5.3, 6.1, 6.2_
 
-  - [ ] 6.3 Write failing tests for AccountService
+  - [x] 6.3 Write failing tests for AccountService
     - Create test files for AccountService with mocked dependencies
     - Write tests for CreateAccount method with owner assignment scenarios
     - Test InviteUser method with role validation and token generation
@@ -145,7 +145,7 @@
     - Test domain event emission for all membership operations
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 6.4 Implement AccountService to make tests pass
+  - [x] 6.4 Implement AccountService to make tests pass
     - Create CreateAccount method with owner assignment to satisfy tests
     - Implement InviteUser method with role validation and token generation to pass tests
     - Create AcceptInvitation method with validation and member creation to satisfy tests

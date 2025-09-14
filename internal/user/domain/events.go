@@ -7,53 +7,54 @@ import (
 )
 
 // Re-export pericarp types for convenience
+type Event = pericarpdomain.Event
 type EntityEvent = pericarpdomain.EntityEvent
 type EventDispatcher = pericarpdomain.EventDispatcher
 type EventHandler = pericarpdomain.EventHandler
 
 // Event types for user operations
 const (
-	EventTypeUserCreated        = "user.created"
-	EventTypeUserRegistered     = "user.registered"
-	EventTypeUserProfileUpdated = "user.profile.updated"
-	EventTypeUserSuspended      = "user.suspended"
-	EventTypeUserActivated      = "user.activated"
-	EventTypeUserDeleted        = "user.deleted"
-	EventTypeWebIDGenerated     = "user.webid.generated"
+	EventTypeUserCreated        = "created"
+	EventTypeUserRegistered     = "registered"
+	EventTypeUserProfileUpdated = "profile_updated"
+	EventTypeUserSuspended      = "suspended"
+	EventTypeUserActivated      = "activated"
+	EventTypeUserDeleted        = "deleted"
+	EventTypeWebIDGenerated     = "webid_generated"
 )
 
 // Event types for account operations
 const (
-	EventTypeAccountCreated           = "account.created"
-	EventTypeAccountUpdated           = "account.updated"
-	EventTypeAccountSettingsUpdated   = "account.settings.updated"
-	EventTypeAccountMemberAdded       = "account.member.added"
-	EventTypeAccountMemberRemoved     = "account.member.removed"
-	EventTypeAccountMemberRoleUpdated = "account.member.role.updated"
+	EventTypeAccountCreated           = "created"
+	EventTypeAccountUpdated           = "updated"
+	EventTypeAccountSettingsUpdated   = "settings_updated"
+	EventTypeAccountMemberAdded       = "member_added"
+	EventTypeAccountMemberRemoved     = "member_removed"
+	EventTypeAccountMemberRoleUpdated = "member_role_updated"
 )
 
 // Event types for invitation operations
 const (
-	EventTypeInvitationCreated  = "invitation.created"
-	EventTypeInvitationAccepted = "invitation.accepted"
-	EventTypeInvitationRevoked  = "invitation.revoked"
-	EventTypeInvitationExpired  = "invitation.expired"
-	EventTypeMemberInvited      = "member.invited"
+	EventTypeInvitationCreated  = "created"
+	EventTypeInvitationAccepted = "accepted"
+	EventTypeInvitationRevoked  = "revoked"
+	EventTypeInvitationExpired  = "expired"
+	EventTypeMemberInvited      = "member_invited"
 )
 
 // Event types for membership operations
 const (
-	EventTypeMemberAdded       = "member.added"
-	EventTypeMemberRemoved     = "member.removed"
-	EventTypeMemberRoleUpdated = "member.role.updated"
+	EventTypeMemberAdded       = "added"
+	EventTypeMemberRemoved     = "removed"
+	EventTypeMemberRoleUpdated = "role_updated"
 )
 
 // Event types for role operations
 const (
-	EventTypeRoleCreated           = "role.created"
-	EventTypeRoleUpdated           = "role.updated"
-	EventTypeRolePermissionAdded   = "role.permission.added"
-	EventTypeRolePermissionRemoved = "role.permission.removed"
+	EventTypeRoleCreated           = "created"
+	EventTypeRoleUpdated           = "updated"
+	EventTypeRolePermissionAdded   = "permission_added"
+	EventTypeRolePermissionRemoved = "permission_removed"
 )
 
 // User event constructors
