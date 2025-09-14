@@ -139,22 +139,18 @@ func (c *Container) SetDescriptionWithTimestamp(description string, tm *Timestam
 }
 
 // AddMemberWithTimestamp adds a member and updates timestamp
+// This method is deprecated in favor of using AddMember with Resource entity
 func (c *Container) AddMemberWithTimestamp(memberID string, tm *TimestampManager) error {
-	// Check if member already exists
-	for _, member := range c.Members {
-		if member == memberID {
-			return NewDomainError("MEMBER_ALREADY_EXISTS", "member already exists: "+memberID)
-		}
-	}
-
-	c.Members = append(c.Members, memberID)
+	// Since Members property was removed, we can only emit events
+	// The actual membership will be managed by the repository through event handlers
 	tm.UpdateTimestamp(c)
 
 	// Emit member added event
 	event := NewMemberAddedEvent(c.ID(), map[string]interface{}{
-		"memberID":   memberID,
-		"memberType": "Resource",
-		"addedAt":    tm.timeProvider(),
+		"memberID":     memberID,
+		"resourceType": "Resource",
+		"memberType":   "Resource",
+		"addedAt":      tm.timeProvider(),
 	})
 	c.AddEvent(event)
 
@@ -162,24 +158,19 @@ func (c *Container) AddMemberWithTimestamp(memberID string, tm *TimestampManager
 }
 
 // RemoveMemberWithTimestamp removes a member and updates timestamp
+// This method is deprecated in favor of using RemoveMember with Resource entity
 func (c *Container) RemoveMemberWithTimestamp(memberID string, tm *TimestampManager) error {
-	for i, member := range c.Members {
-		if member == memberID {
-			// Remove member from slice
-			c.Members = append(c.Members[:i], c.Members[i+1:]...)
-			tm.UpdateTimestamp(c)
+	// Since Members property was removed, we can only emit events
+	// The actual membership will be managed by the repository through event handlers
+	tm.UpdateTimestamp(c)
 
-			// Emit member removed event
-			event := NewMemberRemovedEvent(c.ID(), map[string]interface{}{
-				"memberID":   memberID,
-				"memberType": "Resource",
-				"removedAt":  tm.timeProvider(),
-			})
-			c.AddEvent(event)
+	// Emit member removed event
+	event := NewMemberRemovedEvent(c.ID(), map[string]interface{}{
+		"memberID":   memberID,
+		"memberType": "Resource",
+		"removedAt":  tm.timeProvider(),
+	})
+	c.AddEvent(event)
 
-			return nil
-		}
-	}
-
-	return NewDomainError("MEMBER_NOT_FOUND", "member not found: "+memberID)
+	return nil
 }

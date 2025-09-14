@@ -24,7 +24,7 @@ type ContainerServiceInterface interface {
 	GetContainer(ctx context.Context, id string) (*domain.Container, error)
 	UpdateContainer(ctx context.Context, container *domain.Container) error
 	DeleteContainer(ctx context.Context, id string) error
-	AddResource(ctx context.Context, containerID, resourceID string) error
+	AddResource(ctx context.Context, containerID, resourceID string, resource *domain.Resource) error
 	RemoveResource(ctx context.Context, containerID, resourceID string) error
 	ListContainerMembers(ctx context.Context, containerID string, pagination domain.PaginationOptions) (*application.ContainerListing, error)
 	GetContainerPath(ctx context.Context, containerID string) ([]string, error)

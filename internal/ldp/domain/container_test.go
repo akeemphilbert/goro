@@ -13,8 +13,7 @@ func TestNewContainer(t *testing.T) {
 	assert.Equal(t, "test-container-1", container.ID())
 	assert.Equal(t, "parent-container", container.ParentID)
 	assert.Equal(t, BasicContainer, container.ContainerType)
-	assert.NotNil(t, container.Members)
-	assert.Len(t, container.Members, 0)
+	// Members property has been removed - membership is now managed via repository
 
 	// Check that events were emitted (both resource created and container created)
 	events := container.UncommittedEvents()
@@ -45,10 +44,11 @@ func TestContainer_AddMember(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
 	initialEvents := len(container.UncommittedEvents())
 
-	err := container.AddMember("resource-1")
+	// Create a resource to add
+	resource := NewResource("resource-1", "text/plain", []byte("test data"))
+
+	err := container.AddMember(resource)
 	assert.NoError(t, err)
-	assert.Contains(t, container.Members, "resource-1")
-	assert.Len(t, container.Members, 1)
 
 	// Check that a member added event was emitted
 	events := container.UncommittedEvents()
@@ -56,30 +56,21 @@ func TestContainer_AddMember(t *testing.T) {
 	assert.Equal(t, EventTypeMemberAdded, events[len(events)-1].(*EntityEvent).Type)
 }
 
-func TestContainer_AddMember_Duplicate(t *testing.T) {
+func TestContainer_AddMember_NilResource(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
 
-	err := container.AddMember("resource-1")
-	assert.NoError(t, err)
-
-	// Try to add the same member again
-	err = container.AddMember("resource-1")
+	// Try to add a nil resource
+	err := container.AddMember(nil)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "member already exists")
-	assert.Len(t, container.Members, 1)
+	assert.Contains(t, err.Error(), "resource cannot be nil")
 }
 
 func TestContainer_RemoveMember(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
-	container.AddMember("resource-1")
-	container.AddMember("resource-2")
 	initialEvents := len(container.UncommittedEvents())
 
 	err := container.RemoveMember("resource-1")
 	assert.NoError(t, err)
-	assert.NotContains(t, container.Members, "resource-1")
-	assert.Contains(t, container.Members, "resource-2")
-	assert.Len(t, container.Members, 1)
 
 	// Check that a member removed event was emitted
 	events := container.UncommittedEvents()
@@ -87,44 +78,33 @@ func TestContainer_RemoveMember(t *testing.T) {
 	assert.Equal(t, EventTypeMemberRemoved, events[len(events)-1].(*EntityEvent).Type)
 }
 
-func TestContainer_RemoveMember_NotFound(t *testing.T) {
+func TestContainer_RemoveMember_EmptyID(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
 
-	err := container.RemoveMember("non-existent")
+	err := container.RemoveMember("")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "member not found")
+	assert.Contains(t, err.Error(), "resource ID cannot be empty")
 }
 
 func TestContainer_HasMember(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
-	container.AddMember("resource-1")
 
-	assert.True(t, container.HasMember("resource-1"))
+	// HasMember now returns false as it needs repository access
+	assert.False(t, container.HasMember("resource-1"))
 	assert.False(t, container.HasMember("resource-2"))
 }
 
 func TestContainer_GetMemberCount(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
+
+	// GetMemberCount now returns 0 as it needs repository access
 	assert.Equal(t, 0, container.GetMemberCount())
-
-	container.AddMember("resource-1")
-	assert.Equal(t, 1, container.GetMemberCount())
-
-	container.AddMember("resource-2")
-	assert.Equal(t, 2, container.GetMemberCount())
-
-	container.RemoveMember("resource-1")
-	assert.Equal(t, 1, container.GetMemberCount())
 }
 
 func TestContainer_IsEmpty(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
-	assert.True(t, container.IsEmpty())
 
-	container.AddMember("resource-1")
-	assert.False(t, container.IsEmpty())
-
-	container.RemoveMember("resource-1")
+	// IsEmpty now returns true as it needs repository access
 	assert.True(t, container.IsEmpty())
 }
 
@@ -207,13 +187,18 @@ func TestContainer_Delete(t *testing.T) {
 	assert.Equal(t, EventTypeContainerDeleted, events[len(events)-1].(*EntityEvent).Type)
 }
 
-func TestContainer_Delete_NotEmpty(t *testing.T) {
+func TestContainer_Delete_Success(t *testing.T) {
 	container := NewContainer("test-container", "", BasicContainer)
-	container.AddMember("resource-1")
+	initialEvents := len(container.UncommittedEvents())
 
+	// Delete now succeeds since empty check is done at service layer
 	err := container.Delete()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "container is not empty")
+	assert.NoError(t, err)
+
+	// Check that a delete event was emitted
+	events := container.UncommittedEvents()
+	assert.Len(t, events, initialEvents+1)
+	assert.Equal(t, EventTypeContainerDeleted, events[len(events)-1].(*EntityEvent).Type)
 }
 
 func TestContainerType_String(t *testing.T) {

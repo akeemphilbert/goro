@@ -8,23 +8,30 @@ import (
 	"time"
 
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/uuid"
 )
 
 // Resource represents a stored resource in the pod using pericarp domain entity
 type Resource struct {
-	pericarpdomain.BasicEntity
+	*pericarpdomain.BasicEntity
 	ContentType string                 `json:"contentType"`
 	Data        []byte                 `json:"data"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // NewResource creates a new Resource entity with pericarp integration
-func NewResource(id, contentType string, data []byte) *Resource {
+func NewResource(ctx context.Context, id, contentType string, data []byte) *Resource {
+	log.Context(ctx).Debugf("[NewResource] Creating new resource: id=%s, contentType=%s, dataSize=%d", id, contentType, len(data))
+
 	if id == "" {
 		id = uuid.New().String()
+		log.Context(ctx).Debugf("[NewResource] Generated new ID: %s", id)
+	} else {
+		log.Context(ctx).Debugf("[NewResource] Using provided ID: %s", id)
 	}
 
+	log.Context(ctx).Debug("[NewResource] Creating resource entity")
 	resource := &Resource{
 		BasicEntity: pericarpdomain.NewEntity(id),
 		ContentType: contentType,
@@ -32,6 +39,7 @@ func NewResource(id, contentType string, data []byte) *Resource {
 		Metadata:    make(map[string]interface{}),
 	}
 
+	log.Context(ctx).Debug("[NewResource] Creating resource created event")
 	// Emit resource created event
 	event := NewResourceCreatedEvent(id, map[string]interface{}{
 		"contentType": contentType,
@@ -40,29 +48,40 @@ func NewResource(id, contentType string, data []byte) *Resource {
 	})
 	resource.AddEvent(event)
 
+	log.Context(ctx).Infof("Resource created successfully: resourceID=%s, contentType=%s, size=%d", id, contentType, len(data))
 	return resource
 }
 
 // FromJSONLD creates a Resource from JSON-LD data
-func (r *Resource) FromJSONLD(data []byte) *Resource {
+func (r *Resource) FromJSONLD(ctx context.Context, data []byte) *Resource {
+	log.Context(ctx).Debugf("[FromJSONLD] Processing JSON-LD data for resource: resourceID=%s, dataSize=%d", r.ID(), len(data))
+
 	// Validate JSON-LD format
+	log.Context(ctx).Debug("[FromJSONLD] Validating JSON-LD format")
 	var jsonLD map[string]interface{}
 	if err := json.Unmarshal(data, &jsonLD); err != nil {
+		log.Context(ctx).Debugf("[FromJSONLD] JSON-LD validation failed: %v", err)
 		r.AddError(fmt.Errorf("invalid JSON-LD format: %w", err))
 		return r
 	}
+	log.Context(ctx).Debug("[FromJSONLD] JSON-LD format validation passed")
 
 	// Check for required JSON-LD context
+	log.Context(ctx).Debug("[FromJSONLD] Checking for @context in JSON-LD")
 	if _, hasContext := jsonLD["@context"]; !hasContext {
+		log.Context(ctx).Debug("[FromJSONLD] Validation failed: missing @context")
 		r.AddError(fmt.Errorf("JSON-LD data must contain @context"))
 		return r
 	}
+	log.Context(ctx).Debug("[FromJSONLD] @context validation passed")
 
+	log.Context(ctx).Debug("[FromJSONLD] Setting resource data and metadata")
 	r.Data = data
 	r.ContentType = "application/ld+json"
 	r.Metadata["originalFormat"] = "application/ld+json"
 	r.Metadata["updatedAt"] = time.Now()
 
+	log.Context(ctx).Debug("[FromJSONLD] Creating resource updated event")
 	// Emit update event
 	event := NewResourceUpdatedEvent(r.ID(), map[string]interface{}{
 		"format": "application/ld+json",
@@ -70,29 +89,40 @@ func (r *Resource) FromJSONLD(data []byte) *Resource {
 	})
 	r.AddEvent(event)
 
+	log.Context(ctx).Infof("Resource updated with JSON-LD data: resourceID=%s, size=%d", r.ID(), len(data))
 	return r
 }
 
 // FromRDF creates a Resource from RDF/XML data
-func (r *Resource) FromRDF(data []byte) *Resource {
+func (r *Resource) FromRDF(ctx context.Context, data []byte) *Resource {
+	log.Context(ctx).Debugf("[FromRDF] Processing RDF/XML data for resource: resourceID=%s, dataSize=%d", r.ID(), len(data))
+
 	// Basic validation for RDF/XML format
+	log.Context(ctx).Debug("[FromRDF] Validating RDF/XML format")
 	dataStr := string(data)
 	if len(dataStr) == 0 {
+		log.Context(ctx).Debug("[FromRDF] Validation failed: RDF/XML data cannot be empty")
 		r.AddError(fmt.Errorf("RDF/XML data cannot be empty"))
 		return r
 	}
+	log.Context(ctx).Debug("[FromRDF] Non-empty data validation passed")
 
 	// Check for basic RDF/XML structure
+	log.Context(ctx).Debug("[FromRDF] Checking for RDF/XML structural elements")
 	if !containsRDFElements(dataStr) {
+		log.Context(ctx).Debug("[FromRDF] Validation failed: missing required RDF elements")
 		r.AddError(fmt.Errorf("invalid RDF/XML format: missing required RDF elements"))
 		return r
 	}
+	log.Context(ctx).Debug("[FromRDF] RDF/XML structural validation passed")
 
+	log.Context(ctx).Debug("[FromRDF] Setting resource data and metadata")
 	r.Data = data
 	r.ContentType = "application/rdf+xml"
 	r.Metadata["originalFormat"] = "application/rdf+xml"
 	r.Metadata["updatedAt"] = time.Now()
 
+	log.Context(ctx).Debug("[FromRDF] Creating resource updated event")
 	// Emit update event
 	event := NewResourceUpdatedEvent(r.ID(), map[string]interface{}{
 		"format": "application/rdf+xml",
@@ -100,34 +130,46 @@ func (r *Resource) FromRDF(data []byte) *Resource {
 	})
 	r.AddEvent(event)
 
+	log.Context(ctx).Infof("Resource updated with RDF/XML data: resourceID=%s, size=%d", r.ID(), len(data))
 	return r
 }
 
 // FromXML is an alias for FromRDF for backward compatibility
-func (r *Resource) FromXML(data []byte) *Resource {
-	return r.FromRDF(data)
+func (r *Resource) FromXML(ctx context.Context, data []byte) *Resource {
+	log.Context(ctx).Debugf("[FromXML] Delegating to FromRDF for resource: resourceID=%s, dataSize=%d", r.ID(), len(data))
+	return r.FromRDF(ctx, data)
 }
 
 // FromTurtle creates a Resource from Turtle data
-func (r *Resource) FromTurtle(data []byte) *Resource {
+func (r *Resource) FromTurtle(ctx context.Context, data []byte) *Resource {
+	log.Context(ctx).Debugf("[FromTurtle] Processing Turtle data for resource: resourceID=%s, dataSize=%d", r.ID(), len(data))
+
 	// Basic validation for Turtle format
+	log.Context(ctx).Debug("[FromTurtle] Validating Turtle format")
 	dataStr := string(data)
 	if len(dataStr) == 0 {
+		log.Context(ctx).Debug("[FromTurtle] Validation failed: Turtle data cannot be empty")
 		r.AddError(fmt.Errorf("Turtle data cannot be empty"))
 		return r
 	}
+	log.Context(ctx).Debug("[FromTurtle] Non-empty data validation passed")
 
 	// Basic Turtle format validation (check for common patterns)
+	log.Context(ctx).Debug("[FromTurtle] Checking for Turtle syntax elements")
 	if !containsTurtleElements(dataStr) {
+		log.Context(ctx).Debug("[FromTurtle] Validation failed: missing required Turtle syntax")
 		r.AddError(fmt.Errorf("invalid Turtle format: missing required Turtle syntax"))
 		return r
 	}
+	log.Context(ctx).Debug("[FromTurtle] Turtle syntax validation passed")
 
+	log.Context(ctx).Debug("[FromTurtle] Setting resource data and metadata")
 	r.Data = data
 	r.ContentType = "text/turtle"
 	r.Metadata["originalFormat"] = "text/turtle"
 	r.Metadata["updatedAt"] = time.Now()
 
+	log.Context(ctx).Debug("[FromTurtle] Creating resource updated event")
 	// Emit update event
 	event := NewResourceUpdatedEvent(r.ID(), map[string]interface{}{
 		"format": "text/turtle",
@@ -135,6 +177,7 @@ func (r *Resource) FromTurtle(data []byte) *Resource {
 	})
 	r.AddEvent(event)
 
+	log.Context(ctx).Infof("Resource updated with Turtle data: resourceID=%s, size=%d", r.ID(), len(data))
 	return r
 }
 
@@ -166,11 +209,15 @@ func (r *Resource) ToFormat(format string) ([]byte, error) {
 }
 
 // Update updates the resource data and emits an update event
-func (r *Resource) Update(data []byte, contentType string) {
+func (r *Resource) Update(ctx context.Context, data []byte, contentType string) {
+	log.Context(ctx).Debugf("[Update] Updating resource: resourceID=%s, contentType=%s, dataSize=%d", r.ID(), contentType, len(data))
+
+	log.Context(ctx).Debug("[Update] Setting resource data and content type")
 	r.Data = data
 	r.ContentType = contentType
 	r.Metadata["updatedAt"] = time.Now()
 
+	log.Context(ctx).Debug("[Update] Creating resource updated event")
 	// Emit update event
 	event := NewResourceUpdatedEvent(r.ID(), map[string]interface{}{
 		"contentType": contentType,
@@ -178,6 +225,8 @@ func (r *Resource) Update(data []byte, contentType string) {
 		"updatedAt":   time.Now(),
 	})
 	r.AddEvent(event)
+
+	log.Context(ctx).Infof("Resource updated successfully: resourceID=%s, contentType=%s, size=%d", r.ID(), contentType, len(data))
 }
 
 // Delete marks the resource as deleted and emits a delete event

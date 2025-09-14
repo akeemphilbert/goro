@@ -6,7 +6,7 @@ toolchain go1.23.3
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.1
-	github.com/akeemphilbert/pericarp v0.0.0-20250912121735-9632d0ed36ac
+	github.com/akeemphilbert/pericarp v0.0.0-20250914162044-62bd88b3954f
 	github.com/cucumber/godog v0.15.1
 	github.com/go-kratos/kratos/v2 v2.8.0
 	github.com/google/uuid v1.6.0

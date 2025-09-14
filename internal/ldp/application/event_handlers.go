@@ -400,7 +400,7 @@ func (h *ContainerEventHandler) handleMemberAdded(ctx context.Context, event *pe
 		return fmt.Errorf("failed to persist member added event to file system: %w", err)
 	}
 
-	// Extract member ID from event payload
+	// Extract member information from event payload
 	var payload map[string]interface{}
 	if err := json.Unmarshal(event.Payload(), &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal member added event payload: %w", err)
@@ -411,12 +411,18 @@ func (h *ContainerEventHandler) handleMemberAdded(ctx context.Context, event *pe
 		return fmt.Errorf("missing or invalid memberID in member added event payload")
 	}
 
+	// Extract additional resource information if available
+	resourceType, _ := payload["resourceType"].(string)
+	contentType, _ := payload["contentType"].(string)
+	size, _ := payload["size"].(float64)
+
 	// Add member to container via repository
 	if err := h.containerRepo.AddMember(ctx, event.AggregateID(), memberID); err != nil {
 		return fmt.Errorf("failed to add member to container in repository: %w", err)
 	}
 
-	fmt.Printf("Repository updated: member %s added to container %s\n", memberID, event.AggregateID())
+	fmt.Printf("Repository updated: member %s (type: %s, contentType: %s, size: %.0f) added to container %s\n",
+		memberID, resourceType, contentType, size, event.AggregateID())
 	return nil
 }
 

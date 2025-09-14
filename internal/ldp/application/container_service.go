@@ -385,30 +385,69 @@ func (s *ContainerService) DeleteContainer(ctx context.Context, id string) error
 }
 
 // AddResource adds a resource to a container
-func (s *ContainerService) AddResource(ctx context.Context, containerID, resourceID string) error {
+func (s *ContainerService) AddResource(ctx context.Context, containerID, resourceID string, resource *domain.Resource) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Validate membership operation
-	if err := s.validator.ValidateMembershipOperation(ctx, containerID, resourceID, "add", s.containerRepo); err != nil {
-		return domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("AddResource")
+	// Validate inputs
+	if containerID == "" {
+		return domain.WrapStorageError(
+			fmt.Errorf("container ID cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"container ID cannot be empty",
+		).WithOperation("AddResource")
+	}
+
+	if resource == nil {
+		return domain.WrapStorageError(
+			fmt.Errorf("resource cannot be nil"),
+			domain.ErrInvalidResource.Code,
+			"resource cannot be nil",
+		).WithOperation("AddResource")
+	}
+
+	if resourceID != resource.ID() {
+		return domain.WrapStorageError(
+			fmt.Errorf("resource ID mismatch"),
+			domain.ErrInvalidResource.Code,
+			"resource ID mismatch",
+		).WithOperation("AddResource")
+	}
+
+	// Get container to ensure it exists and validate membership
+	container, err := s.containerRepo.GetContainer(ctx, containerID)
+	if err != nil {
+		if domain.IsResourceNotFound(err) {
+			return domain.ErrResourceNotFound.WithOperation("AddResource").WithContext("containerID", containerID)
+		}
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to retrieve container",
+		).WithOperation("AddResource").WithContext("containerID", containerID)
+	}
+
+	// Use the new AddMember method that accepts Resource entity
+	if err := container.AddMember(resource); err != nil {
+		return domain.WrapStorageError(
+			err,
+			domain.ErrInvalidResource.Code,
+			"failed to add member",
+		).WithOperation("AddResource").WithContext("containerID", containerID).WithContext("resourceID", resourceID)
 	}
 
 	// Create unit of work for event handling
 	unitOfWork := s.unitOfWorkFactory()
 
-	// Create member added event
-	event := domain.NewMemberAddedEvent(containerID, map[string]interface{}{
-		"memberID":   resourceID,
-		"memberType": "Resource",
-		"addedAt":    time.Now(),
-	})
-	unitOfWork.RegisterEvents([]pericarpdomain.Event{event})
+	// Register container events
+	events := container.UncommittedEvents()
+	if len(events) > 0 {
+		unitOfWork.RegisterEvents(events)
+	}
 
-	// Commit unit of work for event processing - this will trigger event handlers to update repository
+	// Commit unit of work for event processing
 	envelopes, err := unitOfWork.Commit(ctx)
 	if err != nil {
-		// Rollback unit of work on commit failure
 		if rollbackErr := unitOfWork.Rollback(); rollbackErr != nil {
 			fmt.Printf("Warning: failed to rollback unit of work: %v\n", rollbackErr)
 		}
@@ -419,12 +458,19 @@ func (s *ContainerService) AddResource(ctx context.Context, containerID, resourc
 		).WithOperation("AddResource").WithContext("containerID", containerID).WithContext("resourceID", resourceID)
 	}
 
-	// Log successful event processing
+	// Mark events as committed
+	container.MarkEventsAsCommitted()
+
 	if len(envelopes) > 0 {
 		fmt.Printf("Successfully processed %d events for adding resource %s to container %s\n", len(envelopes), resourceID, containerID)
 	}
 
 	return nil
+}
+
+// AddResourceEntity adds a resource entity to a container (convenience method)
+func (s *ContainerService) AddResourceEntity(ctx context.Context, containerID string, resource *domain.Resource) error {
+	return s.AddResource(ctx, containerID, resource.ID(), resource)
 }
 
 // RemoveResource removes a resource from a container
@@ -900,13 +946,23 @@ func (s *ContainerService) GetContainerStats(ctx context.Context, containerID st
 		).WithOperation("GetContainerStats").WithContext("containerID", containerID)
 	}
 
+	// Get member count from repository instead of container.Members
+	members, err := s.containerRepo.ListMembers(ctx, containerID, domain.PaginationOptions{Limit: 1000, Offset: 0})
+	if err != nil {
+		return nil, domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to get member count for stats",
+		).WithOperation("GetContainerStats").WithContext("containerID", containerID)
+	}
+
 	// Build basic stats
 	stats := make(map[string]interface{})
 	stats["container_id"] = containerID
 	stats["container_type"] = container.ContainerType.String()
 	stats["parent_id"] = container.ParentID
-	stats["member_count"] = container.GetMemberCount()
-	stats["is_empty"] = container.IsEmpty()
+	stats["member_count"] = len(members)
+	stats["is_empty"] = len(members) == 0
 	stats["created_at"] = container.GetMetadata()["createdAt"]
 	stats["updated_at"] = container.GetMetadata()["updatedAt"]
 
@@ -1532,7 +1588,7 @@ func (s *ContainerService) GetContainerTypeInfo(ctx context.Context, containerID
 		Description:   container.GetDescription(),
 		MemberCount:   len(members),
 		ChildCount:    len(children),
-		IsEmpty:       container.IsEmpty(),
+		IsEmpty:       len(members) == 0,
 		AcceptedTypes: []string{"*/*"}, // BasicContainer accepts all types
 		Capabilities:  []string{"create", "read", "update", "delete", "list"},
 	}

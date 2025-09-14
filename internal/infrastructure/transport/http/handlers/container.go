@@ -129,7 +129,7 @@ func (h *ContainerHandler) PostResource(ctx khttp.Context) error {
 	}
 
 	// Add resource to container
-	err = h.containerService.AddResource(context.Background(), containerID, resourceID)
+	err = h.containerService.AddResource(context.Background(), containerID, resourceID, resource)
 	if err != nil {
 		// If adding to container fails, we should clean up the resource
 		if deleteErr := h.storageService.DeleteResource(context.Background(), resourceID); deleteErr != nil {
@@ -415,8 +415,15 @@ func (h *ContainerHandler) getResponseContentType(format string) string {
 
 // generateContainerETag generates an ETag for a container
 func (h *ContainerHandler) generateContainerETag(container *domain.Container) string {
-	// Generate ETag based on container ID and member count
-	return fmt.Sprintf("%s-%d", container.ID(), container.GetMemberCount())
+	// Generate ETag based on container ID and updated timestamp
+	metadata := container.GetMetadata()
+	if updatedAt, exists := metadata["updatedAt"]; exists {
+		if t, ok := updatedAt.(time.Time); ok {
+			return fmt.Sprintf("%s-%d", container.ID(), t.Unix())
+		}
+	}
+	// Fallback to just container ID if no timestamp
+	return container.ID()
 }
 
 // generateResourceETag generates an ETag for a resource

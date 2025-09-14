@@ -1,69 +1,69 @@
 # Implementation Plan
 
-- [ ] 1. Write tests and implement user domain structure
-  - [ ] 1.1 Write failing tests for core domain entities
+- [x] 1. Write tests and implement user domain structure
+  - [x] 1.1 Write failing tests for core domain entities
     - Create test files for User, Account, AccountMember, Role, Invitation entities
     - Write tests for entity validation, business rules, and domain methods
     - Write tests for atomic entity design and relationship constraints
     - _Requirements: 1.1, 2.1, 3.1, 5.1_
 
-  - [ ] 1.2 Implement domain entities to make tests pass
+  - [x] 1.2 Implement domain entities to make tests pass
     - Create the `internal/user` package with clean architecture layers (domain/application/infrastructure)
     - Implement core domain entities with atomic design to satisfy failing tests
     - Define domain interfaces for repositories (read-only and write operations)
     - _Requirements: 1.1, 2.1, 3.1, 5.1_
 
-- [ ] 2. Write tests and implement domain events
-  - [ ] 2.1 Write failing tests for user lifecycle events
+- [x] 2. Write tests and implement domain events
+  - [x] 2.1 Write failing tests for user lifecycle events
     - Create test files for UserRegisteredEvent, UserProfileUpdatedEvent, UserDeletedEvent, WebIDGeneratedEvent
     - Write tests for event serialization, validation, and structure
     - Test event emission and handling patterns
     - _Requirements: 5.1, 6.1_
 
-  - [ ] 2.2 Implement user events to make tests pass
+  - [x] 2.2 Implement user events to make tests pass
     - Define UserRegisteredEvent, UserProfileUpdatedEvent, UserDeletedEvent, WebIDGeneratedEvent
     - Implement event structures with proper serialization support to satisfy tests
     - _Requirements: 5.1, 6.1_
 
-  - [ ] 2.3 Write failing tests for account and membership events
+  - [x] 2.3 Write failing tests for account and membership events
     - Create test files for AccountCreatedEvent, MemberInvitedEvent, InvitationAcceptedEvent
     - Write tests for MemberAddedEvent, MemberRemovedEvent, MemberRoleUpdatedEvent
     - Test atomic entity relationship events following RDF-like principles
     - _Requirements: 3.1, 3.2, 3.3_
 
-  - [ ] 2.4 Implement account events to make tests pass
+  - [x] 2.4 Implement account events to make tests pass
     - Define all account and membership domain events to satisfy failing tests
     - Implement atomic entity relationship events following RDF-like principles
     - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 3. Write tests and implement GORM models
-  - [ ] 3.1 Write failing tests for GORM models
+- [x] 3. Write tests and implement GORM models
+  - [x] 3.1 Write failing tests for GORM models
     - Create test files for UserModel, RoleModel, AccountModel, AccountMemberModel, InvitationModel
     - Write tests for GORM model validation, constraints, and relationships
     - Test JSON serialization for complex fields (permissions, settings)
     - Write tests for database migration and model creation
     - _Requirements: 1.1, 3.1, 4.1, 5.1, 6.1, 7.1_
 
-  - [ ] 3.2 Implement GORM models to make tests pass
+  - [x] 3.2 Implement GORM models to make tests pass
     - Create UserModel, RoleModel, AccountModel, AccountMemberModel, InvitationModel
     - Define proper GORM tags, constraints, and indexes to satisfy failing tests
     - Implement JSON serialization for complex fields to pass serialization tests
     - _Requirements: 1.1, 3.1, 4.1, 5.1, 6.1, 7.1_
 
-  - [ ] 3.3 Write failing tests for database migration and seeding
+  - [x] 3.3 Write failing tests for database migration and seeding
     - Write tests for MigrateUserModels function and auto-migration
     - Create tests for system role seeding (Owner, Admin, Member, Viewer) with permissions
     - Test Wire provider integration with existing GORM instance
     - _Requirements: 3.3, 4.1_
 
-  - [ ] 3.4 Implement migration and seeding to make tests pass
+  - [x] 3.4 Implement migration and seeding to make tests pass
     - Implement MigrateUserModels function for auto-migration to satisfy tests
     - Create system role seeding with proper permissions to pass seeding tests
     - Add Wire provider for database initialization with existing GORM instance
     - _Requirements: 3.3, 4.1_
 
-- [ ] 4. Write tests and implement repository layer
-  - [ ] 4.1 Write failing tests for read-only repositories
+- [x] 4. Write tests and implement repository layer
+  - [x] 4.1 Write failing tests for read-only repositories
     - Create test files for GormUserRepository with query method tests (GetByID, GetByWebID, GetByEmail, List)
     - Write tests for GormAccountRepository with account query scenarios
     - Create tests for GormAccountMemberRepository for membership projection queries
@@ -71,47 +71,47 @@
     - Use temporary database for repository integration tests
     - _Requirements: 1.2, 2.1, 3.1, 5.1, 7.2_
 
-  - [ ] 4.2 Implement read-only repositories to make tests pass
+  - [x] 4.2 Implement read-only repositories to make tests pass
     - Implement GormUserRepository with query methods to satisfy failing tests
     - Implement GormAccountRepository with account queries to pass tests
     - Implement GormAccountMemberRepository for membership projections to satisfy tests
     - Implement GormRoleRepository with system role queries to pass tests
     - _Requirements: 1.2, 2.1, 3.1, 5.1, 7.2_
 
-  - [ ] 4.3 Write failing tests for write repositories
+  - [x] 4.3 Write failing tests for write repositories
     - Create test files for GormUserWriteRepository with persistence operation tests
     - Write tests for GormAccountWriteRepository with account persistence scenarios
     - Create tests for GormAccountMemberWriteRepository for membership projection writes
     - Write tests for GormInvitationWriteRepository with invitation management scenarios
     - _Requirements: 1.1, 3.2, 3.3, 5.1, 6.1_
 
-  - [ ] 4.4 Implement write repositories to make tests pass
+  - [x] 4.4 Implement write repositories to make tests pass
     - Implement GormUserWriteRepository for user persistence operations to satisfy tests
     - Implement GormAccountWriteRepository for account persistence to pass tests
     - Implement GormAccountMemberWriteRepository for membership projections to satisfy tests
     - Implement GormInvitationWriteRepository for invitation management to pass tests
     - _Requirements: 1.1, 3.2, 3.3, 5.1, 6.1_
 
-- [ ] 5. Write tests and implement WebID generation and file storage
-  - [ ] 5.1 Write failing tests for WebID generator
+- [x] 5. Write tests and implement WebID generation and file storage
+  - [x] 5.1 Write failing tests for WebID generator
     - Create test files for WebIDGenerator interface with URI generation scenarios
     - Write tests for Turtle format WebID document generation and validation
     - Test WebID format validation and uniqueness constraints
     - _Requirements: 1.1, 5.2, 5.3_
 
-  - [ ] 5.2 Implement WebID generator to make tests pass
+  - [x] 5.2 Implement WebID generator to make tests pass
     - Implement WebIDGenerator interface with URI generation logic to satisfy tests
     - Create Turtle format WebID document generation to pass format tests
     - Add validation for WebID format and uniqueness to satisfy validation tests
     - _Requirements: 1.1, 5.2, 5.3_
 
-  - [ ] 5.3 Write failing tests for file storage
+  - [x] 5.3 Write failing tests for file storage
     - Create test files for user data file storage with temporary directories
     - Write tests for file storage structure for user profiles and WebID documents
     - Test atomic file operations for user data persistence and cleanup
     - _Requirements: 2.2, 6.3, 6.4_
 
-  - [ ] 5.4 Implement file storage to make tests pass
+  - [x] 5.4 Implement file storage to make tests pass
     - Create file storage structure for user profiles and WebID documents to satisfy tests
     - Implement atomic file operations for user data persistence to pass operation tests
     - Add file cleanup for user deletion operations to satisfy cleanup tests

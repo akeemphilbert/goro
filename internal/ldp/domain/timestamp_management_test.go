@@ -312,7 +312,8 @@ func TestContainer_AddMemberWithTimestamp(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	assert.True(t, container.HasMember(memberID))
+	// HasMember now returns false since membership is managed by repository
+	assert.False(t, container.HasMember(memberID))
 	updatedAt, exists := tm.GetUpdatedTimestamp(container)
 	assert.True(t, exists)
 	assert.Equal(t, fixedTime, updatedAt)
@@ -329,7 +330,7 @@ func TestContainer_AddMemberWithTimestamp(t *testing.T) {
 	}
 }
 
-func TestContainer_AddMemberWithTimestamp_DuplicateMember(t *testing.T) {
+func TestContainer_AddMemberWithTimestamp_MultipleMembers(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
 	container := NewContainer("test-container", "", BasicContainer)
@@ -342,18 +343,15 @@ func TestContainer_AddMemberWithTimestamp_DuplicateMember(t *testing.T) {
 	require.NoError(t, err)
 	container.MarkEventsAsCommitted() // Clear events
 
-	// Execute - try to add same member again
+	// Execute - add same member again (now succeeds since no direct membership check)
 	err = container.AddMemberWithTimestamp(memberID, tm)
 
 	// Assert
-	assert.Error(t, err)
-	domainErr, ok := err.(*DomainError)
-	require.True(t, ok)
-	assert.Equal(t, "MEMBER_ALREADY_EXISTS", domainErr.Code)
+	assert.NoError(t, err)
 
-	// No new events should be emitted
+	// Event should be emitted
 	events := container.UncommittedEvents()
-	assert.Len(t, events, 0)
+	assert.Len(t, events, 1)
 }
 
 func TestContainer_RemoveMemberWithTimestamp(t *testing.T) {
@@ -365,16 +363,12 @@ func TestContainer_RemoveMemberWithTimestamp(t *testing.T) {
 
 	memberID := "test-member"
 
-	// Add member first
-	err := container.AddMemberWithTimestamp(memberID, tm)
-	require.NoError(t, err)
-	container.MarkEventsAsCommitted() // Clear add events
-
-	// Execute
-	err = container.RemoveMemberWithTimestamp(memberID, tm)
+	// Execute (no need to add first since membership is managed via events)
+	err := container.RemoveMemberWithTimestamp(memberID, tm)
 
 	// Assert
 	assert.NoError(t, err)
+	// HasMember always returns false now
 	assert.False(t, container.HasMember(memberID))
 	updatedAt, exists := tm.GetUpdatedTimestamp(container)
 	assert.True(t, exists)
@@ -392,7 +386,7 @@ func TestContainer_RemoveMemberWithTimestamp(t *testing.T) {
 	}
 }
 
-func TestContainer_RemoveMemberWithTimestamp_MemberNotFound(t *testing.T) {
+func TestContainer_RemoveMemberWithTimestamp_AlwaysSucceeds(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
 	container := NewContainer("test-container", "", BasicContainer)
@@ -403,13 +397,10 @@ func TestContainer_RemoveMemberWithTimestamp_MemberNotFound(t *testing.T) {
 	// Execute
 	err := container.RemoveMemberWithTimestamp(memberID, tm)
 
-	// Assert
-	assert.Error(t, err)
-	domainErr, ok := err.(*DomainError)
-	require.True(t, ok)
-	assert.Equal(t, "MEMBER_NOT_FOUND", domainErr.Code)
+	// Assert - now succeeds since no membership check is done
+	assert.NoError(t, err)
 
-	// No events should be emitted
+	// Event should be emitted
 	events := container.UncommittedEvents()
-	assert.Len(t, events, 0)
+	assert.Len(t, events, 1)
 }

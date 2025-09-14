@@ -6,6 +6,10 @@ github.com/ThreeDotsLabs/watermill v1.5.1 h1:t5xMivyf9tpmU3iozPqyrCZXHvoV1XQDfih
 github.com/ThreeDotsLabs/watermill v1.5.1/go.mod h1:Uop10dA3VeJWsSvis9qO3vbVY892LARrKAdki6WtXS4=
 github.com/akeemphilbert/pericarp v0.0.0-20250912121735-9632d0ed36ac h1:YMxK0v2LFpyS2yhkIfY6n93+2mmC7zpmnV7cYavqd7o=
 github.com/akeemphilbert/pericarp v0.0.0-20250912121735-9632d0ed36ac/go.mod h1:C9N3LMYQ3wAjj8asqbzBmVTA5NOfWMMvn9xLk0bvkA8=
+github.com/akeemphilbert/pericarp v0.0.0-20250914143748-e1cfe56f6fdd h1:qn2sliV/HlvUKr8yOG1LgcBdzUd3xVfLK8yb0MBPQl4=
+github.com/akeemphilbert/pericarp v0.0.0-20250914143748-e1cfe56f6fdd/go.mod h1:C9N3LMYQ3wAjj8asqbzBmVTA5NOfWMMvn9xLk0bvkA8=
+github.com/akeemphilbert/pericarp v0.0.0-20250914162044-62bd88b3954f h1:Eh+y06eJEhBDG/MkxE7Xme/0YXUCblhtJ7D4LfxepEQ=
+github.com/akeemphilbert/pericarp v0.0.0-20250914162044-62bd88b3954f/go.mod h1:C9N3LMYQ3wAjj8asqbzBmVTA5NOfWMMvn9xLk0bvkA8=
 github.com/census-instrumentation/opencensus-proto v0.4.1 h1:iKLQ0xPNFxR/2hzXZMrBo8f1j86j5WHzznCCQxV/b8g=
 github.com/census-instrumentation/opencensus-proto v0.4.1/go.mod h1:4T9NM4+4Vw91VeyqjLS6ao50K5bOcLKN6Q42XnYaRYw=
 github.com/cncf/xds/go v0.0.0-20240905190251-b4127c9b8d78 h1:QVw89YDxXxEe+l8gU8ETbOasdwEV+avkR75ZzsVV9WI=
