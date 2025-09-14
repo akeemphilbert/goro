@@ -1,6 +1,9 @@
 package infrastructure
 
 import (
+	"fmt"
+
+	"github.com/akeemphilbert/goro/internal/conf"
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
@@ -48,15 +51,23 @@ func NewUnitOfWorkFactory(
 }
 
 // NewFileSystemContainerRepositoryProvider provides a FileSystemContainerRepository for Wire dependency injection
-func NewFileSystemContainerRepositoryProvider() (domain.ContainerRepository, error) {
-	// Use a default base path - in production this should come from configuration
-	basePath := "./data/pod-storage"
+func NewFileSystemContainerRepositoryProvider(config *conf.Container) (domain.ContainerRepository, error) {
+	// Set defaults if config is nil
+	if config == nil {
+		config = &conf.Container{}
+		config.SetDefaults()
+	}
+
+	// Validate configuration
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid container configuration: %w", err)
+	}
 
 	// Create membership indexer
-	indexer, err := MembershipIndexerProvider(basePath)
+	indexer, err := MembershipIndexerProvider(config.IndexPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewFileSystemContainerRepository(basePath, indexer)
+	return NewFileSystemContainerRepository(config.StoragePath, indexer)
 }

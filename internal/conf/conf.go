@@ -17,27 +17,28 @@ type Bootstrap struct {
 
 // Server holds the server configuration
 type Server struct {
-	HTTP *HTTP `yaml:"http"`
-	GRPC *GRPC `yaml:"grpc"`
+	HTTP      *HTTP      `yaml:"http"`
+	GRPC      *GRPC      `yaml:"grpc"`
+	Container *Container `yaml:"container"`
 }
 
 // HTTP holds the HTTP server configuration
 type HTTP struct {
-	Network         string   `yaml:"network"`
-	Addr            string   `yaml:"addr"`
-	Timeout         Duration `yaml:"timeout"`
-	ReadTimeout     Duration `yaml:"read_timeout"`
-	WriteTimeout    Duration `yaml:"write_timeout"`
-	ShutdownTimeout Duration `yaml:"shutdown_timeout"`
-	MaxHeaderBytes  int      `yaml:"max_header_bytes"`
-	TLS             TLS      `yaml:"tls"`
+	Network         string   `json:"network"`
+	Addr            string   `json:"addr"`
+	Timeout         Duration `json:"timeout"`
+	ReadTimeout     Duration `json:"read_timeout"`
+	WriteTimeout    Duration `json:"write_timeout"`
+	ShutdownTimeout Duration `json:"shutdown_timeout"`
+	MaxHeaderBytes  int      `json:"max_header_bytes"`
+	TLS             TLS      `json:"tls"`
 }
 
 // TLS holds the TLS configuration for HTTPS
 type TLS struct {
-	Enabled  bool   `yaml:"enabled"`
-	CertFile string `yaml:"cert_file"`
-	KeyFile  string `yaml:"key_file"`
+	Enabled  bool   `json:"enabled"`
+	CertFile string `json:"cert_file"`
+	KeyFile  string `json:"key_file"`
 }
 
 // Duration is a custom type that can unmarshal from YAML strings
@@ -87,9 +88,20 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 
 // GRPC holds the gRPC server configuration
 type GRPC struct {
-	Network string   `yaml:"network"`
-	Addr    string   `yaml:"addr"`
-	Timeout Duration `yaml:"timeout"`
+	Network string   `json:"network"`
+	Addr    string   `json:"addr"`
+	Timeout Duration `json:"timeout"`
+}
+
+// Container holds the container-specific configuration
+type Container struct {
+	StoragePath     string `json:"storage_path"`
+	IndexPath       string `json:"index_path"`
+	MaxDepth        int    `json:"max_depth"`
+	PageSize        int    `json:"page_size"`
+	CacheEnabled    bool   `json:"cache_enabled"`
+	CacheSize       int    `json:"cache_size"`
+	IndexingEnabled bool   `json:"indexing_enabled"`
 }
 
 // SetDefaults sets default values for HTTP configuration
@@ -115,6 +127,26 @@ func (h *HTTP) SetDefaults() {
 	if h.MaxHeaderBytes == 0 {
 		h.MaxHeaderBytes = 1048576 // 1MB
 	}
+}
+
+// SetDefaults sets default values for Container configuration
+func (c *Container) SetDefaults() {
+	if c.StoragePath == "" {
+		c.StoragePath = "./data/pod-storage"
+	}
+	if c.IndexPath == "" {
+		c.IndexPath = "./data/pod-storage/index"
+	}
+	if c.MaxDepth == 0 {
+		c.MaxDepth = 100 // Maximum container nesting depth
+	}
+	if c.PageSize == 0 {
+		c.PageSize = 50 // Default page size for container listings
+	}
+	if c.CacheSize == 0 {
+		c.CacheSize = 1000 // Default cache size for containers
+	}
+	// CacheEnabled and IndexingEnabled default to false (zero value)
 }
 
 // Validate validates the HTTP configuration
@@ -145,6 +177,42 @@ func (h *HTTP) Validate() error {
 		if h.TLS.KeyFile == "" {
 			return errors.New("TLS key file is required when TLS is enabled")
 		}
+	}
+
+	return nil
+}
+
+// Validate validates the Container configuration
+func (c *Container) Validate() error {
+	// Validate storage path
+	if c.StoragePath == "" {
+		return errors.New("storage path cannot be empty")
+	}
+
+	// Validate index path
+	if c.IndexPath == "" {
+		return errors.New("index path cannot be empty")
+	}
+
+	// Validate max depth
+	if c.MaxDepth < 1 {
+		return errors.New("max depth must be at least 1")
+	}
+	if c.MaxDepth > 1000 {
+		return errors.New("max depth cannot exceed 1000")
+	}
+
+	// Validate page size
+	if c.PageSize < 1 {
+		return errors.New("page size must be at least 1")
+	}
+	if c.PageSize > 10000 {
+		return errors.New("page size cannot exceed 10000")
+	}
+
+	// Validate cache size
+	if c.CacheSize < 0 {
+		return errors.New("cache size cannot be negative")
 	}
 
 	return nil

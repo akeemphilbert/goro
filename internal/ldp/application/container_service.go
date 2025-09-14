@@ -88,6 +88,7 @@ type ContainerService struct {
 	rdfConverter       *infrastructure.ContainerRDFConverter
 	timestampManager   *domain.TimestampManager
 	corruptionDetector *domain.MetadataCorruptionDetector
+	validator          *domain.ContainerValidator
 	mu                 sync.RWMutex // For concurrent access handling
 }
 
@@ -99,6 +100,7 @@ func NewContainerService(
 ) *ContainerService {
 	timestampManager := domain.NewTimestampManager()
 	corruptionDetector := domain.NewMetadataCorruptionDetector(timestampManager)
+	validator := domain.NewContainerValidator()
 
 	return &ContainerService{
 		containerRepo:      containerRepo,
@@ -106,6 +108,7 @@ func NewContainerService(
 		rdfConverter:       rdfConverter,
 		timestampManager:   timestampManager,
 		corruptionDetector: corruptionDetector,
+		validator:          validator,
 	}
 }
 
@@ -114,21 +117,19 @@ func (s *ContainerService) CreateContainer(ctx context.Context, id, parentID str
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Validate input
-	if id == "" {
-		return nil, domain.WrapStorageError(
-			fmt.Errorf("container ID cannot be empty"),
-			domain.ErrInvalidID.Code,
-			"container ID cannot be empty",
-		).WithOperation("CreateContainer")
+	// Validate container ID
+	if err := s.validator.ValidateContainerID(id); err != nil {
+		return nil, domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("CreateContainer")
 	}
 
-	if !containerType.IsValid() {
-		return nil, domain.WrapStorageError(
-			fmt.Errorf("invalid container type: %s", containerType),
-			domain.ErrInvalidResource.Code,
-			"invalid container type",
-		).WithOperation("CreateContainer").WithContext("containerType", containerType.String())
+	// Validate container type
+	if err := s.validator.ValidateContainerType(containerType); err != nil {
+		return nil, domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("CreateContainer")
+	}
+
+	// Validate hierarchy to prevent circular references
+	if err := s.validator.ValidateHierarchy(ctx, id, parentID, s.containerRepo); err != nil {
+		return nil, domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("CreateContainer")
 	}
 
 	// Check if container already exists
@@ -317,13 +318,9 @@ func (s *ContainerService) DeleteContainer(ctx context.Context, id string) error
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Validate input
-	if id == "" {
-		return domain.WrapStorageError(
-			fmt.Errorf("container ID cannot be empty"),
-			domain.ErrInvalidID.Code,
-			"container ID cannot be empty",
-		).WithOperation("DeleteContainer")
+	// Validate container ID
+	if err := s.validator.ValidateContainerID(id); err != nil {
+		return domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("DeleteContainer")
 	}
 
 	// Retrieve container to validate deletion
@@ -339,7 +336,12 @@ func (s *ContainerService) DeleteContainer(ctx context.Context, id string) error
 		).WithOperation("DeleteContainer").WithContext("containerID", id)
 	}
 
-	// Validate container can be deleted (must be empty)
+	// Validate container can be deleted using comprehensive validation
+	if err := s.validator.ValidateContainerForDeletion(ctx, container, s.containerRepo); err != nil {
+		return domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("DeleteContainer")
+	}
+
+	// Mark container as deleted
 	if err := container.Delete(); err != nil {
 		return domain.WrapStorageError(
 			err,
@@ -387,21 +389,9 @@ func (s *ContainerService) AddResource(ctx context.Context, containerID, resourc
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Validate input
-	if containerID == "" {
-		return domain.WrapStorageError(
-			fmt.Errorf("container ID cannot be empty"),
-			domain.ErrInvalidID.Code,
-			"container ID cannot be empty",
-		).WithOperation("AddResource")
-	}
-
-	if resourceID == "" {
-		return domain.WrapStorageError(
-			fmt.Errorf("resource ID cannot be empty"),
-			domain.ErrInvalidID.Code,
-			"resource ID cannot be empty",
-		).WithOperation("AddResource")
+	// Validate membership operation
+	if err := s.validator.ValidateMembershipOperation(ctx, containerID, resourceID, "add", s.containerRepo); err != nil {
+		return domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("AddResource")
 	}
 
 	// Create unit of work for event handling
@@ -442,21 +432,9 @@ func (s *ContainerService) RemoveResource(ctx context.Context, containerID, reso
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Validate input
-	if containerID == "" {
-		return domain.WrapStorageError(
-			fmt.Errorf("container ID cannot be empty"),
-			domain.ErrInvalidID.Code,
-			"container ID cannot be empty",
-		).WithOperation("RemoveResource")
-	}
-
-	if resourceID == "" {
-		return domain.WrapStorageError(
-			fmt.Errorf("resource ID cannot be empty"),
-			domain.ErrInvalidID.Code,
-			"resource ID cannot be empty",
-		).WithOperation("RemoveResource")
+	// Validate membership operation
+	if err := s.validator.ValidateMembershipOperation(ctx, containerID, resourceID, "remove", s.containerRepo); err != nil {
+		return domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("RemoveResource")
 	}
 
 	// Create unit of work for event handling
@@ -837,18 +815,14 @@ func (s *ContainerService) ListContainerMembersEnhanced(ctx context.Context, con
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Validate input
-	if containerID == "" {
-		return nil, domain.WrapStorageError(
-			fmt.Errorf("container ID cannot be empty"),
-			domain.ErrInvalidID.Code,
-			"container ID cannot be empty",
-		).WithOperation("ListContainerMembersEnhanced")
+	// Validate container ID
+	if err := s.validator.ValidateContainerID(containerID); err != nil {
+		return nil, domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("ListContainerMembersEnhanced")
 	}
 
-	// Validate and set defaults for options
-	if !options.IsValid() {
-		options = domain.GetDefaultListingOptions()
+	// Validate listing options
+	if err := s.validator.ValidateListingOptions(options); err != nil {
+		return nil, domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("ListContainerMembersEnhanced")
 	}
 
 	// Check if container exists

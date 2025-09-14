@@ -9,6 +9,7 @@ import (
 	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,8 +83,20 @@ func TestContainerPaginationBasic(t *testing.T) {
 	rdfConverter := &infrastructure.ContainerRDFConverter{}
 	service := NewContainerService(containerRepo, unitOfWorkFactory, rdfConverter)
 
-	// Create container
+	// Setup mocks for container creation
 	containerID := "pagination-test-container"
+	containerRepo.On("ContainerExists", ctx, containerID).Return(false, nil)
+	containerRepo.On("ContainerExists", ctx, "").Return(false, nil)
+
+	mockUoW := &MockUnitOfWork{}
+	mockUoW.On("RegisterEvents", mock.Anything).Return()
+	mockUoW.On("Commit", ctx).Return([]pericarpdomain.Envelope{}, nil)
+	unitOfWorkFactory = func() pericarpdomain.UnitOfWork {
+		return mockUoW
+	}
+	service = NewContainerService(containerRepo, unitOfWorkFactory, rdfConverter)
+
+	// Create container
 	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 

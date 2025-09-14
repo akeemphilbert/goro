@@ -104,7 +104,7 @@
   - Write integration tests for container event processing
   - _Requirements: 1.5, 2.5, 3.4, 4.5, 5.5_
 
-- [ ] 11. Add Wire dependency injection for container components (TDD)
+- [x] 11. Add Wire dependency injection for container components (TDD)
   - Write integration tests for Wire container component assembly
   - Write unit tests for Wire provider functionality
   - Create Wire providers for ContainerService and ContainerRepository
@@ -114,7 +114,7 @@
   - Run wire generation and verify dependency resolution
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 12. Implement container validation and error handling (TDD)
+- [x] 12. Implement container validation and error handling (TDD)
   - Write unit tests for container validation scenarios
   - Write unit tests for circular reference detection
   - Write unit tests for container emptiness validation

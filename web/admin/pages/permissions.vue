@@ -1,303 +1,164 @@
 <template>
-  <div class="permissions-page">
+  <div>
     <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-left">
-          <h1>
-            <SafetyOutlined />
-            Permissions & Access
-          </h1>
-          <p>Manage who can access your data and containers</p>
-        </div>
-        <div class="header-actions">
-          <a-button type="primary" @click="showInviteUserModal">
-            <UserAddOutlined />
-            Invite User
-          </a-button>
-        </div>
-      </div>
-    </div>
+    <a-page-header
+      title="Permissions & Invitations"
+      sub-title="Manage access to your data"
+    />
 
-    <!-- Permission Overview -->
-    <div class="overview-section">
-      <a-row :gutter="24">
-        <a-col :xs="24" :sm="8" :md="6">
-          <a-card class="overview-card">
-            <a-statistic
-              title="Total Users"
-              :value="permissionStats.totalUsers"
-              :value-style="{ color: '#667eea' }"
-            >
-              <template #prefix>
-                <UserOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-        <a-col :xs="24" :sm="8" :md="6">
-          <a-card class="overview-card">
-            <a-statistic
-              title="Active Permissions"
-              :value="permissionStats.activePermissions"
-              :value-style="{ color: '#52c41a' }"
-            >
-              <template #prefix>
-                <SafetyOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-        <a-col :xs="24" :sm="8" :md="6">
-          <a-card class="overview-card">
-            <a-statistic
-              title="Pending Invites"
-              :value="permissionStats.pendingInvites"
-              :value-style="{ color: '#faad14' }"
-            >
-              <template #prefix>
-                <ClockCircleOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-        <a-col :xs="24" :sm="8" :md="6">
-          <a-card class="overview-card">
-            <a-statistic
-              title="Shared Resources"
-              :value="permissionStats.sharedResources"
-              :value-style="{ color: '#ff4d4f' }"
-            >
-              <template #prefix>
-                <ShareAltOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-      </a-row>
-    </div>
-
-    <!-- Tabs for different permission views -->
-    <div class="tabs-section">
-      <a-tabs v-model:activeKey="activeTab" class="permission-tabs">
-        <a-tab-pane key="users" tab="Users & Permissions">
-          <div class="users-section">
-            <a-table
-              :columns="userColumns"
-              :data-source="users"
-              :pagination="{ pageSize: 10 }"
-              row-key="id"
-              class="users-table"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'avatar'">
-                  <a-avatar :src="record.avatar" :size="32">
-                    {{ record.name.charAt(0).toUpperCase() }}
+    <!-- Tabs for different sections -->
+    <a-tabs v-model:activeKey="activeTab">
+      <a-tab-pane key="permissions" tab="User Permissions">
+        <a-card>
+          <template #extra>
+            <a-button type="primary" @click="showInviteUserModal">
+              <UserAddOutlined />
+              Invite User
+            </a-button>
+          </template>
+          
+          <a-table 
+            :columns="permissionColumns" 
+            :data-source="userPermissions"
+            :pagination="{ pageSize: 10 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'user'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <a-avatar :src="record.avatar">
+                    {{ record.name.charAt(0) }}
                   </a-avatar>
-                </template>
-                
-                <template v-if="column.key === 'permissions'">
-                  <a-space wrap>
-                    <a-tag 
-                      v-for="permission in record.permissions"
-                      :key="permission"
-                      :color="getPermissionColor(permission)"
-                    >
-                      {{ permission }}
-                    </a-tag>
-                  </a-space>
-                </template>
-                
-                <template v-if="column.key === 'status'">
-                  <a-tag :color="record.status === 'active' ? 'green' : 'orange'">
-                    {{ record.status }}
-                  </a-tag>
-                </template>
-                
-                <template v-if="column.key === 'actions'">
-                  <a-space>
-                    <a-button type="text" @click="editUserPermissions(record)">
-                      <EditOutlined />
-                    </a-button>
-                    <a-button type="text" @click="revokeAccess(record)">
-                      <StopOutlined />
-                    </a-button>
-                    <a-popconfirm
-                      title="Are you sure you want to remove this user?"
-                      @confirm="removeUser(record.id)"
-                    >
-                      <a-button type="text" danger>
-                        <DeleteOutlined />
-                      </a-button>
-                    </a-popconfirm>
-                  </a-space>
-                </template>
+                  <div>
+                    <div style="font-weight: 500;">{{ record.name }}</div>
+                    <div style="color: #666; font-size: 12px;">{{ record.email }}</div>
+                  </div>
+                </div>
               </template>
-            </a-table>
-          </div>
-        </a-tab-pane>
-        
-        <a-tab-pane key="containers" tab="Container Permissions">
-          <div class="containers-section">
-            <a-table
-              :columns="containerColumns"
-              :data-source="containerPermissions"
-              :pagination="{ pageSize: 10 }"
-              row-key="id"
-              class="containers-table"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'permissions'">
-                  <a-space wrap>
-                    <a-tag 
-                      v-for="permission in record.permissions"
-                      :key="permission"
-                      :color="getPermissionColor(permission)"
-                    >
-                      {{ permission }}
-                    </a-tag>
-                  </a-space>
-                </template>
-                
-                <template v-if="column.key === 'actions'">
-                  <a-space>
-                    <a-button type="text" @click="editContainerPermissions(record)">
-                      <EditOutlined />
-                    </a-button>
-                    <a-button type="text" @click="shareContainer(record)">
-                      <ShareAltOutlined />
-                    </a-button>
-                  </a-space>
-                </template>
+              <template v-else-if="column.key === 'access'">
+                <a-tag :color="getAccessColor(record.access)">
+                  {{ record.access }}
+                </a-tag>
               </template>
-            </a-table>
-          </div>
-        </a-tab-pane>
-        
-        <a-tab-pane key="invitations" tab="Pending Invitations">
-          <div class="invitations-section">
-            <a-table
-              :columns="invitationColumns"
-              :data-source="invitations"
-              :pagination="{ pageSize: 10 }"
-              row-key="id"
-              class="invitations-table"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'status'">
-                  <a-tag :color="getInvitationStatusColor(record.status)">
-                    {{ record.status }}
-                  </a-tag>
-                </template>
-                
-                <template v-if="column.key === 'actions'">
-                  <a-space>
-                    <a-button 
-                      v-if="record.status === 'pending'"
-                      type="text" 
-                      @click="resendInvitation(record)"
-                    >
-                      <SendOutlined />
-                      Resend
-                    </a-button>
-                    <a-button 
-                      v-if="record.status === 'pending'"
-                      type="text" 
-                      danger
-                      @click="cancelInvitation(record.id)"
-                    >
-                      <CloseOutlined />
-                      Cancel
-                    </a-button>
-                  </a-space>
-                </template>
+              <template v-else-if="column.key === 'actions'">
+                <a-space>
+                  <a-button type="text" @click="editPermissions(record)">
+                    <EditOutlined />
+                  </a-button>
+                  <a-button type="text" danger @click="revokeAccess(record)">
+                    <DeleteOutlined />
+                  </a-button>
+                </a-space>
               </template>
-            </a-table>
-          </div>
-        </a-tab-pane>
-      </a-tabs>
-    </div>
+            </template>
+          </a-table>
+        </a-card>
+      </a-tab-pane>
+
+      <a-tab-pane key="invitations" tab="Pending Invitations">
+        <a-card>
+          <a-table 
+            :columns="invitationColumns" 
+            :data-source="pendingInvitations"
+            :pagination="{ pageSize: 10 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'status'">
+                <a-tag :color="getStatusColor(record.status)">
+                  {{ record.status }}
+                </a-tag>
+              </template>
+              <template v-else-if="column.key === 'access'">
+                <a-tag :color="getAccessColor(record.access)">
+                  {{ record.access }}
+                </a-tag>
+              </template>
+              <template v-else-if="column.key === 'actions'">
+                <a-space>
+                  <a-button type="text" @click="resendInvitation(record)">
+                    <MailOutlined />
+                  </a-button>
+                  <a-button type="text" danger @click="cancelInvitation(record)">
+                    <DeleteOutlined />
+                  </a-button>
+                </a-space>
+              </template>
+            </template>
+          </a-table>
+        </a-card>
+      </a-tab-pane>
+
+      <a-tab-pane key="requests" tab="Access Requests">
+        <a-card>
+          <a-table 
+            :columns="requestColumns" 
+            :data-source="accessRequests"
+            :pagination="{ pageSize: 10 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'user'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <a-avatar :src="record.avatar">
+                    {{ record.name.charAt(0) }}
+                  </a-avatar>
+                  <div>
+                    <div style="font-weight: 500;">{{ record.name }}</div>
+                    <div style="color: #666; font-size: 12px;">{{ record.email }}</div>
+                  </div>
+                </div>
+              </template>
+              <template v-else-if="column.key === 'requestedAccess'">
+                <a-tag :color="getAccessColor(record.requestedAccess)">
+                  {{ record.requestedAccess }}
+                </a-tag>
+              </template>
+              <template v-else-if="column.key === 'actions'">
+                <a-space>
+                  <a-button type="primary" size="small" @click="approveRequest(record)">
+                    Approve
+                  </a-button>
+                  <a-button danger size="small" @click="denyRequest(record)">
+                    Deny
+                  </a-button>
+                </a-space>
+              </template>
+            </template>
+          </a-table>
+        </a-card>
+      </a-tab-pane>
+    </a-tabs>
 
     <!-- Invite User Modal -->
     <a-modal
-      v-model:open="inviteModalVisible"
+      v-model:open="inviteUserModalVisible"
       title="Invite User"
-      width="600px"
-      @ok="handleInviteSubmit"
-      @cancel="handleInviteCancel"
+      width="500px"
+      @ok="handleInviteUser"
+      @cancel="inviteUserModalVisible = false"
     >
-      <a-form
-        ref="inviteFormRef"
-        :model="inviteForm"
-        :rules="inviteFormRules"
-        layout="vertical"
-      >
-        <a-form-item label="Email Address" name="email">
-          <a-input v-model:value="inviteForm.email" placeholder="user@example.com" />
+      <a-form ref="inviteUserForm" :model="newInvitation" layout="vertical">
+        <a-form-item label="Email Address" name="email" :rules="[{ required: true, type: 'email' }]">
+          <a-input v-model:value="newInvitation.email" />
         </a-form-item>
-        
-        <a-form-item label="Permissions" name="permissions">
-          <a-checkbox-group v-model:value="inviteForm.permissions">
-            <a-checkbox value="read">Read Access</a-checkbox>
-            <a-checkbox value="write">Write Access</a-checkbox>
-            <a-checkbox value="admin">Admin Access</a-checkbox>
-          </a-checkbox-group>
+        <a-form-item label="Access Level" name="access" :rules="[{ required: true }]">
+          <a-select v-model:value="newInvitation.access">
+            <a-select-option value="read">Read Only</a-select-option>
+            <a-select-option value="write">Read & Write</a-select-option>
+            <a-select-option value="admin">Admin</a-select-option>
+          </a-select>
         </a-form-item>
-        
-        <a-form-item label="Containers" name="containers">
+        <a-form-item label="Resource" name="resource">
           <a-tree-select
-            v-model:value="inviteForm.containers"
-            :tree-data="containerSelectOptions"
-            placeholder="Select containers to share"
-            tree-checkable
-            multiple
-            tree-default-expand-all
+            v-model:value="newInvitation.resource"
+            :tree-data="resourceOptions"
+            placeholder="Select specific resource (optional)"
+            allow-clear
           />
         </a-form-item>
-        
         <a-form-item label="Message" name="message">
           <a-textarea 
-            v-model:value="inviteForm.message" 
-            placeholder="Optional message for the invitation..."
+            v-model:value="newInvitation.message" 
             :rows="3"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- Edit Permissions Modal -->
-    <a-modal
-      v-model:open="permissionModalVisible"
-      title="Edit Permissions"
-      width="500px"
-      @ok="handlePermissionSubmit"
-      @cancel="handlePermissionCancel"
-    >
-      <a-form
-        ref="permissionFormRef"
-        :model="permissionForm"
-        layout="vertical"
-      >
-        <a-form-item label="User">
-          <a-input v-model:value="permissionForm.userName" disabled />
-        </a-form-item>
-        
-        <a-form-item label="Permissions">
-          <a-checkbox-group v-model:value="permissionForm.permissions">
-            <a-checkbox value="read">Read Access</a-checkbox>
-            <a-checkbox value="write">Write Access</a-checkbox>
-            <a-checkbox value="admin">Admin Access</a-checkbox>
-          </a-checkbox-group>
-        </a-form-item>
-        
-        <a-form-item label="Containers">
-          <a-tree-select
-            v-model:value="permissionForm.containers"
-            :tree-data="containerSelectOptions"
-            placeholder="Select containers"
-            tree-checkable
-            multiple
-            tree-default-expand-all
+            placeholder="Optional invitation message..."
           />
         </a-form-item>
       </a-form>
@@ -307,353 +168,186 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { 
-  SafetyOutlined, 
+import {
   UserAddOutlined,
-  UserOutlined,
-  ClockCircleOutlined,
-  ShareAltOutlined,
   EditOutlined,
-  StopOutlined,
   DeleteOutlined,
-  SendOutlined,
-  CloseOutlined
+  MailOutlined
 } from '@ant-design/icons-vue'
 
 // Reactive state
-const activeTab = ref('users')
-const inviteModalVisible = ref(false)
-const permissionModalVisible = ref(false)
-const editingUser = ref(null)
+const activeTab = ref('permissions')
+const inviteUserModalVisible = ref(false)
 
-// Mock data
-const permissionStats = ref({
-  totalUsers: 8,
-  activePermissions: 24,
-  pendingInvites: 3,
-  sharedResources: 89
+const newInvitation = reactive({
+  email: '',
+  access: 'read',
+  resource: '',
+  message: ''
 })
 
-const users = ref([
-  {
-    id: 1,
-    name: 'John Smith',
-    email: 'john@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-    permissions: ['read', 'write'],
-    containers: ['Documents', 'Work'],
-    status: 'active',
-    lastActive: '2024-01-15'
-  },
-  {
-    id: 2,
-    name: 'Sarah Johnson',
-    email: 'sarah@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-    permissions: ['read'],
-    containers: ['Photos'],
-    status: 'active',
-    lastActive: '2024-01-14'
-  },
-  {
-    id: 3,
-    name: 'Mike Chen',
-    email: 'mike@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-    permissions: ['read', 'write', 'admin'],
-    containers: ['All'],
-    status: 'active',
-    lastActive: '2024-01-15'
-  }
-])
-
-const containerPermissions = ref([
-  {
-    id: 1,
-    name: 'Documents',
-    type: 'documents',
-    permissions: ['read', 'write'],
-    sharedWith: 3,
-    lastModified: '2024-01-15'
-  },
-  {
-    id: 2,
-    name: 'Work Documents',
-    type: 'documents',
-    permissions: ['read'],
-    sharedWith: 2,
-    lastModified: '2024-01-14'
-  },
-  {
-    id: 3,
-    name: 'Photos',
-    type: 'media',
-    permissions: ['read'],
-    sharedWith: 1,
-    lastModified: '2024-01-13'
-  }
-])
-
-const invitations = ref([
-  {
-    id: 1,
-    email: 'newuser@example.com',
-    permissions: ['read'],
-    containers: ['Documents'],
-    status: 'pending',
-    sentAt: '2024-01-10',
-    expiresAt: '2024-01-17'
-  },
-  {
-    id: 2,
-    email: 'collaborator@example.com',
-    permissions: ['read', 'write'],
-    containers: ['Work Documents'],
-    status: 'pending',
-    sentAt: '2024-01-12',
-    expiresAt: '2024-01-19'
-  }
-])
-
 // Table columns
-const userColumns = [
-  { title: '', dataIndex: 'avatar', key: 'avatar', width: 60 },
-  { title: 'Name', dataIndex: 'name', key: 'name' },
-  { title: 'Email', dataIndex: 'email', key: 'email' },
-  { title: 'Permissions', dataIndex: 'permissions', key: 'permissions' },
-  { title: 'Status', dataIndex: 'status', key: 'status' },
-  { title: 'Last Active', dataIndex: 'lastActive', key: 'lastActive' },
-  { title: 'Actions', key: 'actions', width: 150 }
-]
-
-const containerColumns = [
-  { title: 'Container', dataIndex: 'name', key: 'name' },
-  { title: 'Type', dataIndex: 'type', key: 'type' },
-  { title: 'Permissions', dataIndex: 'permissions', key: 'permissions' },
-  { title: 'Shared With', dataIndex: 'sharedWith', key: 'sharedWith' },
-  { title: 'Last Modified', dataIndex: 'lastModified', key: 'lastModified' },
-  { title: 'Actions', key: 'actions', width: 120 }
+const permissionColumns = [
+  { title: 'User', key: 'user', width: 200 },
+  { title: 'Access Level', key: 'access', width: 120 },
+  { title: 'Resource', dataIndex: 'resource', key: 'resource' },
+  { title: 'Grant Date', dataIndex: 'grantDate', key: 'grantDate', width: 120 },
+  { title: 'Actions', key: 'actions', width: 100 }
 ]
 
 const invitationColumns = [
   { title: 'Email', dataIndex: 'email', key: 'email' },
-  { title: 'Permissions', dataIndex: 'permissions', key: 'permissions' },
-  { title: 'Status', dataIndex: 'status', key: 'status' },
-  { title: 'Sent', dataIndex: 'sentAt', key: 'sentAt' },
-  { title: 'Expires', dataIndex: 'expiresAt', key: 'expiresAt' },
+  { title: 'Access Level', key: 'access', width: 120 },
+  { title: 'Resource', dataIndex: 'resource', key: 'resource' },
+  { title: 'Status', key: 'status', width: 100 },
+  { title: 'Sent Date', dataIndex: 'sentDate', key: 'sentDate', width: 120 },
+  { title: 'Actions', key: 'actions', width: 100 }
+]
+
+const requestColumns = [
+  { title: 'User', key: 'user', width: 200 },
+  { title: 'Requested Access', key: 'requestedAccess', width: 150 },
+  { title: 'Resource', dataIndex: 'resource', key: 'resource' },
+  { title: 'Request Date', dataIndex: 'requestDate', key: 'requestDate', width: 120 },
   { title: 'Actions', key: 'actions', width: 150 }
 ]
 
-// Form data
-const inviteForm = reactive({
-  email: '',
-  permissions: ['read'],
-  containers: [],
-  message: ''
-})
+// Mock data
+const userPermissions = ref([
+  {
+    id: 1,
+    name: 'Alice Johnson',
+    email: 'alice@example.com',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
+    access: 'admin',
+    resource: 'All Resources',
+    grantDate: '2024-01-15'
+  },
+  {
+    id: 2,
+    name: 'Bob Smith',
+    email: 'bob@example.com',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
+    access: 'write',
+    resource: '/personal/photos',
+    grantDate: '2024-02-20'
+  }
+])
 
-const permissionForm = reactive({
-  userName: '',
-  permissions: [],
-  containers: []
-})
+const pendingInvitations = ref([
+  {
+    id: 1,
+    email: 'charlie@example.com',
+    access: 'read',
+    resource: '/personal/documents',
+    status: 'pending',
+    sentDate: '2024-03-01'
+  },
+  {
+    id: 2,
+    email: 'diana@example.com',
+    access: 'write',
+    resource: '/work/projects',
+    status: 'expired',
+    sentDate: '2024-02-15'
+  }
+])
 
-const inviteFormRules = {
-  email: [
-    { required: true, message: 'Please enter email address' },
-    { type: 'email', message: 'Please enter valid email' }
-  ],
-  permissions: [{ required: true, message: 'Please select at least one permission' }]
-}
+const accessRequests = ref([
+  {
+    id: 1,
+    name: 'Eve Wilson',
+    email: 'eve@example.com',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eve',
+    requestedAccess: 'read',
+    resource: '/personal/recipes',
+    requestDate: '2024-03-05'
+  }
+])
 
-// Mock container options
-const containerSelectOptions = ref([
-  { title: 'Documents', value: 'documents', key: 'documents' },
-  { title: 'Work Documents', value: 'work-docs', key: 'work-docs' },
-  { title: 'Photos', value: 'photos', key: 'photos' },
-  { title: 'Media', value: 'media', key: 'media' }
+const resourceOptions = ref([
+  {
+    title: 'All Resources',
+    value: '/',
+    children: [
+      {
+        title: 'Personal',
+        value: '/personal',
+        children: [
+          { title: 'Documents', value: '/personal/documents' },
+          { title: 'Photos', value: '/personal/photos' },
+          { title: 'Recipes', value: '/personal/recipes' }
+        ]
+      },
+      {
+        title: 'Work',
+        value: '/work',
+        children: [
+          { title: 'Projects', value: '/work/projects' },
+          { title: 'Meetings', value: '/work/meetings' }
+        ]
+      }
+    ]
+  }
 ])
 
 // Methods
 const showInviteUserModal = () => {
-  resetInviteForm()
-  inviteModalVisible.value = true
+  inviteUserModalVisible.value = true
 }
 
-const editUserPermissions = (user: any) => {
-  editingUser.value = user
-  Object.assign(permissionForm, {
-    userName: user.name,
-    permissions: user.permissions,
-    containers: user.containers
-  })
-  permissionModalVisible.value = true
-}
-
-const revokeAccess = (user: any) => {
-  console.log('Revoking access for:', user.name)
-  // Implement revoke access
-}
-
-const removeUser = (userId: number) => {
-  const index = users.value.findIndex(u => u.id === userId)
-  if (index > -1) {
-    users.value.splice(index, 1)
-  }
-}
-
-const editContainerPermissions = (container: any) => {
-  console.log('Editing container permissions:', container.name)
-  // Implement container permission editing
-}
-
-const shareContainer = (container: any) => {
-  console.log('Sharing container:', container.name)
-  // Implement container sharing
-}
-
-const resendInvitation = (invitation: any) => {
-  console.log('Resending invitation to:', invitation.email)
-  // Implement resend invitation
-}
-
-const cancelInvitation = (invitationId: number) => {
-  const index = invitations.value.findIndex(i => i.id === invitationId)
-  if (index > -1) {
-    invitations.value.splice(index, 1)
-  }
-}
-
-const handleInviteSubmit = () => {
-  console.log('Sending invitation:', inviteForm)
-  // Implement invitation sending
-  inviteModalVisible.value = false
-  resetInviteForm()
-}
-
-const handleInviteCancel = () => {
-  inviteModalVisible.value = false
-  resetInviteForm()
-}
-
-const handlePermissionSubmit = () => {
-  console.log('Updating permissions:', permissionForm)
-  // Implement permission update
-  permissionModalVisible.value = false
-}
-
-const handlePermissionCancel = () => {
-  permissionModalVisible.value = false
-}
-
-const resetInviteForm = () => {
-  Object.assign(inviteForm, {
+const handleInviteUser = () => {
+  console.log('Inviting user:', newInvitation)
+  inviteUserModalVisible.value = false
+  
+  // Reset form
+  Object.assign(newInvitation, {
     email: '',
-    permissions: ['read'],
-    containers: [],
+    access: 'read',
+    resource: '',
     message: ''
   })
 }
 
-const getPermissionColor = (permission: string) => {
-  const colors = {
-    read: 'blue',
-    write: 'green',
-    admin: 'red'
-  }
-  return colors[permission] || 'default'
+const editPermissions = (user: any) => {
+  console.log('Editing permissions for:', user)
 }
 
-const getInvitationStatusColor = (status: string) => {
-  const colors = {
+const revokeAccess = (user: any) => {
+  console.log('Revoking access for:', user)
+}
+
+const resendInvitation = (invitation: any) => {
+  console.log('Resending invitation:', invitation)
+}
+
+const cancelInvitation = (invitation: any) => {
+  console.log('Canceling invitation:', invitation)
+}
+
+const approveRequest = (request: any) => {
+  console.log('Approving request:', request)
+}
+
+const denyRequest = (request: any) => {
+  console.log('Denying request:', request)
+}
+
+const getAccessColor = (access: string): string => {
+  const colors: Record<string, string> = {
+    admin: 'red',
+    write: 'orange',
+    read: 'blue'
+  }
+  return colors[access] || 'default'
+}
+
+const getStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
     pending: 'orange',
-    accepted: 'green',
-    expired: 'red'
+    expired: 'red',
+    accepted: 'green'
   }
   return colors[status] || 'default'
 }
 </script>
-
-<style scoped>
-.permissions-page {
-  padding: 0;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.header-left h1 {
-  margin: 0 0 4px 0;
-  font-size: 28px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-color);
-}
-
-.header-left p {
-  margin: 0;
-  color: var(--text-color-secondary);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.overview-section {
-  margin-bottom: 24px;
-}
-
-.overview-card {
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.overview-card:hover {
-  transform: translateY(-2px);
-}
-
-.tabs-section {
-  margin-bottom: 24px;
-}
-
-.permission-tabs {
-  background: var(--card-background);
-  border-radius: var(--border-radius-lg);
-  padding: 24px;
-}
-
-.users-table,
-.containers-table,
-.invitations-table {
-  background: transparent;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .header-actions {
-    justify-content: stretch;
-  }
-  
-  .permission-tabs {
-    padding: 16px;
-  }
-}
-</style>

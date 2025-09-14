@@ -42,6 +42,20 @@ func NewContainerServiceProvider(
 	eventDispatcher pericarpdomain.EventDispatcher,
 	rdfConverter *infrastructure.ContainerRDFConverter,
 ) (*ContainerService, error) {
+	// Validate dependencies
+	if containerRepo == nil {
+		return nil, fmt.Errorf("container repository cannot be nil")
+	}
+	if unitOfWorkFactory == nil {
+		return nil, fmt.Errorf("unit of work factory cannot be nil")
+	}
+	if eventDispatcher == nil {
+		return nil, fmt.Errorf("event dispatcher cannot be nil")
+	}
+	if rdfConverter == nil {
+		return nil, fmt.Errorf("RDF converter cannot be nil")
+	}
+
 	// Create the container service
 	service := NewContainerService(containerRepo, unitOfWorkFactory, rdfConverter)
 

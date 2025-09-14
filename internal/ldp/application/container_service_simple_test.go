@@ -40,7 +40,7 @@ func TestContainerService_CreateContainer_ValidationLogic(t *testing.T) {
 			cType:       domain.ContainerType("invalid"),
 			setupMocks:  func() {},
 			expectError: true,
-			errorMsg:    "invalid container type",
+			errorMsg:    "unsupported container type",
 		},
 		{
 			name:        "container already exists",
@@ -61,6 +61,7 @@ func TestContainerService_CreateContainer_ValidationLogic(t *testing.T) {
 			setupMocks: func() {
 				mockRepo.On("ContainerExists", ctx, "child").Return(false, nil)
 				mockRepo.On("ContainerExists", ctx, "nonexistent-parent").Return(false, nil)
+				mockRepo.On("GetContainer", ctx, "nonexistent-parent").Return(nil, domain.ErrContainerNotFound)
 			},
 			expectError: true,
 			errorMsg:    "parent container not found",

@@ -14,7 +14,7 @@ import (
 )
 
 // NewHTTPServer creates a new HTTP server with the given configuration and logger
-func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler) *http.Server {
+func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler, containerHandler *handlers.ContainerHandler) *http.Server {
 	var opts = []http.ServerOption{
 		http.Address(c.Addr),
 		http.Timeout(time.Duration(c.Timeout)),
@@ -50,7 +50,7 @@ func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.Heal
 	srv := http.NewServer(opts...)
 
 	// Register basic routes
-	RegisterRoutes(srv, healthHandler, requestResponseHandler, resourceHandler)
+	RegisterRoutes(srv, healthHandler, requestResponseHandler, resourceHandler, containerHandler)
 
 	return srv
 }
@@ -134,8 +134,28 @@ func RegisterResourceRoutes(srv *http.Server, resourceHandler *handlers.Resource
 	resourceRoute.OPTIONS("/{id}", resourceHandler.OptionsResource)
 }
 
+// RegisterContainerRoutes registers container management endpoints
+func RegisterContainerRoutes(srv *http.Server, containerHandler *handlers.ContainerHandler) {
+	// Container collection endpoints
+	containerRoute := srv.Route("/containers")
+
+	// Collection operations - use PostResource for creating resources in containers
+	containerRoute.POST("/", containerHandler.PostResource)
+	containerRoute.OPTIONS("/", containerHandler.OptionsContainer)
+
+	// Individual container operations
+	containerRoute.GET("/{id}", containerHandler.GetContainer)
+	containerRoute.PUT("/{id}", containerHandler.PutContainer)
+	containerRoute.DELETE("/{id}", containerHandler.DeleteContainer)
+	containerRoute.HEAD("/{id}", containerHandler.HeadContainer)
+	containerRoute.OPTIONS("/{id}", containerHandler.OptionsContainer)
+
+	// Container member operations - use PostResource for adding members
+	containerRoute.POST("/{id}/members", containerHandler.PostResource)
+}
+
 // RegisterRoutes registers basic routes on the HTTP server
-func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler) {
+func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler, containerHandler *handlers.ContainerHandler) {
 	// Health check route using the proper handler
 	srv.Route("/health").GET("/", healthHandler.Check)
 
@@ -156,6 +176,9 @@ func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, req
 
 	// Resource storage endpoints
 	RegisterResourceRoutes(srv, resourceHandler)
+
+	// Container endpoints
+	RegisterContainerRoutes(srv, containerHandler)
 }
 
 // RegisterRouteGroups registers route groups for organized routing

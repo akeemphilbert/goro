@@ -8,14 +8,14 @@ package main
 
 import (
 	"github.com/akeemphilbert/goro/internal/conf"
-	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http"
+	http2 "github.com/akeemphilbert/goro/internal/infrastructure/transport/http"
 	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http/handlers"
 	"github.com/akeemphilbert/goro/internal/ldp/application"
 	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	http2 "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/google/wire"
 	"time"
 )
@@ -28,7 +28,7 @@ import (
 
 // wireApp init kratos application.
 func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error) {
-	confHTTP := server.HTTP
+	http := server.HTTP
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
 	streamingResourceRepository, err := infrastructure.NewOptimizedFileSystemRepositoryProvider()
@@ -54,7 +54,18 @@ func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error
 		return nil, nil, err
 	}
 	resourceHandler := handlers.NewResourceHandlerProvider(storageService, logger)
-	httpServer := http.NewHTTPServer(confHTTP, logger, healthHandler, requestResponseHandler, resourceHandler)
+	container := server.Container
+	containerRepository, err := infrastructure.NewFileSystemContainerRepositoryProvider(container)
+	if err != nil {
+		return nil, nil, err
+	}
+	containerRDFConverter := infrastructure.NewContainerRDFConverter()
+	containerService, err := application.NewContainerServiceProvider(containerRepository, v, eventDispatcher, containerRDFConverter)
+	if err != nil {
+		return nil, nil, err
+	}
+	containerHandler := handlers.NewContainerHandlerProvider(containerService, storageService, logger)
+	httpServer := NewHTTPServerProvider(http, logger, healthHandler, requestResponseHandler, resourceHandler, containerHandler)
 	grpc := server.GRPC
 	grpcServer := NewGRPCServer(grpc, logger)
 	app, cleanup := newAppWithCleanup(logger, httpServer, grpcServer, server)
@@ -66,7 +77,7 @@ func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error
 // wire.go:
 
 // newAppWithCleanup creates both the app and cleanup function
-func newAppWithCleanup(logger log.Logger, hs *http2.Server, gs *grpc.Server, config *conf.Server) (*kratos.App, func()) {
+func newAppWithCleanup(logger log.Logger, hs *http.Server, gs *grpc.Server, config *conf.Server) (*kratos.App, func()) {
 	app := newApp(logger, hs, gs, config)
 	cleanup := func() {
 
@@ -75,7 +86,9 @@ func newAppWithCleanup(logger log.Logger, hs *http2.Server, gs *grpc.Server, con
 }
 
 // ProviderSet is the provider set for Wire dependency injection
-var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, handlers.NewRequestResponseHandler, handlers.ProviderSet, application.ProviderSet, infrastructure.InfrastructureSet, NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"))
+var ProviderSet = wire.NewSet(handlers.NewHealthHandler, handlers.NewRequestResponseHandler, handlers.ProviderSet, application.ProviderSet, infrastructure.InfrastructureSet, NewGRPCServer,
+	NewHTTPServerProvider, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC", "Container"),
+)
 
 // NewGRPCServer creates a new gRPC server
 func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {
@@ -86,4 +99,16 @@ func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {
 
 	srv := grpc.NewServer(opts...)
 	return srv
+}
+
+// NewHTTPServerProvider creates an HTTP server with all handlers properly wired
+func NewHTTPServerProvider(
+	c *conf.HTTP,
+	logger log.Logger,
+	healthHandler *handlers.HealthHandler,
+	requestResponseHandler *handlers.RequestResponseHandler,
+	resourceHandler *handlers.ResourceHandler,
+	containerHandler *handlers.ContainerHandler,
+) *http.Server {
+	return http2.NewHTTPServer(c, logger, healthHandler, requestResponseHandler, resourceHandler, containerHandler)
 }

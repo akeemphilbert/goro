@@ -26,6 +26,10 @@ func TestContainerService_EventSourcing_CreateContainer(t *testing.T) {
 	mockRepo.On("ContainerExists", ctx, parentID).Return(true, nil)
 	mockRepo.On("GetPath", ctx, parentID).Return([]string{parentID}, nil)
 
+	// Mock for hierarchy validation
+	parentContainer := domain.NewContainer(parentID, "", domain.BasicContainer)
+	mockRepo.On("GetContainer", ctx, parentID).Return(parentContainer, nil)
+
 	// Event sourcing expectations
 	mockUoW.On("RegisterEvents", mock.Anything).Return()
 	mockUoW.On("Commit", ctx).Return([]pericarpdomain.Envelope{}, nil)
@@ -82,6 +86,7 @@ func TestContainerService_EventSourcing_DeleteContainer(t *testing.T) {
 
 	// Setup expectations - only for validation, NO repository persistence calls
 	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
+	mockRepo.On("GetChildren", ctx, containerID).Return([]*domain.Container{}, nil) // Empty container can be deleted
 
 	// Event sourcing expectations
 	mockUoW.On("RegisterEvents", mock.Anything).Return()
@@ -108,7 +113,11 @@ func TestContainerService_EventSourcing_AddResource(t *testing.T) {
 	containerID := "test-container"
 	resourceID := "test-resource"
 
-	// Setup expectations - NO repository persistence calls
+	// Setup expectations - validation mocks, NO repository persistence calls
+	container := domain.NewContainer(containerID, "", domain.BasicContainer)
+	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
+	mockRepo.On("GetContainer", ctx, resourceID).Return(nil, domain.ErrContainerNotFound) // Resource is not a container
+
 	mockUoW.On("RegisterEvents", mock.Anything).Return()
 	mockUoW.On("Commit", ctx).Return([]pericarpdomain.Envelope{}, nil)
 
@@ -133,7 +142,11 @@ func TestContainerService_EventSourcing_RemoveResource(t *testing.T) {
 	containerID := "test-container"
 	resourceID := "test-resource"
 
-	// Setup expectations - NO repository persistence calls
+	// Setup expectations - validation mocks, NO repository persistence calls
+	container := domain.NewContainer(containerID, "", domain.BasicContainer)
+	container.AddMember(resourceID) // Add the resource so it can be removed
+	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
+
 	mockUoW.On("RegisterEvents", mock.Anything).Return()
 	mockUoW.On("Commit", ctx).Return([]pericarpdomain.Envelope{}, nil)
 

@@ -1,12 +1,12 @@
 <template>
-  <a-layout class="main-layout">
+  <a-layout>
     <!-- Header with Navigation -->
-    <a-layout-header class="app-header">
+    <a-layout-header>
       <div class="header-content">
         <div class="logo-section">
           <a-avatar 
             :size="40" 
-            :style="{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }"
+            :style="{ backgroundColor: '#1890ff' }"
           >
             <template #icon>
               <DatabaseOutlined />
@@ -19,7 +19,7 @@
           <a-input-search
             v-model:value="searchQuery"
             placeholder="Search your pod..."
-            class="search-input"
+            style="width: 300px"
             @search="handleSearch"
           >
             <template #prefix>
@@ -58,7 +58,6 @@
             v-else 
             type="primary" 
             @click="handleLogin"
-            class="login-btn"
           >
             <GoogleOutlined />
             Login with Google
@@ -67,12 +66,11 @@
       </div>
     </a-layout-header>
 
-    <a-layout class="main-content">
+    <a-layout>
       <!-- Sidebar Navigation -->
       <a-layout-sider 
         v-if="isAuthenticated"
-        :width="280" 
-        class="sidebar"
+        :width="280"
         :collapsed="sidebarCollapsed"
         @collapse="sidebarCollapsed = $event"
       >
@@ -80,7 +78,6 @@
           <a-menu
             v-model:selectedKeys="selectedKeys"
             mode="inline"
-            class="sidebar-menu"
             @click="handleMenuClick"
           >
             <a-menu-item key="dashboard">
@@ -148,10 +145,8 @@
       </a-layout-sider>
 
       <!-- Main Content Area -->
-      <a-layout-content class="content-area">
-        <div class="content-wrapper">
-          <slot />
-        </div>
+      <a-layout-content>
+        <slot />
       </a-layout-content>
     </a-layout>
   </a-layout>
@@ -215,167 +210,13 @@ const handleLogout = () => {
 
 const router = useRouter()
 
-const handleMenuClick = ({ key }: { key: string }) => {
-  selectedKeys.value = [key]
+const handleMenuClick = ({ key }: { key: string | number }) => {
+  selectedKeys.value = [String(key)]
   router.push(`/${key}`)
 }
 </script>
 
 <style scoped>
-.main-layout {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
 
-.app-header {
-  padding: 0 24px;
-  height: 64px;
-  line-height: 64px;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.app-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.search-input {
-  width: 300px;
-  border-radius: 20px;
-}
-
-.user-menu-trigger {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--text-color);
-}
-
-.user-menu-trigger:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: var(--text-color);
-}
-
-.user-name {
-  font-weight: 500;
-}
-
-.login-btn {
-  border-radius: 20px;
-  height: 40px;
-  padding: 0 20px;
-  font-weight: 500;
-}
-
-.main-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  background: transparent;
-}
-
-.sidebar {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(10px);
-  border-radius: 0 0 0 16px;
-  box-shadow: var(--shadow);
-  margin: 0 0 0 24px;
-}
-
-.sidebar-content {
-  padding: 24px 0;
-  height: 100%;
-}
-
-.sidebar-menu {
-  border: none !important;
-  background: transparent !important;
-  padding: 0 16px;
-}
-
-.sidebar-menu .ant-menu-item {
-  margin: 2px 0;
-  border-radius: var(--border-radius);
-  height: 40px;
-  line-height: 40px;
-}
-
-.sidebar-menu .ant-menu-item-group-title {
-  color: var(--text-color-secondary);
-  font-weight: 600;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 24px 0 8px 0;
-  padding: 0 12px;
-}
-
-.content-area {
-  background: transparent;
-  padding: 0;
-}
-
-.content-wrapper {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px 0 0 0;
-  min-height: calc(100vh - 64px);
-  padding: 24px;
-  box-shadow: var(--shadow);
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .header-content {
-    padding: 0 16px;
-  }
-  
-  .search-input {
-    width: 200px;
-  }
-  
-  .user-name {
-    display: none;
-  }
-  
-  .sidebar {
-    margin: 0;
-    border-radius: 0;
-  }
-  
-  .content-wrapper {
-    border-radius: 0;
-    padding: 16px;
-  }
-}
 </style>
