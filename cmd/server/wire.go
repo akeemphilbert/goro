@@ -38,14 +38,14 @@ func newAppWithCleanup(logger log.Logger, hs *http.Server, gs *grpc.Server, conf
 
 // ProviderSet is the provider set for Wire dependency injection
 var ProviderSet = wire.NewSet(
-	httpServer.NewHTTPServer,
 	handlers.NewHealthHandler,
 	handlers.NewRequestResponseHandler,
 	handlers.ProviderSet,
 	application.ProviderSet,
 	infrastructure.InfrastructureSet,
 	NewGRPCServer,
-	wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"),
+	NewHTTPServerProvider,
+	wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC", "Container"),
 )
 
 // NewGRPCServer creates a new gRPC server
@@ -60,4 +60,16 @@ func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {
 
 	srv := grpc.NewServer(opts...)
 	return srv
+}
+
+// NewHTTPServerProvider creates an HTTP server with all handlers properly wired
+func NewHTTPServerProvider(
+	c *conf.HTTP,
+	logger log.Logger,
+	healthHandler *handlers.HealthHandler,
+	requestResponseHandler *handlers.RequestResponseHandler,
+	resourceHandler *handlers.ResourceHandler,
+	containerHandler *handlers.ContainerHandler,
+) *http.Server {
+	return httpServer.NewHTTPServer(c, logger, healthHandler, requestResponseHandler, resourceHandler, containerHandler)
 }

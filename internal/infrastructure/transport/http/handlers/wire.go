@@ -9,9 +9,15 @@ import (
 // ProviderSet is the Wire provider set for HTTP handlers
 var ProviderSet = wire.NewSet(
 	NewResourceHandlerProvider,
+	NewContainerHandlerProvider,
 )
 
 // NewResourceHandlerProvider creates a ResourceHandler with proper dependency injection
 func NewResourceHandlerProvider(storageService *application.StorageService, logger log.Logger) *ResourceHandler {
 	return NewResourceHandler(storageService, logger)
+}
+
+// NewContainerHandlerProvider creates a ContainerHandler with proper dependency injection
+func NewContainerHandlerProvider(containerService *application.ContainerService, storageService *application.StorageService, logger log.Logger) *ContainerHandler {
+	return NewContainerHandler(containerService, storageService, logger)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
@@ -44,10 +45,12 @@ func TestWireProviderSet(t *testing.T) {
 	// Test that NewStorageServiceProvider works correctly
 	repo := newMockRepository()
 	converter := infrastructure.NewRDFConverter()
-	eventStore := &mockEventStore{}
 	eventDispatcher := &mockEventDispatcher{}
 
-	service, err := NewStorageServiceProvider(repo, converter, eventStore, eventDispatcher)
+	unitOfWorkFactory := func() pericarpdomain.UnitOfWork {
+		return nil // Mock implementation
+	}
+	service, err := NewStorageServiceProvider(repo, converter, unitOfWorkFactory, eventDispatcher)
 	if err != nil {
 		t.Fatalf("NewStorageServiceProvider returned error: %v", err)
 	}
@@ -72,7 +75,7 @@ func TestWireBinding(t *testing.T) {
 	converter := infrastructure.NewRDFConverter()
 
 	// Verify that RDFConverter implements FormatConverter
-	var _ FormatConverter = converter
+	var _ domain.FormatConverter = converter
 
 	// Test the interface methods
 	if !converter.ValidateFormat("application/ld+json") {

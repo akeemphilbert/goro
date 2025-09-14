@@ -16,6 +16,15 @@ const (
 	EventTypeResourceDeleted = "deleted"
 )
 
+// Event types for container operations
+const (
+	EventTypeContainerCreated = "container_created"
+	EventTypeContainerUpdated = "container_updated"
+	EventTypeContainerDeleted = "container_deleted"
+	EventTypeMemberAdded      = "member_added"
+	EventTypeMemberRemoved    = "member_removed"
+)
+
 // NewResourceCreatedEvent creates a new resource created event
 func NewResourceCreatedEvent(resourceID string, data interface{}) *EntityEvent {
 	return pericarpdomain.NewEntityEvent("resource", EventTypeResourceCreated, resourceID, "", "", data)
@@ -29,4 +38,31 @@ func NewResourceUpdatedEvent(resourceID string, data interface{}) *EntityEvent {
 // NewResourceDeletedEvent creates a new resource deleted event
 func NewResourceDeletedEvent(resourceID string, data interface{}) *EntityEvent {
 	return pericarpdomain.NewEntityEvent("resource", EventTypeResourceDeleted, resourceID, "", "", data)
+}
+
+// Container event constructors
+
+// NewContainerCreatedEvent creates a new container created event
+func NewContainerCreatedEvent(containerID string, data interface{}) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("container", EventTypeContainerCreated, containerID, "", "", data)
+}
+
+// NewContainerUpdatedEvent creates a new container updated event
+func NewContainerUpdatedEvent(containerID string, data interface{}) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("container", EventTypeContainerUpdated, containerID, "", "", data)
+}
+
+// NewContainerDeletedEvent creates a new container deleted event
+func NewContainerDeletedEvent(containerID string, data interface{}) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("container", EventTypeContainerDeleted, containerID, "", "", data)
+}
+
+// NewMemberAddedEvent creates a new member added event
+func NewMemberAddedEvent(containerID string, data interface{}) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("container", EventTypeMemberAdded, containerID, "", "", data)
+}
+
+// NewMemberRemovedEvent creates a new member removed event
+func NewMemberRemovedEvent(containerID string, data interface{}) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("container", EventTypeMemberRemoved, containerID, "", "", data)
 }

@@ -3,350 +3,379 @@ package domain
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-// MockResourceRepository is a test implementation of ResourceRepository
-type MockResourceRepository struct {
-	resources map[string]*Resource
-	errors    map[string]error // Map operation to error for testing error scenarios
+// MockContainerRepository is a mock implementation of ContainerRepository for testing
+type MockContainerRepository struct {
+	mock.Mock
 }
 
-func NewMockResourceRepository() *MockResourceRepository {
-	return &MockResourceRepository{
-		resources: make(map[string]*Resource),
-		errors:    make(map[string]error),
+func (m *MockContainerRepository) Store(ctx context.Context, resource *Resource) error {
+	args := m.Called(ctx, resource)
+	return args.Error(0)
+}
+
+func (m *MockContainerRepository) Retrieve(ctx context.Context, id string) (*Resource, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(*Resource), args.Error(1)
+}
+
+func (m *MockContainerRepository) Delete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockContainerRepository) Exists(ctx context.Context, id string) (bool, error) {
+	args := m.Called(ctx, id)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockContainerRepository) CreateContainer(ctx context.Context, container *Container) error {
+	args := m.Called(ctx, container)
+	return args.Error(0)
+}
+
+func (m *MockContainerRepository) GetContainer(ctx context.Context, id string) (*Container, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
+	return args.Get(0).(*Container), args.Error(1)
 }
 
-func (m *MockResourceRepository) Store(ctx context.Context, resource *Resource) error {
-	if err, exists := m.errors["Store"]; exists {
-		return err
+func (m *MockContainerRepository) UpdateContainer(ctx context.Context, container *Container) error {
+	args := m.Called(ctx, container)
+	return args.Error(0)
+}
+
+func (m *MockContainerRepository) DeleteContainer(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockContainerRepository) AddMember(ctx context.Context, containerID, memberID string) error {
+	args := m.Called(ctx, containerID, memberID)
+	return args.Error(0)
+}
+
+func (m *MockContainerRepository) RemoveMember(ctx context.Context, containerID, memberID string) error {
+	args := m.Called(ctx, containerID, memberID)
+	return args.Error(0)
+}
+
+func (m *MockContainerRepository) ListMembers(ctx context.Context, containerID string, pagination PaginationOptions) ([]string, error) {
+	args := m.Called(ctx, containerID, pagination)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockContainerRepository) GetChildren(ctx context.Context, containerID string) ([]*Container, error) {
+	args := m.Called(ctx, containerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-	m.resources[resource.ID()] = resource
-	return nil
+	return args.Get(0).([]*Container), args.Error(1)
 }
 
-func (m *MockResourceRepository) Retrieve(ctx context.Context, id string) (*Resource, error) {
-	if err, exists := m.errors["Retrieve"]; exists {
-		return nil, err
+func (m *MockContainerRepository) GetParent(ctx context.Context, containerID string) (*Container, error) {
+	args := m.Called(ctx, containerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-	resource, exists := m.resources[id]
-	if !exists {
-		return nil, &StorageError{
-			Code:    ErrResourceNotFound.Code,
-			Message: ErrResourceNotFound.Message,
-		}
+	return args.Get(0).(*Container), args.Error(1)
+}
+
+func (m *MockContainerRepository) GetPath(ctx context.Context, containerID string) ([]string, error) {
+	args := m.Called(ctx, containerID)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockContainerRepository) FindByPath(ctx context.Context, path string) (*Container, error) {
+	args := m.Called(ctx, path)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-	return resource, nil
+	return args.Get(0).(*Container), args.Error(1)
 }
 
-func (m *MockResourceRepository) Delete(ctx context.Context, id string) error {
-	if err, exists := m.errors["Delete"]; exists {
-		return err
-	}
-	if _, exists := m.resources[id]; !exists {
-		return &StorageError{
-			Code:    ErrResourceNotFound.Code,
-			Message: ErrResourceNotFound.Message,
-		}
-	}
-	delete(m.resources, id)
-	return nil
+func (m *MockContainerRepository) ContainerExists(ctx context.Context, id string) (bool, error) {
+	args := m.Called(ctx, id)
+	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockResourceRepository) Exists(ctx context.Context, id string) (bool, error) {
-	if err, exists := m.errors["Exists"]; exists {
-		return false, err
-	}
-	_, exists := m.resources[id]
-	return exists, nil
-}
-
-// SetError configures the mock to return an error for a specific operation
-func (m *MockResourceRepository) SetError(operation string, err error) {
-	m.errors[operation] = err
-}
-
-// ClearError removes the error configuration for a specific operation
-func (m *MockResourceRepository) ClearError(operation string) {
-	delete(m.errors, operation)
-}
-
-// Reset clears all resources and errors
-func (m *MockResourceRepository) Reset() {
-	m.resources = make(map[string]*Resource)
-	m.errors = make(map[string]error)
-}
-
-func TestResourceRepository_Interface(t *testing.T) {
-	// Test that MockResourceRepository implements ResourceRepository interface
-	var _ ResourceRepository = (*MockResourceRepository)(nil)
-}
-
-func TestMockResourceRepository_Store(t *testing.T) {
-	repo := NewMockResourceRepository()
+// Test ContainerRepository interface operations
+func TestContainerRepository_CreateContainer(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	container := NewContainer("test-container", "parent", BasicContainer)
 
-	resource := NewResource("test-123", "text/turtle", []byte("test data"))
+	mockRepo.On("CreateContainer", ctx, container).Return(nil)
 
-	err := repo.Store(ctx, resource)
-	if err != nil {
-		t.Errorf("Store() error = %v, want nil", err)
-	}
-
-	// Verify resource was stored
-	stored, exists := repo.resources[resource.ID()]
-	if !exists {
-		t.Error("Resource was not stored")
-	}
-	if stored != resource {
-		t.Error("Stored resource does not match original")
-	}
+	err := mockRepo.CreateContainer(ctx, container)
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Store_Error(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_CreateContainer_Error(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	container := NewContainer("test-container", "parent", BasicContainer)
 
-	expectedErr := &StorageError{Code: "STORE_ERROR", Message: "store failed"}
-	repo.SetError("Store", expectedErr)
+	expectedErr := NewStorageError("CONTAINER_CREATE_FAILED", "failed to create container")
+	mockRepo.On("CreateContainer", ctx, container).Return(expectedErr)
 
-	resource := NewResource("test-123", "text/turtle", []byte("test data"))
-
-	err := repo.Store(ctx, resource)
-	if err != expectedErr {
-		t.Errorf("Store() error = %v, want %v", err, expectedErr)
-	}
+	err := mockRepo.CreateContainer(ctx, container)
+	assert.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Retrieve(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_GetContainer(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	expectedContainer := NewContainer("test-container", "parent", BasicContainer)
 
-	resource := NewResource("test-123", "text/turtle", []byte("test data"))
-	repo.resources[resource.ID()] = resource
+	mockRepo.On("GetContainer", ctx, "test-container").Return(expectedContainer, nil)
 
-	retrieved, err := repo.Retrieve(ctx, resource.ID())
-	if err != nil {
-		t.Errorf("Retrieve() error = %v, want nil", err)
-	}
-	if retrieved != resource {
-		t.Error("Retrieved resource does not match stored resource")
-	}
+	container, err := mockRepo.GetContainer(ctx, "test-container")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedContainer, container)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Retrieve_NotFound(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_GetContainer_NotFound(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
 
-	retrieved, err := repo.Retrieve(ctx, "nonexistent")
-	if retrieved != nil {
-		t.Error("Retrieve() should return nil for nonexistent resource")
-	}
-	if !IsResourceNotFound(err) {
-		t.Errorf("Retrieve() should return ResourceNotFound error, got %v", err)
-	}
+	mockRepo.On("GetContainer", ctx, "non-existent").Return(nil, ErrContainerNotFound)
+
+	container, err := mockRepo.GetContainer(ctx, "non-existent")
+	assert.Error(t, err)
+	assert.Nil(t, container)
+	assert.Equal(t, ErrContainerNotFound, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Retrieve_Error(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_UpdateContainer(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	container := NewContainer("test-container", "parent", BasicContainer)
 
-	expectedErr := &StorageError{Code: "RETRIEVE_ERROR", Message: "retrieve failed"}
-	repo.SetError("Retrieve", expectedErr)
+	mockRepo.On("UpdateContainer", ctx, container).Return(nil)
 
-	retrieved, err := repo.Retrieve(ctx, "test-123")
-	if retrieved != nil {
-		t.Error("Retrieve() should return nil when error occurs")
-	}
-	if err != expectedErr {
-		t.Errorf("Retrieve() error = %v, want %v", err, expectedErr)
-	}
+	err := mockRepo.UpdateContainer(ctx, container)
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Delete(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_DeleteContainer(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
 
-	resource := NewResource("test-123", "text/turtle", []byte("test data"))
-	repo.resources[resource.ID()] = resource
+	mockRepo.On("DeleteContainer", ctx, "test-container").Return(nil)
 
-	err := repo.Delete(ctx, resource.ID())
-	if err != nil {
-		t.Errorf("Delete() error = %v, want nil", err)
-	}
-
-	// Verify resource was deleted
-	if _, exists := repo.resources[resource.ID()]; exists {
-		t.Error("Resource was not deleted")
-	}
+	err := mockRepo.DeleteContainer(ctx, "test-container")
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Delete_NotFound(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_DeleteContainer_NotEmpty(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
 
-	err := repo.Delete(ctx, "nonexistent")
-	if !IsResourceNotFound(err) {
-		t.Errorf("Delete() should return ResourceNotFound error, got %v", err)
-	}
+	expectedErr := ErrContainerNotEmpty
+	mockRepo.On("DeleteContainer", ctx, "test-container").Return(expectedErr)
+
+	err := mockRepo.DeleteContainer(ctx, "test-container")
+	assert.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Delete_Error(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_AddMember(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
 
-	expectedErr := &StorageError{Code: "DELETE_ERROR", Message: "delete failed"}
-	repo.SetError("Delete", expectedErr)
+	mockRepo.On("AddMember", ctx, "container-1", "resource-1").Return(nil)
 
-	err := repo.Delete(ctx, "test-123")
-	if err != expectedErr {
-		t.Errorf("Delete() error = %v, want %v", err, expectedErr)
-	}
+	err := mockRepo.AddMember(ctx, "container-1", "resource-1")
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Exists(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_AddMember_AlreadyExists(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
 
-	resource := NewResource("test-123", "text/turtle", []byte("test data"))
-	repo.resources[resource.ID()] = resource
+	expectedErr := ErrMembershipConflict
+	mockRepo.On("AddMember", ctx, "container-1", "resource-1").Return(expectedErr)
 
-	exists, err := repo.Exists(ctx, resource.ID())
-	if err != nil {
-		t.Errorf("Exists() error = %v, want nil", err)
-	}
-	if !exists {
-		t.Error("Exists() should return true for existing resource")
-	}
-
-	exists, err = repo.Exists(ctx, "nonexistent")
-	if err != nil {
-		t.Errorf("Exists() error = %v, want nil", err)
-	}
-	if exists {
-		t.Error("Exists() should return false for nonexistent resource")
-	}
+	err := mockRepo.AddMember(ctx, "container-1", "resource-1")
+	assert.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_Exists_Error(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_RemoveMember(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
 
-	expectedErr := &StorageError{Code: "EXISTS_ERROR", Message: "exists check failed"}
-	repo.SetError("Exists", expectedErr)
+	mockRepo.On("RemoveMember", ctx, "container-1", "resource-1").Return(nil)
 
-	exists, err := repo.Exists(ctx, "test-123")
-	if exists {
-		t.Error("Exists() should return false when error occurs")
-	}
-	if err != expectedErr {
-		t.Errorf("Exists() error = %v, want %v", err, expectedErr)
-	}
+	err := mockRepo.RemoveMember(ctx, "container-1", "resource-1")
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestMockResourceRepository_ErrorManagement(t *testing.T) {
-	repo := NewMockResourceRepository()
-
-	// Test setting and clearing errors
-	testErr := &StorageError{Code: "TEST_ERROR", Message: "test"}
-	repo.SetError("Store", testErr)
-
-	if repo.errors["Store"] != testErr {
-		t.Error("SetError() did not set error correctly")
-	}
-
-	repo.ClearError("Store")
-	if _, exists := repo.errors["Store"]; exists {
-		t.Error("ClearError() did not clear error")
-	}
-}
-
-func TestMockResourceRepository_Reset(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_RemoveMember_NotFound(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
 
-	// Add some data and errors
-	resource := NewResource("test-123", "text/turtle", []byte("test data"))
-	repo.Store(ctx, resource)
-	repo.SetError("Store", &StorageError{Code: "TEST", Message: "test"})
+	expectedErr := NewStorageError("MEMBER_NOT_FOUND", "member not found in container")
+	mockRepo.On("RemoveMember", ctx, "container-1", "resource-1").Return(expectedErr)
 
-	// Reset
-	repo.Reset()
-
-	// Verify everything is cleared
-	if len(repo.resources) != 0 {
-		t.Error("Reset() did not clear resources")
-	}
-	if len(repo.errors) != 0 {
-		t.Error("Reset() did not clear errors")
-	}
+	err := mockRepo.RemoveMember(ctx, "container-1", "resource-1")
+	assert.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestResourceRepository_ErrorScenarios(t *testing.T) {
-	repo := NewMockResourceRepository()
+func TestContainerRepository_ListMembers(t *testing.T) {
 	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	pagination := PaginationOptions{Limit: 10, Offset: 0}
+	expectedMembers := []string{"resource-1", "resource-2", "container-1"}
 
-	tests := []struct {
-		name      string
-		operation string
-		setupErr  error
-		expectErr bool
-	}{
-		{
-			name:      "insufficient storage on store",
-			operation: "Store",
-			setupErr:  &StorageError{Code: ErrInsufficientStorage.Code, Message: "no space"},
-			expectErr: true,
-		},
-		{
-			name:      "data corruption on retrieve",
-			operation: "Retrieve",
-			setupErr:  &StorageError{Code: ErrDataCorruption.Code, Message: "corrupted data"},
-			expectErr: true,
-		},
-		{
-			name:      "storage operation failed on delete",
-			operation: "Delete",
-			setupErr:  &StorageError{Code: ErrStorageOperation.Code, Message: "operation failed"},
-			expectErr: true,
-		},
-		{
-			name:      "storage operation failed on exists",
-			operation: "Exists",
-			setupErr:  &StorageError{Code: ErrStorageOperation.Code, Message: "operation failed"},
-			expectErr: true,
-		},
+	mockRepo.On("ListMembers", ctx, "container-1", pagination).Return(expectedMembers, nil)
+
+	members, err := mockRepo.ListMembers(ctx, "container-1", pagination)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedMembers, members)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestContainerRepository_GetChildren(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	expectedChildren := []*Container{
+		NewContainer("child-1", "parent", BasicContainer),
+		NewContainer("child-2", "parent", BasicContainer),
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			repo.Reset()
-			repo.SetError(tt.operation, tt.setupErr)
+	mockRepo.On("GetChildren", ctx, "parent").Return(expectedChildren, nil)
 
-			resource := NewResource("test-123", "text/turtle", []byte("test data"))
+	children, err := mockRepo.GetChildren(ctx, "parent")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedChildren, children)
+	mockRepo.AssertExpectations(t)
+}
 
-			var err error
-			switch tt.operation {
-			case "Store":
-				err = repo.Store(ctx, resource)
-			case "Retrieve":
-				_, err = repo.Retrieve(ctx, "test-123")
-			case "Delete":
-				err = repo.Delete(ctx, "test-123")
-			case "Exists":
-				_, err = repo.Exists(ctx, "test-123")
-			}
+func TestContainerRepository_GetParent(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	expectedParent := NewContainer("parent", "grandparent", BasicContainer)
 
-			if tt.expectErr && err == nil {
-				t.Error("Expected error but got nil")
-			}
-			if !tt.expectErr && err != nil {
-				t.Errorf("Expected no error but got %v", err)
-			}
-			if tt.expectErr && err != tt.setupErr {
-				t.Errorf("Expected error %v but got %v", tt.setupErr, err)
-			}
-		})
-	}
+	mockRepo.On("GetParent", ctx, "child").Return(expectedParent, nil)
+
+	parent, err := mockRepo.GetParent(ctx, "child")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedParent, parent)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestContainerRepository_GetParent_Root(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+
+	mockRepo.On("GetParent", ctx, "root").Return(nil, nil)
+
+	parent, err := mockRepo.GetParent(ctx, "root")
+	assert.NoError(t, err)
+	assert.Nil(t, parent)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestContainerRepository_GetPath(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	expectedPath := []string{"root", "parent", "child"}
+
+	mockRepo.On("GetPath", ctx, "child").Return(expectedPath, nil)
+
+	path, err := mockRepo.GetPath(ctx, "child")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedPath, path)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestContainerRepository_FindByPath(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+	expectedContainer := NewContainer("child", "parent", BasicContainer)
+
+	mockRepo.On("FindByPath", ctx, "/root/parent/child").Return(expectedContainer, nil)
+
+	container, err := mockRepo.FindByPath(ctx, "/root/parent/child")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedContainer, container)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestContainerRepository_FindByPath_NotFound(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+
+	mockRepo.On("FindByPath", ctx, "/non/existent/path").Return(nil, ErrContainerNotFound)
+
+	container, err := mockRepo.FindByPath(ctx, "/non/existent/path")
+	assert.Error(t, err)
+	assert.Nil(t, container)
+	assert.Equal(t, ErrContainerNotFound, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestContainerRepository_ContainerExists(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(MockContainerRepository)
+
+	mockRepo.On("ContainerExists", ctx, "existing-container").Return(true, nil)
+	mockRepo.On("ContainerExists", ctx, "non-existent").Return(false, nil)
+
+	exists, err := mockRepo.ContainerExists(ctx, "existing-container")
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	exists, err = mockRepo.ContainerExists(ctx, "non-existent")
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// Test PaginationOptions
+func TestPaginationOptions_Validate(t *testing.T) {
+	// Valid pagination
+	pagination := PaginationOptions{Limit: 10, Offset: 0}
+	assert.True(t, pagination.IsValid())
+
+	// Invalid limit (too high)
+	pagination = PaginationOptions{Limit: 1001, Offset: 0}
+	assert.False(t, pagination.IsValid())
+
+	// Invalid limit (zero)
+	pagination = PaginationOptions{Limit: 0, Offset: 0}
+	assert.False(t, pagination.IsValid())
+
+	// Invalid offset (negative)
+	pagination = PaginationOptions{Limit: 10, Offset: -1}
+	assert.False(t, pagination.IsValid())
+}
+
+func TestPaginationOptions_GetDefaults(t *testing.T) {
+	pagination := GetDefaultPagination()
+	assert.Equal(t, 50, pagination.Limit)
+	assert.Equal(t, 0, pagination.Offset)
+	assert.True(t, pagination.IsValid())
 }

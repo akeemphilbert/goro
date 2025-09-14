@@ -1,7 +1,10 @@
 package infrastructure
 
 import (
-	"github.com/akeemphilbert/goro/internal/ldp/application"
+	"fmt"
+
+	"github.com/akeemphilbert/goro/internal/conf"
+	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
 	"github.com/google/wire"
@@ -13,10 +16,12 @@ var InfrastructureSet = wire.NewSet(
 	EventStoreProvider,
 	NewEventDispatcher,
 	NewOptimizedFileSystemRepositoryProvider,
+	NewFileSystemContainerRepositoryProvider,
 	NewRDFConverter,
+	NewContainerRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
-	wire.Bind(new(application.FormatConverter), new(*RDFConverter)),
+	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),
 	wire.Bind(new(pericarpdomain.EventStore), new(*pericarpinfra.GormEventStore)),
 )
 
@@ -26,10 +31,12 @@ var OptimizedInfrastructureSet = wire.NewSet(
 	EventStoreProvider,
 	NewEventDispatcher,
 	NewOptimizedFileSystemRepositoryProvider,
+	NewFileSystemContainerRepositoryProvider,
 	NewRDFConverter,
+	NewContainerRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
-	wire.Bind(new(application.FormatConverter), new(*RDFConverter)),
+	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),
 	wire.Bind(new(pericarpdomain.EventStore), new(*pericarpinfra.GormEventStore)),
 )
 
@@ -41,4 +48,26 @@ func NewUnitOfWorkFactory(
 	return func() pericarpdomain.UnitOfWork {
 		return pericarpinfra.UnitOfWorkProvider(eventStore, eventDispatcher)
 	}
+}
+
+// NewFileSystemContainerRepositoryProvider provides a FileSystemContainerRepository for Wire dependency injection
+func NewFileSystemContainerRepositoryProvider(config *conf.Container) (domain.ContainerRepository, error) {
+	// Set defaults if config is nil
+	if config == nil {
+		config = &conf.Container{}
+		config.SetDefaults()
+	}
+
+	// Validate configuration
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid container configuration: %w", err)
+	}
+
+	// Create membership indexer
+	indexer, err := MembershipIndexerProvider(config.IndexPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewFileSystemContainerRepository(config.StoragePath, indexer)
 }

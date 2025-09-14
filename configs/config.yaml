@@ -13,5 +13,13 @@ server:
       # key_file: "/path/to/server.key"
   grpc:
     network: tcp
-    addr: ":9001"
+    addr: ":9201"
     timeout: 30s
+  container:
+    storage_path: "./data/pod-storage"
+    index_path: "./data/pod-storage/index"
+    max_depth: 100
+    page_size: 50
+    cache_enabled: true
+    cache_size: 1000
+    indexing_enabled: true

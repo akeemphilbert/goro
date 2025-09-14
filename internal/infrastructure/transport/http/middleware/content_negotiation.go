@@ -31,6 +31,19 @@ func ContentNegotiation() khttp.FilterFunc {
 	return ContentNegotiationWithConfig(DefaultContentNegotiationConfig())
 }
 
+// ContainerContentNegotiation returns a content negotiation filter specifically for container resources
+func ContainerContentNegotiation() khttp.FilterFunc {
+	config := ContentNegotiationConfig{
+		SupportedFormats: []string{
+			"application/ld+json",
+			"text/turtle",
+			"application/rdf+xml",
+		},
+		DefaultFormat: "application/ld+json",
+	}
+	return ContentNegotiationWithConfig(config)
+}
+
 // ContentNegotiationWithConfig returns a content negotiation filter with custom configuration
 func ContentNegotiationWithConfig(config ContentNegotiationConfig) khttp.FilterFunc {
 	return func(next http.Handler) http.Handler {
