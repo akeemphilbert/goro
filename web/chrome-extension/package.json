@@ -1,0 +1,41 @@
+{
+  "name": "microformat-chrome-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension to detect microformats and save them to Solid pods",
+  "type": "module",
+  "scripts": {
+    "build": "wxt build",
+    "build:firefox": "wxt build --browser firefox",
+    "dev": "wxt",
+    "dev:firefox": "wxt --browser firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip --browser firefox",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "keywords": [
+    "microformats",
+    "solid",
+    "chrome-extension",
+    "rdf"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.1.11",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^24.4.0",
+    "@vitest/ui": "^3.2.4",
+    "jsdom": "^27.0.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "wxt": "^0.20.11"
+  },
+  "dependencies": {
+    "microformat-node": "^2.0.4",
+    "microformat-shiv": "^2.0.3"
+  }
+}
