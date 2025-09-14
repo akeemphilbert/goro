@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
@@ -22,7 +23,7 @@ type UnitOfWorkFactory func() pericarpdomain.UnitOfWork
 
 // StorageService orchestrates storage operations with content negotiation and streaming support
 type StorageService struct {
-	repo              domain.ResourceRepository
+	repo              domain.StreamingResourceRepository
 	converter         FormatConverter
 	unitOfWorkFactory UnitOfWorkFactory
 	mu                sync.RWMutex // For concurrent access handling
@@ -30,7 +31,7 @@ type StorageService struct {
 
 // NewStorageService creates a new storage service instance
 func NewStorageService(
-	repo domain.ResourceRepository,
+	repo domain.StreamingResourceRepository,
 	converter FormatConverter,
 	unitOfWorkFactory UnitOfWorkFactory,
 ) *StorageService {
@@ -227,31 +228,120 @@ func (s *StorageService) StreamResource(ctx context.Context, id string, acceptFo
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// For now, retrieve the full resource and wrap it in a reader
-	// In a production implementation, this would stream directly from storage
-	resource, err := s.RetrieveResource(ctx, id, acceptFormat)
+	// Validate input
+	if id == "" {
+		return nil, "", domain.ErrInvalidID.WithOperation("StreamResource")
+	}
+
+	// Use streaming repository for efficient access
+	reader, metadata, err := s.repo.RetrieveStream(ctx, id)
 	if err != nil {
-		return nil, "", err
+		if domain.IsResourceNotFound(err) {
+			return nil, "", domain.ErrResourceNotFound.WithOperation("StreamResource").WithContext("id", id)
+		}
+		return nil, "", domain.WrapStorageError(err, "STREAM_RETRIEVE_FAILED", "failed to retrieve resource stream").WithOperation("StreamResource")
 	}
 
-	reader := &resourceReader{
-		data:   resource.GetData(),
-		offset: 0,
+	// Handle content negotiation for RDF formats
+	if acceptFormat != "" && acceptFormat != metadata.ContentType {
+		// For streaming with format conversion, we need to read the data first
+		// This is a limitation when format conversion is needed
+		defer reader.Close()
+		data, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, "", domain.WrapStorageError(err, "STREAM_READ_FAILED", "failed to read stream for format conversion").WithOperation("StreamResource")
+		}
+
+		// Create temporary resource for conversion
+		tempResource := domain.NewResource(id, metadata.ContentType, data)
+		convertedResource, err := s.convertResourceFormat(tempResource, acceptFormat)
+		if err != nil {
+			return nil, "", err
+		}
+
+		// Return converted data as stream
+		convertedReader := &resourceReader{
+			data:   convertedResource.GetData(),
+			offset: 0,
+		}
+		return convertedReader, convertedResource.GetContentType(), nil
 	}
 
-	return reader, resource.GetContentType(), nil
+	return reader, metadata.ContentType, nil
 }
 
-// StoreResourceStream stores a resource from a stream
-func (s *StorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string) (*domain.Resource, error) {
-	// Read all data from stream
-	// In a production implementation, this would handle streaming more efficiently
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, domain.WrapStorageError(err, "STREAM_READ_FAILED", "failed to read from stream").WithOperation("StoreResourceStream")
+// StoreResourceStream stores a resource from a stream with efficient memory usage
+func (s *StorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (*domain.Resource, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Validate input
+	if id == "" {
+		return nil, domain.ErrInvalidID.WithOperation("StoreResourceStream")
+	}
+	if reader == nil {
+		return nil, domain.ErrInvalidResource.WithOperation("StoreResourceStream").WithContext("reason", "reader is nil")
 	}
 
-	return s.StoreResource(ctx, id, data, contentType)
+	// Normalize content type
+	normalizedContentType := s.normalizeContentType(contentType)
+
+	// Validate format if it's an RDF format
+	if s.isRDFFormat(normalizedContentType) && !s.converter.ValidateFormat(normalizedContentType) {
+		return nil, domain.ErrUnsupportedFormat.WithOperation("StoreResourceStream").WithContext("format", contentType)
+	}
+
+	// Check if resource already exists (for business logic)
+	exists, err := s.repo.Exists(ctx, id)
+	if err != nil {
+		return nil, domain.WrapStorageError(err, "EXISTENCE_CHECK_FAILED", "failed to check resource existence").WithOperation("StoreResourceStream")
+	}
+
+	// Store using streaming repository
+	if err := s.repo.StoreStream(ctx, id, reader, normalizedContentType, size); err != nil {
+		return nil, domain.WrapStorageError(err, "STREAM_STORE_FAILED", "failed to store resource stream").WithOperation("StoreResourceStream")
+	}
+
+	// Retrieve the stored resource to return it (this will validate checksum)
+	resource, err := s.repo.Retrieve(ctx, id)
+	if err != nil {
+		return nil, domain.WrapStorageError(err, "RETRIEVE_AFTER_STORE_FAILED", "failed to retrieve resource after streaming store").WithOperation("StoreResourceStream")
+	}
+
+	// Create a new unit of work for event processing
+	unitOfWork := s.unitOfWorkFactory()
+
+	// Create appropriate event based on whether resource existed
+	var event *pericarpdomain.EntityEvent
+	if exists {
+		event = domain.NewResourceUpdatedEvent(id, map[string]interface{}{
+			"contentType": normalizedContentType,
+			"size":        resource.GetSize(),
+			"updatedAt":   time.Now(),
+		})
+	} else {
+		event = domain.NewResourceCreatedEvent(id, map[string]interface{}{
+			"contentType": normalizedContentType,
+			"size":        resource.GetSize(),
+			"createdAt":   time.Now(),
+		})
+	}
+
+	// Register event with unit of work
+	unitOfWork.RegisterEvents([]pericarpdomain.Event{event})
+
+	// Commit unit of work for event processing
+	envelopes, err := unitOfWork.Commit(ctx)
+	if err != nil {
+		return nil, domain.WrapStorageError(err, "EVENT_COMMIT_FAILED", "failed to commit events").WithOperation("StoreResourceStream")
+	}
+
+	// Log successful event processing
+	if len(envelopes) > 0 {
+		fmt.Printf("Successfully processed %d events for streamed resource %s\n", len(envelopes), id)
+	}
+
+	return resource, nil
 }
 
 // ResourceExists checks if a resource exists

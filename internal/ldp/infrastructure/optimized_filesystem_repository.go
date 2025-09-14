@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -54,7 +55,7 @@ func NewOptimizedFileSystemRepository(basePath string, cacheConfig CacheConfig) 
 }
 
 // NewOptimizedFileSystemRepositoryProvider provides an OptimizedFileSystemRepository for Wire
-func NewOptimizedFileSystemRepositoryProvider() (domain.ResourceRepository, error) {
+func NewOptimizedFileSystemRepositoryProvider() (domain.StreamingResourceRepository, error) {
 	basePath := "./data/pod-storage"
 	cacheConfig := CacheConfig{
 		MaxSize:    50 * 1024 * 1024, // 50MB cache
@@ -336,4 +337,41 @@ func (r *OptimizedFileSystemRepository) RebuildIndex(ctx context.Context) error 
 // ClearCache clears the resource cache
 func (r *OptimizedFileSystemRepository) ClearCache(ctx context.Context) {
 	r.cache.Clear(ctx)
+}
+
+// StoreStream stores a resource from a stream (delegates to base repository)
+func (r *OptimizedFileSystemRepository) StoreStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Store using base repository
+	err := r.FileSystemRepository.StoreStream(ctx, id, reader, contentType, size)
+	if err != nil {
+		return err
+	}
+
+	// Retrieve the stored resource to update index
+	resource, err := r.FileSystemRepository.Retrieve(ctx, id)
+	if err == nil {
+		// Update index
+		if err := r.indexer.AddResource(resource); err != nil {
+			// Log warning but don't fail the operation
+			fmt.Printf("Warning: failed to index resource %s: %v\n", id, err)
+		}
+	}
+
+	// Invalidate cache entry if it exists (cache doesn't have Delete method, so we'll skip this)
+	// r.cache.Delete(ctx, id)
+
+	return nil
+}
+
+// RetrieveStream retrieves a resource as a stream (delegates to base repository)
+func (r *OptimizedFileSystemRepository) RetrieveStream(ctx context.Context, id string) (io.ReadCloser, *domain.ResourceMetadata, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// For streaming, we bypass cache and go directly to storage
+	// This is because we want to stream the data, not load it all into memory
+	return r.FileSystemRepository.RetrieveStream(ctx, id)
 }

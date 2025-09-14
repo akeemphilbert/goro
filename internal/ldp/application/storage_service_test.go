@@ -1,6 +1,7 @@
 package application
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -72,6 +73,50 @@ func (m *mockRepository) Exists(ctx context.Context, id string) (bool, error) {
 	defer m.mu.RUnlock()
 	_, exists := m.resources[id]
 	return exists, nil
+}
+
+// Streaming methods for StreamingResourceRepository interface
+func (m *mockRepository) StoreStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) error {
+	if m.storeErr != nil {
+		return m.storeErr
+	}
+
+	// Read all data from stream (mock implementation)
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	// Create resource and store it
+	resource := domain.NewResource(id, contentType, data)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.resources[id] = resource
+	return nil
+}
+
+func (m *mockRepository) RetrieveStream(ctx context.Context, id string) (io.ReadCloser, *domain.ResourceMetadata, error) {
+	if m.getErr != nil {
+		return nil, nil, m.getErr
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	resource, exists := m.resources[id]
+	if !exists {
+		return nil, nil, domain.ErrResourceNotFound
+	}
+
+	// Create metadata
+	metadata := &domain.ResourceMetadata{
+		ID:          resource.ID(),
+		ContentType: resource.GetContentType(),
+		Size:        int64(resource.GetSize()),
+	}
+
+	// Return data as ReadCloser
+	reader := io.NopCloser(bytes.NewReader(resource.GetData()))
+	return reader, metadata, nil
 }
 
 type mockConverter struct {
@@ -556,7 +601,7 @@ func TestStorageService_StoreResourceStream(t *testing.T) {
 	testData := `{"@context": {}, "@id": "stream-store", "data": "from stream"}`
 	reader := strings.NewReader(testData)
 
-	resource, err := service.StoreResourceStream(ctx, "stream-store", reader, "application/ld+json")
+	resource, err := service.StoreResourceStream(ctx, "stream-store", reader, "application/ld+json", int64(len(testData)))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

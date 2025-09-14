@@ -8,9 +8,11 @@ require (
 	github.com/go-kratos/kratos/v2 v2.8.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
+	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.11.0
 	go.uber.org/automaxprocs v1.5.1
 	gopkg.in/yaml.v3 v3.0.1
+	gorm.io/gorm v1.31.0
 )
 
 require (
@@ -35,7 +37,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
-	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
@@ -61,5 +62,4 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gorm.io/driver/postgres v1.5.4 // indirect
 	gorm.io/driver/sqlite v1.6.0 // indirect
-	gorm.io/gorm v1.31.0 // indirect
 )

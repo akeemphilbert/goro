@@ -82,21 +82,21 @@
   - Write integration tests for error scenarios
   - _Requirements: 1.5, 2.4, 2.5, 5.5_
 
-- [ ] 12. Create integration tests for end-to-end workflows
+- [x] 12. Create integration tests for end-to-end workflows
   - Test complete resource storage and retrieval workflows
   - Verify format conversion with semantic preservation
   - Test concurrent access scenarios
   - Validate data integrity across operations
   - _Requirements: 1.1, 1.2, 1.3, 3.4, 4.1_
 
-- [ ] 13. Add streaming support for large files
+- [x] 13. Add streaming support for large files
   - Implement streaming upload functionality
   - Add streaming download capabilities
   - Test with large binary files to ensure performance
   - Write integration tests for streaming operations
   - _Requirements: 2.1, 2.2, 3.2_
 
-- [ ] 14. Complete dependency injection wiring with Google Wire
+- [x] 14. Complete dependency injection wiring with Google Wire
   - Create Wire providers for remaining components (repository, service, converters)
   - Integrate all components with existing WatermillEventDispatcher setup
   - Ensure proper Kratos framework integration

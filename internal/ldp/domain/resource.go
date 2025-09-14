@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
@@ -237,4 +238,23 @@ type ResourceRepository interface {
 	Retrieve(ctx context.Context, id string) (*Resource, error)
 	Delete(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
+}
+
+// StreamingResourceRepository extends ResourceRepository with streaming capabilities
+type StreamingResourceRepository interface {
+	ResourceRepository
+	StoreStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) error
+	RetrieveStream(ctx context.Context, id string) (io.ReadCloser, *ResourceMetadata, error)
+}
+
+// ResourceMetadata represents metadata for a resource
+type ResourceMetadata struct {
+	ID             string                 `json:"id"`
+	ContentType    string                 `json:"contentType"`
+	OriginalFormat string                 `json:"originalFormat"`
+	Size           int64                  `json:"size"`
+	Checksum       string                 `json:"checksum"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
+	Tags           map[string]interface{} `json:"tags"`
 }

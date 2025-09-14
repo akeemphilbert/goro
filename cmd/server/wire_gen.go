@@ -10,6 +10,8 @@ import (
 	"github.com/akeemphilbert/goro/internal/conf"
 	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http"
 	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http/handlers"
+	"github.com/akeemphilbert/goro/internal/ldp/application"
+	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
@@ -29,10 +31,29 @@ func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error
 	confHTTP := server.HTTP
 	healthHandler := handlers.NewHealthHandler(logger)
 	requestResponseHandler := handlers.NewRequestResponseHandler(logger)
-	resourceHandler, err := NewResourceHandlerWithDependencies(logger)
+	streamingResourceRepository, err := infrastructure.NewOptimizedFileSystemRepositoryProvider()
 	if err != nil {
 		return nil, nil, err
 	}
+	rdfConverter := infrastructure.NewRDFConverter()
+	db, err := infrastructure.DatabaseProvider()
+	if err != nil {
+		return nil, nil, err
+	}
+	gormEventStore, err := infrastructure.EventStoreProvider(db)
+	if err != nil {
+		return nil, nil, err
+	}
+	eventDispatcher, err := infrastructure.NewEventDispatcher()
+	if err != nil {
+		return nil, nil, err
+	}
+	v := infrastructure.NewUnitOfWorkFactory(gormEventStore, eventDispatcher)
+	storageService, err := application.NewStorageServiceProvider(streamingResourceRepository, rdfConverter, v, eventDispatcher)
+	if err != nil {
+		return nil, nil, err
+	}
+	resourceHandler := handlers.NewResourceHandlerProvider(storageService, logger)
 	httpServer := http.NewHTTPServer(confHTTP, logger, healthHandler, requestResponseHandler, resourceHandler)
 	grpc := server.GRPC
 	grpcServer := NewGRPCServer(grpc, logger)
@@ -48,16 +69,13 @@ func wireApp(server *conf.Server, logger log.Logger) (*kratos.App, func(), error
 func newAppWithCleanup(logger log.Logger, hs *http2.Server, gs *grpc.Server, config *conf.Server) (*kratos.App, func()) {
 	app := newApp(logger, hs, gs, config)
 	cleanup := func() {
-		log.Info("Executing resource cleanup...")
-		log.Info("Resource cleanup completed")
+
 	}
 	return app, cleanup
 }
 
 // ProviderSet is the provider set for Wire dependency injection
-var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, handlers.NewRequestResponseHandler, NewResourceHandlerWithDependencies,
-	NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"),
-)
+var ProviderSet = wire.NewSet(http.NewHTTPServer, handlers.NewHealthHandler, handlers.NewRequestResponseHandler, handlers.ProviderSet, application.ProviderSet, infrastructure.InfrastructureSet, NewGRPCServer, wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"))
 
 // NewGRPCServer creates a new gRPC server
 func NewGRPCServer(c *conf.GRPC, logger log.Logger) *grpc.Server {

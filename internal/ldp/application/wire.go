@@ -5,7 +5,6 @@ import (
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
-	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
 	"github.com/google/wire"
 )
 
@@ -17,16 +16,11 @@ var ProviderSet = wire.NewSet(
 
 // NewStorageServiceProvider creates a StorageService with all dependencies and registers event handlers
 func NewStorageServiceProvider(
-	repo domain.ResourceRepository,
+	repo domain.StreamingResourceRepository,
 	converter FormatConverter,
-	eventStore pericarpdomain.EventStore,
+	unitOfWorkFactory func() pericarpdomain.UnitOfWork,
 	eventDispatcher pericarpdomain.EventDispatcher,
 ) (*StorageService, error) {
-	// Create a factory that creates new UnitOfWork instances
-	unitOfWorkFactory := func() pericarpdomain.UnitOfWork {
-		return pericarpinfra.UnitOfWorkProvider(eventStore, eventDispatcher)
-	}
-
 	// Create the storage service
 	service := NewStorageService(repo, converter, unitOfWorkFactory)
 

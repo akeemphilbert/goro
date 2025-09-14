@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,7 +16,7 @@ import (
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 )
 
-// FileSystemRepository implements ResourceRepository using file system storage
+// FileSystemRepository implements StreamingResourceRepository using file system storage
 type FileSystemRepository struct {
 	basePath string
 }
@@ -38,7 +39,7 @@ func NewFileSystemRepository(basePath string) (*FileSystemRepository, error) {
 
 // NewFileSystemRepositoryProvider provides a FileSystemRepository for Wire dependency injection
 // This function uses a default base path for the repository
-func NewFileSystemRepositoryProvider() (domain.ResourceRepository, error) {
+func NewFileSystemRepositoryProvider() (domain.StreamingResourceRepository, error) {
 	// Use a default base path - in production this should come from configuration
 	basePath := "./data/pod-storage"
 	repo, err := NewFileSystemRepository(basePath)
@@ -49,7 +50,7 @@ func NewFileSystemRepositoryProvider() (domain.ResourceRepository, error) {
 }
 
 // NewFileSystemRepositoryWithPath provides a FileSystemRepository with a specific base path
-func NewFileSystemRepositoryWithPath(basePath string) (domain.ResourceRepository, error) {
+func NewFileSystemRepositoryWithPath(basePath string) (domain.StreamingResourceRepository, error) {
 	repo, err := NewFileSystemRepository(basePath)
 	if err != nil {
 		return nil, err
@@ -352,6 +353,212 @@ func (r *FileSystemRepository) readFile(path string) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+// StoreStream stores a resource from a stream with efficient memory usage
+func (r *FileSystemRepository) StoreStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) error {
+	if id == "" {
+		return domain.WrapStorageError(
+			fmt.Errorf("resource ID cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"resource ID cannot be empty",
+		).WithOperation("StoreStream")
+	}
+
+	if reader == nil {
+		return domain.WrapStorageError(
+			fmt.Errorf("reader cannot be nil"),
+			domain.ErrInvalidResource.Code,
+			"reader cannot be nil",
+		).WithOperation("StoreStream")
+	}
+
+	// Create resource directory
+	resourceDir := r.getResourcePath(id)
+	if err := os.MkdirAll(resourceDir, 0755); err != nil {
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to create resource directory",
+		).WithOperation("StoreStream").WithContext("resourceID", id)
+	}
+
+	// Create content file for streaming write
+	contentPath := filepath.Join(resourceDir, "content")
+	contentFile, err := os.Create(contentPath)
+	if err != nil {
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to create content file",
+		).WithOperation("StoreStream").WithContext("resourceID", id)
+	}
+	defer contentFile.Close()
+
+	// Create a hash writer to calculate checksum while streaming
+	hasher := sha256.New()
+	multiWriter := io.MultiWriter(contentFile, hasher)
+
+	// Stream data from reader to file and hasher
+	bytesWritten, err := io.Copy(multiWriter, reader)
+	if err != nil {
+		// Clean up on error
+		os.Remove(contentPath)
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to stream data to file",
+		).WithOperation("StoreStream").WithContext("resourceID", id)
+	}
+
+	// Sync file to ensure data is written to disk
+	if err := contentFile.Sync(); err != nil {
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to sync content file",
+		).WithOperation("StoreStream").WithContext("resourceID", id)
+	}
+
+	// Generate checksum from hasher
+	checksum := hex.EncodeToString(hasher.Sum(nil))
+
+	// Create metadata
+	now := time.Now()
+	metadata := domain.ResourceMetadata{
+		ID:             id,
+		ContentType:    contentType,
+		OriginalFormat: contentType,
+		Size:           bytesWritten,
+		Checksum:       checksum,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		Tags:           make(map[string]interface{}),
+	}
+
+	// Store metadata file
+	metadataPath := filepath.Join(resourceDir, "metadata.json")
+	metadataBytes, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		// Clean up on error
+		os.Remove(contentPath)
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to marshal metadata",
+		).WithOperation("StoreStream").WithContext("resourceID", id)
+	}
+
+	if err := r.writeFile(metadataPath, metadataBytes); err != nil {
+		// Clean up on error
+		os.Remove(contentPath)
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to write metadata file",
+		).WithOperation("StoreStream").WithContext("resourceID", id)
+	}
+
+	return nil
+}
+
+// RetrieveStream retrieves a resource as a stream for efficient memory usage
+func (r *FileSystemRepository) RetrieveStream(ctx context.Context, id string) (io.ReadCloser, *domain.ResourceMetadata, error) {
+	if id == "" {
+		return nil, nil, domain.WrapStorageError(
+			fmt.Errorf("resource ID cannot be empty"),
+			domain.ErrInvalidID.Code,
+			"resource ID cannot be empty",
+		).WithOperation("RetrieveStream")
+	}
+
+	resourceDir := r.getResourcePath(id)
+
+	// Check if resource exists
+	if !r.resourceExists(resourceDir) {
+		return nil, nil, domain.WrapStorageError(
+			fmt.Errorf("resource not found"),
+			domain.ErrResourceNotFound.Code,
+			"resource not found",
+		).WithOperation("RetrieveStream").WithContext("resourceID", id)
+	}
+
+	// Read metadata first
+	metadataPath := filepath.Join(resourceDir, "metadata.json")
+	metadataBytes, err := r.readFile(metadataPath)
+	if err != nil {
+		return nil, nil, domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to read metadata file",
+		).WithOperation("RetrieveStream").WithContext("resourceID", id)
+	}
+
+	var metadata domain.ResourceMetadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		return nil, nil, domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to unmarshal metadata",
+		).WithOperation("RetrieveStream").WithContext("resourceID", id)
+	}
+
+	// Open content file for streaming read
+	contentPath := filepath.Join(resourceDir, "content")
+	contentFile, err := os.Open(contentPath)
+	if err != nil {
+		return nil, nil, domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to open content file",
+		).WithOperation("RetrieveStream").WithContext("resourceID", id)
+	}
+
+	// Create a validating reader that checks checksum while streaming
+	validatingReader := &checksumValidatingReader{
+		reader:           contentFile,
+		hasher:           sha256.New(),
+		expectedChecksum: metadata.Checksum,
+		resourceID:       id,
+	}
+
+	return validatingReader, &metadata, nil
+}
+
+// checksumValidatingReader wraps a reader to validate checksum while streaming
+type checksumValidatingReader struct {
+	reader           io.ReadCloser
+	hasher           hash.Hash
+	expectedChecksum string
+	resourceID       string
+	validated        bool
+}
+
+func (r *checksumValidatingReader) Read(p []byte) (n int, err error) {
+	n, err = r.reader.Read(p)
+	if n > 0 {
+		// Write to hasher for checksum calculation
+		r.hasher.Write(p[:n])
+	}
+
+	// If we've reached EOF, validate the checksum
+	if err == io.EOF && !r.validated {
+		r.validated = true
+		actualChecksum := hex.EncodeToString(r.hasher.Sum(nil))
+		if actualChecksum != r.expectedChecksum {
+			return n, domain.WrapStorageError(
+				fmt.Errorf("checksum mismatch: expected %s, got %s", r.expectedChecksum, actualChecksum),
+				domain.ErrChecksumMismatch.Code,
+				"data integrity check failed during streaming",
+			).WithOperation("RetrieveStream").WithContext("resourceID", r.resourceID)
+		}
+	}
+
+	return n, err
+}
+
+func (r *checksumValidatingReader) Close() error {
+	return r.reader.Close()
 }
 
 // ResourceMetadata represents the metadata stored alongside resource content

@@ -22,7 +22,7 @@ type StorageServiceInterface interface {
 	DeleteResource(ctx context.Context, id string) error
 	ResourceExists(ctx context.Context, id string) (bool, error)
 	StreamResource(ctx context.Context, id string, acceptFormat string) (io.ReadCloser, string, error)
-	StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string) (*domain.Resource, error)
+	StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (*domain.Resource, error)
 }
 
 // ResourceHandler handles HTTP storage operations for resources
@@ -39,7 +39,7 @@ func NewResourceHandler(storageService StorageServiceInterface, logger log.Logge
 	}
 }
 
-// GetResource handles GET requests for resource retrieval
+// GetResource handles GET requests for resource retrieval with streaming support
 func (h *ResourceHandler) GetResource(ctx khttp.Context) error {
 	// Extract resource ID from path parameters
 	vars := ctx.Vars()
@@ -56,7 +56,15 @@ func (h *ResourceHandler) GetResource(ctx khttp.Context) error {
 	acceptHeader := ctx.Request().Header.Get("Accept")
 	acceptFormat := h.negotiateContentType(acceptHeader)
 
-	// Retrieve the resource
+	// Check if client supports streaming (large files)
+	contentLength := ctx.Request().Header.Get("Content-Length")
+	useStreaming := h.shouldUseStreaming(ctx.Request(), contentLength)
+
+	if useStreaming {
+		return h.streamResourceResponse(ctx, id, acceptFormat)
+	}
+
+	// Use regular retrieval for smaller resources
 	resource, err := h.storageService.RetrieveResource(context.Background(), id, acceptFormat)
 	if err != nil {
 		return h.handleStorageError(ctx, err)
@@ -73,7 +81,7 @@ func (h *ResourceHandler) GetResource(ctx khttp.Context) error {
 	return err
 }
 
-// PostResource handles POST requests for resource creation
+// PostResource handles POST requests for resource creation with streaming support
 func (h *ResourceHandler) PostResource(ctx khttp.Context) error {
 	// Extract resource ID from path parameters (optional for POST)
 	vars := ctx.Vars()
@@ -93,7 +101,15 @@ func (h *ResourceHandler) PostResource(ctx khttp.Context) error {
 		return h.writeErrorResponse(ctx, http.StatusBadRequest, "MISSING_CONTENT_TYPE", "Content-Type header is required")
 	}
 
-	// Read request body
+	// Check if streaming should be used
+	contentLength := ctx.Request().Header.Get("Content-Length")
+	useStreaming := h.shouldUseStreaming(ctx.Request(), contentLength)
+
+	if useStreaming {
+		return h.handleStreamingUpload(ctx, id, contentType)
+	}
+
+	// Use regular upload for smaller resources
 	body, err := io.ReadAll(ctx.Request().Body)
 	if err != nil {
 		return h.writeErrorResponse(ctx, http.StatusBadRequest, "INVALID_BODY", "Failed to read request body")
@@ -125,7 +141,7 @@ func (h *ResourceHandler) PostResource(ctx khttp.Context) error {
 	return ctx.JSON(http.StatusCreated, response)
 }
 
-// PutResource handles PUT requests for resource creation/update
+// PutResource handles PUT requests for resource creation/update with streaming support
 func (h *ResourceHandler) PutResource(ctx khttp.Context) error {
 	// Extract resource ID from path parameters
 	vars := ctx.Vars()
@@ -144,7 +160,15 @@ func (h *ResourceHandler) PutResource(ctx khttp.Context) error {
 		return h.writeErrorResponse(ctx, http.StatusBadRequest, "MISSING_CONTENT_TYPE", "Content-Type header is required")
 	}
 
-	// Read request body
+	// Check if streaming should be used
+	contentLength := ctx.Request().Header.Get("Content-Length")
+	useStreaming := h.shouldUseStreaming(ctx.Request(), contentLength)
+
+	if useStreaming {
+		return h.handleStreamingUpload(ctx, id, contentType)
+	}
+
+	// Use regular upload for smaller resources
 	body, err := io.ReadAll(ctx.Request().Body)
 	if err != nil {
 		return h.writeErrorResponse(ctx, http.StatusBadRequest, "INVALID_BODY", "Failed to read request body")
@@ -584,4 +608,101 @@ func (h *ResourceHandler) shouldExposeCause(cause error) bool {
 // getCurrentTimestamp returns the current timestamp in ISO 8601 format
 func (h *ResourceHandler) getCurrentTimestamp() string {
 	return fmt.Sprintf("%d", time.Now().Unix())
+}
+
+// shouldUseStreaming determines if streaming should be used based on request characteristics
+func (h *ResourceHandler) shouldUseStreaming(req *http.Request, contentLength string) bool {
+	// Use streaming for large files (> 1MB) or when content length is unknown
+	if contentLength == "" {
+		return true // Unknown size, use streaming to be safe
+	}
+
+	if size, err := strconv.ParseInt(contentLength, 10, 64); err == nil {
+		return size > 1024*1024 // 1MB threshold
+	}
+
+	// Check for streaming-related headers
+	if req.Header.Get("Range") != "" {
+		return true // Range requests should use streaming
+	}
+
+	return false
+}
+
+// streamResourceResponse handles streaming resource retrieval
+func (h *ResourceHandler) streamResourceResponse(ctx khttp.Context, id string, acceptFormat string) error {
+	// Get streaming reader from storage service
+	reader, contentType, err := h.storageService.StreamResource(context.Background(), id, acceptFormat)
+	if err != nil {
+		return h.handleStorageError(ctx, err)
+	}
+	defer reader.Close()
+
+	// Set response headers for streaming
+	ctx.Response().Header().Set("Content-Type", contentType)
+	ctx.Response().Header().Set("Transfer-Encoding", "chunked")
+	ctx.Response().Header().Set("Cache-Control", "no-cache")
+
+	// Write response status
+	ctx.Response().WriteHeader(http.StatusOK)
+
+	// Stream data to response
+	_, err = io.Copy(ctx.Response(), reader)
+	if err != nil {
+		h.logger.Log(log.LevelError, "msg", "Failed to stream resource", "error", err.Error(), "resourceID", id)
+		return err
+	}
+
+	return nil
+}
+
+// handleStreamingUpload handles streaming resource uploads
+func (h *ResourceHandler) handleStreamingUpload(ctx khttp.Context, id string, contentType string) error {
+	// Get content length if available
+	contentLengthStr := ctx.Request().Header.Get("Content-Length")
+	var contentLength int64 = -1
+	if contentLengthStr != "" {
+		if size, err := strconv.ParseInt(contentLengthStr, 10, 64); err == nil {
+			contentLength = size
+		}
+	}
+
+	// Check if resource exists to determine response status
+	exists, err := h.storageService.ResourceExists(context.Background(), id)
+	if err != nil {
+		return h.handleStorageError(ctx, err)
+	}
+
+	// Store the resource using streaming
+	resource, err := h.storageService.StoreResourceStream(context.Background(), id, ctx.Request().Body, contentType, contentLength)
+	if err != nil {
+		return h.handleStorageError(ctx, err)
+	}
+
+	// Set response headers
+	ctx.Response().Header().Set("Content-Type", "application/json")
+	ctx.Response().Header().Set("ETag", fmt.Sprintf(`"%s"`, h.generateETag(resource)))
+
+	// Determine response status and message
+	var status int
+	var message string
+	if exists {
+		status = http.StatusOK
+		message = "Resource updated successfully via streaming"
+	} else {
+		status = http.StatusCreated
+		message = "Resource created successfully via streaming"
+		ctx.Response().Header().Set("Location", fmt.Sprintf("/resources/%s", resource.ID()))
+	}
+
+	// Write response
+	response := map[string]interface{}{
+		"id":          resource.ID(),
+		"contentType": resource.GetContentType(),
+		"size":        resource.GetSize(),
+		"message":     message,
+		"streaming":   true,
+	}
+
+	return ctx.JSON(status, response)
 }

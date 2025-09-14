@@ -17,6 +17,8 @@ import (
 	"github.com/akeemphilbert/goro/internal/conf"
 	httpServer "github.com/akeemphilbert/goro/internal/infrastructure/transport/http"
 	"github.com/akeemphilbert/goro/internal/infrastructure/transport/http/handlers"
+	"github.com/akeemphilbert/goro/internal/ldp/application"
+	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 )
 
 // wireApp init kratos application.
@@ -28,10 +30,8 @@ func wireApp(*conf.Server, log.Logger) (*kratos.App, func(), error) {
 func newAppWithCleanup(logger log.Logger, hs *http.Server, gs *grpc.Server, config *conf.Server) (*kratos.App, func()) {
 	app := newApp(logger, hs, gs, config)
 	cleanup := func() {
-		log.Info("Executing resource cleanup...")
-		// Add any specific cleanup logic here
-		// For now, just log that cleanup was called
-		log.Info("Resource cleanup completed")
+		// Simple cleanup function for testing
+		// In production, this would handle resource cleanup
 	}
 	return app, cleanup
 }
@@ -41,7 +41,9 @@ var ProviderSet = wire.NewSet(
 	httpServer.NewHTTPServer,
 	handlers.NewHealthHandler,
 	handlers.NewRequestResponseHandler,
-	NewResourceHandlerWithDependencies,
+	handlers.ProviderSet,
+	application.ProviderSet,
+	infrastructure.InfrastructureSet,
 	NewGRPCServer,
 	wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC"),
 )
