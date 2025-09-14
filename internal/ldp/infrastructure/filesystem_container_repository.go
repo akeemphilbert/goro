@@ -106,7 +106,8 @@ func (r *FileSystemContainerRepository) CreateContainer(ctx context.Context, con
 	}
 
 	// Store the underlying resource
-	if err := r.FileSystemRepository.Store(ctx, container.Resource); err != nil {
+	var resource domain.Resource = container
+	if err := r.FileSystemRepository.Store(ctx, &resource); err != nil {
 		// Clean up on error
 		os.RemoveAll(containerDir)
 		return domain.WrapStorageError(
@@ -191,7 +192,7 @@ func (r *FileSystemContainerRepository) GetContainer(ctx context.Context, id str
 
 	// Create container from metadata and resource
 	container := &domain.Container{
-		Resource:      resource,
+		BasicResource: (*resource).(*domain.BasicResource),
 		Members:       metadata.Members,
 		ParentID:      metadata.ParentID,
 		ContainerType: domain.ContainerType(metadata.ContainerType),
@@ -247,7 +248,8 @@ func (r *FileSystemContainerRepository) UpdateContainer(ctx context.Context, con
 	}
 
 	// Update the underlying resource
-	if err := r.FileSystemRepository.Store(ctx, container.Resource); err != nil {
+	var resource domain.Resource = container
+	if err := r.FileSystemRepository.Store(ctx, &resource); err != nil {
 		return domain.WrapStorageError(
 			err,
 			domain.ErrStorageOperation.Code,
@@ -390,8 +392,18 @@ func (r *FileSystemContainerRepository) AddMember(ctx context.Context, container
 		).WithOperation("AddMember").WithContext("containerID", containerID)
 	}
 
+	// Get the resource to add as member
+	resource, err := r.FileSystemRepository.Retrieve(ctx, memberID)
+	if err != nil {
+		return domain.WrapStorageError(
+			err,
+			domain.ErrStorageOperation.Code,
+			"failed to retrieve member resource",
+		).WithOperation("AddMember").WithContext("containerID", containerID).WithContext("memberID", memberID)
+	}
+
 	// Add member to container
-	if err := container.AddMember(memberID); err != nil {
+	if err := container.AddMember(ctx, *resource); err != nil {
 		return domain.WrapStorageError(
 			err,
 			domain.ErrStorageOperation.Code,
@@ -449,7 +461,7 @@ func (r *FileSystemContainerRepository) RemoveMember(ctx context.Context, contai
 	}
 
 	// Remove member from container
-	if err := container.RemoveMember(memberID); err != nil {
+	if err := container.RemoveMember(ctx, memberID); err != nil {
 		return domain.WrapStorageError(
 			err,
 			domain.ErrStorageOperation.Code,

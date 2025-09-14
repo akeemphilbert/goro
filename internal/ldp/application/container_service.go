@@ -171,7 +171,7 @@ func (s *ContainerService) CreateContainer(ctx context.Context, id, parentID str
 	}
 
 	// Create container entity
-	container := domain.NewContainer(id, parentID, containerType)
+	container := domain.NewContainer(ctx, id, parentID, containerType)
 
 	// Validate hierarchy to prevent circular references
 	if parentID != "" {
@@ -217,7 +217,7 @@ func (s *ContainerService) CreateContainer(ctx context.Context, id, parentID str
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	container.ClearEvents()
 
 	// Log successful event processing
 	if len(envelopes) > 0 {
@@ -228,7 +228,7 @@ func (s *ContainerService) CreateContainer(ctx context.Context, id, parentID str
 }
 
 // GetContainer retrieves a container by ID
-func (s *ContainerService) GetContainer(ctx context.Context, id string) (*domain.Container, error) {
+func (s *ContainerService) GetContainer(ctx context.Context, id string) (domain.ContainerResource, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -303,7 +303,7 @@ func (s *ContainerService) UpdateContainer(ctx context.Context, container *domai
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	container.ClearEvents()
 
 	// Log successful event processing
 	if len(envelopes) > 0 {
@@ -336,25 +336,29 @@ func (s *ContainerService) DeleteContainer(ctx context.Context, id string) error
 		).WithOperation("DeleteContainer").WithContext("containerID", id)
 	}
 
+	// Type assert to concrete type for validator
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("DeleteContainer").WithContext("containerID", id)
+	}
+
 	// Validate container can be deleted using comprehensive validation
-	if err := s.validator.ValidateContainerForDeletion(ctx, container, s.containerRepo); err != nil {
+	if err := s.validator.ValidateContainerForDeletion(ctx, concreteContainer, s.containerRepo); err != nil {
 		return domain.WrapStorageError(err, err.(*domain.StorageError).Code, err.Error()).WithOperation("DeleteContainer")
 	}
 
 	// Mark container as deleted
-	if err := container.Delete(); err != nil {
-		return domain.WrapStorageError(
-			err,
-			domain.ErrContainerNotEmpty.Code,
-			"container cannot be deleted",
-		).WithOperation("DeleteContainer").WithContext("containerID", id)
-	}
+	concreteContainer.Delete(ctx)
 
 	// Create unit of work for event handling
 	unitOfWork := s.unitOfWorkFactory()
 
 	// Register delete events
-	events := container.UncommittedEvents()
+	events := concreteContainer.UncommittedEvents()
 	if len(events) > 0 {
 		unitOfWork.RegisterEvents(events)
 	}
@@ -374,7 +378,7 @@ func (s *ContainerService) DeleteContainer(ctx context.Context, id string) error
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	concreteContainer.ClearEvents()
 
 	// Log successful event processing
 	if len(envelopes) > 0 {
@@ -385,7 +389,7 @@ func (s *ContainerService) DeleteContainer(ctx context.Context, id string) error
 }
 
 // AddResource adds a resource to a container
-func (s *ContainerService) AddResource(ctx context.Context, containerID, resourceID string, resource *domain.Resource) error {
+func (s *ContainerService) AddResource(ctx context.Context, containerID, resourceID string, resource domain.Resource) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -427,8 +431,18 @@ func (s *ContainerService) AddResource(ctx context.Context, containerID, resourc
 		).WithOperation("AddResource").WithContext("containerID", containerID)
 	}
 
+	// Type assert to concrete type for AddMember
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("AddResource").WithContext("containerID", containerID)
+	}
+
 	// Use the new AddMember method that accepts Resource entity
-	if err := container.AddMember(resource); err != nil {
+	if err := concreteContainer.AddMember(ctx, resource); err != nil {
 		return domain.WrapStorageError(
 			err,
 			domain.ErrInvalidResource.Code,
@@ -440,7 +454,7 @@ func (s *ContainerService) AddResource(ctx context.Context, containerID, resourc
 	unitOfWork := s.unitOfWorkFactory()
 
 	// Register container events
-	events := container.UncommittedEvents()
+	events := concreteContainer.UncommittedEvents()
 	if len(events) > 0 {
 		unitOfWork.RegisterEvents(events)
 	}
@@ -459,7 +473,7 @@ func (s *ContainerService) AddResource(ctx context.Context, containerID, resourc
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	concreteContainer.ClearEvents()
 
 	if len(envelopes) > 0 {
 		fmt.Printf("Successfully processed %d events for adding resource %s to container %s\n", len(envelopes), resourceID, containerID)
@@ -469,7 +483,7 @@ func (s *ContainerService) AddResource(ctx context.Context, containerID, resourc
 }
 
 // AddResourceEntity adds a resource entity to a container (convenience method)
-func (s *ContainerService) AddResourceEntity(ctx context.Context, containerID string, resource *domain.Resource) error {
+func (s *ContainerService) AddResourceEntity(ctx context.Context, containerID string, resource domain.Resource) error {
 	return s.AddResource(ctx, containerID, resource.ID(), resource)
 }
 
@@ -609,7 +623,17 @@ func (s *ContainerService) FindContainerByPath(ctx context.Context, path string)
 		).WithOperation("FindContainerByPath").WithContext("path", path)
 	}
 
-	return container, nil
+	// Type assert to concrete type
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("FindContainerByPath").WithContext("path", path)
+	}
+
+	return concreteContainer, nil
 }
 
 // GetChildren returns all child containers of a container
@@ -636,7 +660,21 @@ func (s *ContainerService) GetChildren(ctx context.Context, containerID string) 
 		).WithOperation("GetChildren").WithContext("containerID", containerID)
 	}
 
-	return children, nil
+	// Convert ContainerResource slice to Container slice
+	concreteChildren := make([]*domain.Container, len(children))
+	for i, child := range children {
+		concreteChild, ok := child.(*domain.Container)
+		if !ok {
+			return nil, domain.WrapStorageError(
+				fmt.Errorf("invalid container type in children"),
+				domain.ErrInvalidResource.Code,
+				"invalid container type in children",
+			).WithOperation("GetChildren").WithContext("containerID", containerID)
+		}
+		concreteChildren[i] = concreteChild
+	}
+
+	return concreteChildren, nil
 }
 
 // GetParent returns the parent container of a container
@@ -663,7 +701,17 @@ func (s *ContainerService) GetParent(ctx context.Context, containerID string) (*
 		).WithOperation("GetParent").WithContext("containerID", containerID)
 	}
 
-	return parent, nil
+	// Type assert to concrete type
+	concreteParent, ok := parent.(*domain.Container)
+	if !ok {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("GetParent").WithContext("containerID", containerID)
+	}
+
+	return concreteParent, nil
 }
 
 // ContainerExists checks if a container exists
@@ -734,14 +782,24 @@ func (s *ContainerService) GetContainerWithFormat(ctx context.Context, id, forma
 		).WithOperation("GetContainerWithFormat").WithContext("containerID", id)
 	}
 
+	// Type assert to concrete type for RDF converter
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("GetContainerWithFormat").WithContext("containerID", id)
+	}
+
 	// Convert to requested format
 	switch format {
 	case "text/turtle":
-		return s.rdfConverter.ConvertToTurtle(container, baseURI)
+		return s.rdfConverter.ConvertToTurtle(concreteContainer, baseURI)
 	case "application/ld+json":
-		return s.rdfConverter.ConvertToJSONLD(container, baseURI)
+		return s.rdfConverter.ConvertToJSONLD(concreteContainer, baseURI)
 	case "application/rdf+xml":
-		return s.rdfConverter.ConvertToRDFXML(container, baseURI)
+		return s.rdfConverter.ConvertToRDFXML(concreteContainer, baseURI)
 	default:
 		return nil, domain.WrapStorageError(
 			fmt.Errorf("unsupported format: %s", format),
@@ -799,14 +857,24 @@ func (s *ContainerService) ListContainerMembersWithFormat(ctx context.Context, c
 		).WithOperation("ListContainerMembersWithFormat").WithContext("containerID", containerID)
 	}
 
+	// Type assert to concrete type for RDF converter
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("ListContainerMembersWithFormat").WithContext("containerID", containerID)
+	}
+
 	// Convert to requested format (this will include membership triples)
 	switch format {
 	case "text/turtle":
-		return s.rdfConverter.ConvertToTurtle(container, baseURI)
+		return s.rdfConverter.ConvertToTurtle(concreteContainer, baseURI)
 	case "application/ld+json":
-		return s.rdfConverter.ConvertToJSONLD(container, baseURI)
+		return s.rdfConverter.ConvertToJSONLD(concreteContainer, baseURI)
 	case "application/rdf+xml":
-		return s.rdfConverter.ConvertToRDFXML(container, baseURI)
+		return s.rdfConverter.ConvertToRDFXML(concreteContainer, baseURI)
 	default:
 		return nil, domain.WrapStorageError(
 			fmt.Errorf("unsupported format: %s", format),
@@ -851,8 +919,18 @@ func (s *ContainerService) GenerateMembershipTriples(ctx context.Context, contai
 		).WithOperation("GenerateMembershipTriples").WithContext("containerID", containerID)
 	}
 
+	// Type assert to concrete type for RDF converter
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("GenerateMembershipTriples").WithContext("containerID", containerID)
+	}
+
 	// Generate membership triples using the RDF converter
-	triples := s.rdfConverter.GenerateMembershipTriples(container, baseURI)
+	triples := s.rdfConverter.GenerateMembershipTriples(concreteContainer, baseURI)
 	return triples, nil
 }
 
@@ -956,21 +1034,31 @@ func (s *ContainerService) GetContainerStats(ctx context.Context, containerID st
 		).WithOperation("GetContainerStats").WithContext("containerID", containerID)
 	}
 
+	// Type assert to concrete type to access fields
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("invalid container type"),
+			domain.ErrInvalidResource.Code,
+			"invalid container type",
+		).WithOperation("GetContainerStats").WithContext("containerID", containerID)
+	}
+
 	// Build basic stats
 	stats := make(map[string]interface{})
 	stats["container_id"] = containerID
-	stats["container_type"] = container.ContainerType.String()
-	stats["parent_id"] = container.ParentID
+	stats["container_type"] = concreteContainer.ContainerType.String()
+	stats["parent_id"] = concreteContainer.ParentID
 	stats["member_count"] = len(members)
 	stats["is_empty"] = len(members) == 0
-	stats["created_at"] = container.GetMetadata()["createdAt"]
-	stats["updated_at"] = container.GetMetadata()["updatedAt"]
+	stats["created_at"] = concreteContainer.GetMetadata()["createdAt"]
+	stats["updated_at"] = concreteContainer.GetMetadata()["updatedAt"]
 
 	// Add title and description if available
-	if title := container.GetTitle(); title != "" {
+	if title := concreteContainer.GetTitle(); title != "" {
 		stats["title"] = title
 	}
-	if description := container.GetDescription(); description != "" {
+	if description := concreteContainer.GetDescription(); description != "" {
 		stats["description"] = description
 	}
 
@@ -1072,11 +1160,17 @@ func (s *ContainerService) SetContainerDublinCoreMetadata(ctx context.Context, c
 		return fmt.Errorf("failed to get container: %w", err)
 	}
 
+	// Type assert to concrete type for Dublin Core methods
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return fmt.Errorf("invalid container type")
+	}
+
 	// Set Dublin Core metadata
-	container.SetDublinCoreMetadata(dc)
+	concreteContainer.SetDublinCoreMetadata(dc)
 
 	// Update timestamp
-	s.timestampManager.UpdateTimestamp(container)
+	s.timestampManager.UpdateTimestamp(concreteContainer)
 
 	// Update the container in repository
 	if err := s.containerRepo.UpdateContainer(ctx, container); err != nil {
@@ -1085,7 +1179,7 @@ func (s *ContainerService) SetContainerDublinCoreMetadata(ctx context.Context, c
 
 	// Register and commit events
 	unitOfWork := s.unitOfWorkFactory()
-	events := container.UncommittedEvents()
+	events := concreteContainer.UncommittedEvents()
 	if len(events) > 0 {
 		unitOfWork.RegisterEvents(events)
 	}
@@ -1100,7 +1194,7 @@ func (s *ContainerService) SetContainerDublinCoreMetadata(ctx context.Context, c
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	concreteContainer.ClearEvents()
 
 	return nil
 }
@@ -1116,8 +1210,14 @@ func (s *ContainerService) GetContainerDublinCoreMetadata(ctx context.Context, c
 		return domain.DublinCoreMetadata{}, fmt.Errorf("failed to get container: %w", err)
 	}
 
+	// Type assert to concrete type for Dublin Core methods
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return domain.DublinCoreMetadata{}, fmt.Errorf("invalid container type")
+	}
+
 	// Return Dublin Core metadata
-	return container.GetDublinCoreMetadata(), nil
+	return concreteContainer.GetDublinCoreMetadata(), nil
 }
 
 // DetectContainerCorruption analyzes a container for metadata corruption
@@ -1131,8 +1231,14 @@ func (s *ContainerService) DetectContainerCorruption(ctx context.Context, contai
 		return nil, fmt.Errorf("failed to get container for corruption detection: %w", err)
 	}
 
+	// Type assert to concrete type for corruption detector
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return nil, fmt.Errorf("invalid container type")
+	}
+
 	// Detect corruption
-	report := s.corruptionDetector.DetectCorruption(container)
+	report := s.corruptionDetector.DetectCorruption(concreteContainer)
 	return report, nil
 }
 
@@ -1147,14 +1253,20 @@ func (s *ContainerService) RepairContainerCorruption(ctx context.Context, contai
 		return false, fmt.Errorf("failed to get container for corruption repair: %w", err)
 	}
 
+	// Type assert to concrete type for corruption detector
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return false, fmt.Errorf("invalid container type")
+	}
+
 	// Detect corruption first
-	report := s.corruptionDetector.DetectCorruption(container)
+	report := s.corruptionDetector.DetectCorruption(concreteContainer)
 	if !report.IsCorrupted {
 		return false, nil // Nothing to repair
 	}
 
 	// Attempt repair
-	repaired, err := s.corruptionDetector.RepairCorruption(container, report)
+	repaired, err := s.corruptionDetector.RepairCorruption(concreteContainer, report)
 	if err != nil {
 		return false, fmt.Errorf("failed to repair container corruption: %w", err)
 	}
@@ -1167,7 +1279,7 @@ func (s *ContainerService) RepairContainerCorruption(ctx context.Context, contai
 
 		// Register and commit repair events
 		unitOfWork := s.unitOfWorkFactory()
-		events := container.UncommittedEvents()
+		events := concreteContainer.UncommittedEvents()
 		if len(events) > 0 {
 			unitOfWork.RegisterEvents(events)
 		}
@@ -1182,7 +1294,7 @@ func (s *ContainerService) RepairContainerCorruption(ctx context.Context, contai
 		}
 
 		// Mark events as committed
-		container.MarkEventsAsCommitted()
+		concreteContainer.ClearEvents()
 	}
 
 	return repaired, nil
@@ -1199,8 +1311,14 @@ func (s *ContainerService) ValidateContainerTimestamps(ctx context.Context, cont
 		return fmt.Errorf("failed to get container for timestamp validation: %w", err)
 	}
 
+	// Type assert to concrete type for timestamp manager
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return fmt.Errorf("invalid container type")
+	}
+
 	// Validate timestamps
-	return s.timestampManager.ValidateTimestamps(container)
+	return s.timestampManager.ValidateTimestamps(concreteContainer)
 }
 
 // RepairContainerTimestamps repairs missing or invalid timestamps in a container
@@ -1214,8 +1332,14 @@ func (s *ContainerService) RepairContainerTimestamps(ctx context.Context, contai
 		return false, fmt.Errorf("failed to get container for timestamp repair: %w", err)
 	}
 
+	// Type assert to concrete type for timestamp manager
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return false, fmt.Errorf("invalid container type")
+	}
+
 	// Repair timestamps
-	repaired := s.timestampManager.RepairTimestamps(container)
+	repaired := s.timestampManager.RepairTimestamps(concreteContainer)
 
 	if repaired {
 		// Update the container in repository
@@ -1224,15 +1348,15 @@ func (s *ContainerService) RepairContainerTimestamps(ctx context.Context, contai
 		}
 
 		// Emit update event
-		event := domain.NewContainerUpdatedEvent(container.ID(), map[string]interface{}{
+		event := domain.NewContainerUpdatedEvent(concreteContainer.ID(), map[string]interface{}{
 			"timestampsRepaired": true,
 			"updatedAt":          time.Now(),
 		})
-		container.AddEvent(event)
+		concreteContainer.AddEvent(event)
 
 		// Register and commit timestamp repair events
 		unitOfWork := s.unitOfWorkFactory()
-		events := container.UncommittedEvents()
+		events := concreteContainer.UncommittedEvents()
 		if len(events) > 0 {
 			unitOfWork.RegisterEvents(events)
 		}
@@ -1247,7 +1371,7 @@ func (s *ContainerService) RepairContainerTimestamps(ctx context.Context, contai
 		}
 
 		// Mark events as committed
-		container.MarkEventsAsCommitted()
+		concreteContainer.ClearEvents()
 	}
 
 	return repaired, nil
@@ -1264,12 +1388,18 @@ func (s *ContainerService) UpdateContainerWithTimestamp(ctx context.Context, con
 		return fmt.Errorf("failed to get container: %w", err)
 	}
 
+	// Type assert to concrete type for timestamp methods
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return fmt.Errorf("invalid container type")
+	}
+
 	// Update with timestamp management
 	if title != "" {
-		container.SetTitleWithTimestamp(title, s.timestampManager)
+		concreteContainer.SetTitleWithTimestamp(title, s.timestampManager)
 	}
 	if description != "" {
-		container.SetDescriptionWithTimestamp(description, s.timestampManager)
+		concreteContainer.SetDescriptionWithTimestamp(description, s.timestampManager)
 	}
 
 	// Update the container in repository
@@ -1279,7 +1409,7 @@ func (s *ContainerService) UpdateContainerWithTimestamp(ctx context.Context, con
 
 	// Register and commit events
 	unitOfWork := s.unitOfWorkFactory()
-	events := container.UncommittedEvents()
+	events := concreteContainer.UncommittedEvents()
 	if len(events) > 0 {
 		unitOfWork.RegisterEvents(events)
 	}
@@ -1294,7 +1424,7 @@ func (s *ContainerService) UpdateContainerWithTimestamp(ctx context.Context, con
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	concreteContainer.ClearEvents()
 
 	return nil
 }
@@ -1310,8 +1440,14 @@ func (s *ContainerService) AddResourceWithTimestamp(ctx context.Context, contain
 		return fmt.Errorf("failed to get container: %w", err)
 	}
 
+	// Type assert to concrete type for timestamp methods
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return fmt.Errorf("invalid container type")
+	}
+
 	// Add member with timestamp management
-	if err := container.AddMemberWithTimestamp(resourceID, s.timestampManager); err != nil {
+	if err := concreteContainer.AddMemberWithTimestamp(resourceID, s.timestampManager); err != nil {
 		return fmt.Errorf("failed to add member with timestamp: %w", err)
 	}
 
@@ -1327,7 +1463,7 @@ func (s *ContainerService) AddResourceWithTimestamp(ctx context.Context, contain
 
 	// Register and commit events
 	unitOfWork := s.unitOfWorkFactory()
-	events := container.UncommittedEvents()
+	events := concreteContainer.UncommittedEvents()
 	if len(events) > 0 {
 		unitOfWork.RegisterEvents(events)
 	}
@@ -1342,7 +1478,7 @@ func (s *ContainerService) AddResourceWithTimestamp(ctx context.Context, contain
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	concreteContainer.ClearEvents()
 
 	return nil
 }
@@ -1358,8 +1494,14 @@ func (s *ContainerService) RemoveResourceWithTimestamp(ctx context.Context, cont
 		return fmt.Errorf("failed to get container: %w", err)
 	}
 
+	// Type assert to concrete type for timestamp methods
+	concreteContainer, ok := container.(*domain.Container)
+	if !ok {
+		return fmt.Errorf("invalid container type")
+	}
+
 	// Remove member with timestamp management
-	if err := container.RemoveMemberWithTimestamp(resourceID, s.timestampManager); err != nil {
+	if err := concreteContainer.RemoveMemberWithTimestamp(resourceID, s.timestampManager); err != nil {
 		return fmt.Errorf("failed to remove member with timestamp: %w", err)
 	}
 
@@ -1375,7 +1517,7 @@ func (s *ContainerService) RemoveResourceWithTimestamp(ctx context.Context, cont
 
 	// Register and commit events
 	unitOfWork := s.unitOfWorkFactory()
-	events := container.UncommittedEvents()
+	events := concreteContainer.UncommittedEvents()
 	if len(events) > 0 {
 		unitOfWork.RegisterEvents(events)
 	}
@@ -1390,7 +1532,7 @@ func (s *ContainerService) RemoveResourceWithTimestamp(ctx context.Context, cont
 	}
 
 	// Mark events as committed
-	container.MarkEventsAsCommitted()
+	concreteContainer.ClearEvents()
 
 	return nil
 }
@@ -1520,8 +1662,8 @@ func (s *ContainerService) ResolveContainerPath(ctx context.Context, path string
 	containerInfo := &ContainerInfo{
 		ID:       container.ID(),
 		Title:    container.GetTitle(),
-		Type:     container.ContainerType.String(),
-		ParentID: container.ParentID,
+		Type:     container.GetContainerType().String(),
+		ParentID: container.GetParentID(),
 	}
 
 	return &ContainerPathResolution{
@@ -1583,7 +1725,7 @@ func (s *ContainerService) GetContainerTypeInfo(ctx context.Context, containerID
 	// Build type info
 	typeInfo := &ContainerTypeInfo{
 		ID:            containerID,
-		Type:          container.ContainerType.String(),
+		Type:          container.GetContainerType().String(),
 		Title:         container.GetTitle(),
 		Description:   container.GetDescription(),
 		MemberCount:   len(members),
@@ -1632,8 +1774,8 @@ func (s *ContainerService) generateStructureInfoRecursive(ctx context.Context, c
 	containerInfo := ContainerInfo{
 		ID:       container.ID(),
 		Title:    container.GetTitle(),
-		Type:     container.ContainerType.String(),
-		ParentID: container.ParentID,
+		Type:     container.GetContainerType().String(),
+		ParentID: container.GetParentID(),
 	}
 
 	// Get members

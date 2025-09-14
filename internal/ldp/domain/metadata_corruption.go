@@ -343,7 +343,7 @@ func (mcd *MetadataCorruptionDetector) RepairCorruption(container *Container, re
 						memberSet[member] = true
 					}
 				}
-				if len(uniqueMembers) != len(container.Members) {
+				if len(uniqueMembers) != len(container.Members) || len(uniqueMembers) == 0 {
 					container.Members = uniqueMembers
 					repaired = true
 				}
@@ -369,6 +369,14 @@ func (mcd *MetadataCorruptionDetector) RepairCorruption(container *Container, re
 				repaired = true
 			} else if issue.Field == "containerType" {
 				container.SetMetadata("containerType", container.ContainerType.String())
+				repaired = true
+			} else if issue.Field == "createdAt" {
+				now := time.Now()
+				container.SetMetadata("createdAt", now)
+				repaired = true
+			} else if issue.Field == "updatedAt" {
+				now := time.Now()
+				container.SetMetadata("updatedAt", now)
 				repaired = true
 			}
 

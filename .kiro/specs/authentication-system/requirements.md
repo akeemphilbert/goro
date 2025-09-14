@@ -56,12 +56,6 @@ The Authentication System provides secure user authentication for the Solid pod 
 
 ### Requirement 5
 
-**User Story:** As a pod administrator, I want authentication monitoring so that I can track login attempts and security events.
+**User Story:** As a pod user I would like to be able to create a new web identity by logging in with an external identity (google)
 
-#### Acceptance Criteria
-
-1. WHEN authentication attempts occur THEN the system SHALL log all login events with timestamps
-2. WHEN suspicious activity is detected THEN the system SHALL alert administrators
-3. WHEN analyzing security THEN the system SHALL provide authentication metrics and reports
-4. WHEN compliance is required THEN the system SHALL maintain audit trails for authentication events
-5. IF security breaches are suspected THEN the system SHALL provide detailed forensic information
+**User Story:** As a logged in pod user I would like to be able to link an external identity with my my web identity so i can use that to login .

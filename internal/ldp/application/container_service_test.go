@@ -13,50 +13,50 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockContainerRepository is a mock implementation of ContainerRepository
-type MockContainerRepository struct {
+// TestMockContainerRepository is a mock implementation of ContainerRepository for container service tests
+type TestMockContainerRepository struct {
 	mock.Mock
 }
 
-func (m *MockContainerRepository) CreateContainer(ctx context.Context, container *domain.Container) error {
+func (m *TestMockContainerRepository) CreateContainer(ctx context.Context, container domain.ContainerResource) error {
 	args := m.Called(ctx, container)
 	return args.Error(0)
 }
 
-func (m *MockContainerRepository) GetContainer(ctx context.Context, id string) (*domain.Container, error) {
+func (m *TestMockContainerRepository) GetContainer(ctx context.Context, id string) (domain.ContainerResource, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.Container), args.Error(1)
+	return args.Get(0).(domain.ContainerResource), args.Error(1)
 }
 
-func (m *MockContainerRepository) UpdateContainer(ctx context.Context, container *domain.Container) error {
+func (m *TestMockContainerRepository) UpdateContainer(ctx context.Context, container domain.ContainerResource) error {
 	args := m.Called(ctx, container)
 	return args.Error(0)
 }
 
-func (m *MockContainerRepository) DeleteContainer(ctx context.Context, id string) error {
+func (m *TestMockContainerRepository) DeleteContainer(ctx context.Context, id string) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 
-func (m *MockContainerRepository) ContainerExists(ctx context.Context, id string) (bool, error) {
+func (m *TestMockContainerRepository) ContainerExists(ctx context.Context, id string) (bool, error) {
 	args := m.Called(ctx, id)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockContainerRepository) AddMember(ctx context.Context, containerID, memberID string) error {
+func (m *TestMockContainerRepository) AddMember(ctx context.Context, containerID, memberID string) error {
 	args := m.Called(ctx, containerID, memberID)
 	return args.Error(0)
 }
 
-func (m *MockContainerRepository) RemoveMember(ctx context.Context, containerID, memberID string) error {
+func (m *TestMockContainerRepository) RemoveMember(ctx context.Context, containerID, memberID string) error {
 	args := m.Called(ctx, containerID, memberID)
 	return args.Error(0)
 }
 
-func (m *MockContainerRepository) ListMembers(ctx context.Context, containerID string, pagination domain.PaginationOptions) ([]string, error) {
+func (m *TestMockContainerRepository) ListMembers(ctx context.Context, containerID string, pagination domain.PaginationOptions) ([]string, error) {
 	args := m.Called(ctx, containerID, pagination)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -64,23 +64,23 @@ func (m *MockContainerRepository) ListMembers(ctx context.Context, containerID s
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *MockContainerRepository) GetChildren(ctx context.Context, containerID string) ([]*domain.Container, error) {
+func (m *TestMockContainerRepository) GetChildren(ctx context.Context, containerID string) ([]domain.ContainerResource, error) {
 	args := m.Called(ctx, containerID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*domain.Container), args.Error(1)
+	return args.Get(0).([]domain.ContainerResource), args.Error(1)
 }
 
-func (m *MockContainerRepository) GetParent(ctx context.Context, containerID string) (*domain.Container, error) {
+func (m *TestMockContainerRepository) GetParent(ctx context.Context, containerID string) (domain.ContainerResource, error) {
 	args := m.Called(ctx, containerID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.Container), args.Error(1)
+	return args.Get(0).(domain.ContainerResource), args.Error(1)
 }
 
-func (m *MockContainerRepository) GetPath(ctx context.Context, containerID string) ([]string, error) {
+func (m *TestMockContainerRepository) GetPath(ctx context.Context, containerID string) ([]string, error) {
 	args := m.Called(ctx, containerID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -88,34 +88,34 @@ func (m *MockContainerRepository) GetPath(ctx context.Context, containerID strin
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *MockContainerRepository) FindByPath(ctx context.Context, path string) (*domain.Container, error) {
+func (m *TestMockContainerRepository) FindByPath(ctx context.Context, path string) (domain.ContainerResource, error) {
 	args := m.Called(ctx, path)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.Container), args.Error(1)
+	return args.Get(0).(domain.ContainerResource), args.Error(1)
 }
 
 // Implement ResourceRepository methods (delegated)
-func (m *MockContainerRepository) Store(ctx context.Context, resource *domain.Resource) error {
+func (m *TestMockContainerRepository) Store(ctx context.Context, resource domain.Resource) error {
 	args := m.Called(ctx, resource)
 	return args.Error(0)
 }
 
-func (m *MockContainerRepository) Retrieve(ctx context.Context, id string) (*domain.Resource, error) {
+func (m *TestMockContainerRepository) Retrieve(ctx context.Context, id string) (domain.Resource, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.Resource), args.Error(1)
+	return args.Get(0).(domain.Resource), args.Error(1)
 }
 
-func (m *MockContainerRepository) Delete(ctx context.Context, id string) error {
+func (m *TestMockContainerRepository) Delete(ctx context.Context, id string) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 
-func (m *MockContainerRepository) Exists(ctx context.Context, id string) (bool, error) {
+func (m *TestMockContainerRepository) Exists(ctx context.Context, id string) (bool, error) {
 	args := m.Called(ctx, id)
 	return args.Bool(0), args.Error(1)
 }
@@ -143,8 +143,8 @@ func (m *MockUnitOfWork) Rollback() error {
 }
 
 // Test fixtures
-func setupContainerServiceTest() (*ContainerService, *MockContainerRepository, *MockUnitOfWork) {
-	mockRepo := &MockContainerRepository{}
+func setupContainerServiceTest() (*ContainerService, *TestMockContainerRepository, *MockUnitOfWork) {
+	mockRepo := &TestMockContainerRepository{}
 	mockUoW := &MockUnitOfWork{}
 
 	unitOfWorkFactory := func() pericarpdomain.UnitOfWork {
@@ -241,7 +241,7 @@ func TestContainerService_GetContainer_Success(t *testing.T) {
 	ctx := context.Background()
 
 	containerID := "test-container"
-	expectedContainer := domain.NewContainer(containerID, "", domain.BasicContainer)
+	expectedContainer := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
 
 	// Setup expectations
 	mockRepo.On("GetContainer", ctx, containerID).Return(expectedContainer, nil)
@@ -281,7 +281,7 @@ func TestContainerService_UpdateContainer_Success(t *testing.T) {
 	service, mockRepo, mockUoW := setupContainerServiceTest()
 	ctx := context.Background()
 
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(ctx, "test-container", "", domain.BasicContainer)
 	container.SetTitle("Updated Title")
 
 	// Setup expectations
@@ -304,7 +304,7 @@ func TestContainerService_DeleteContainer_Success(t *testing.T) {
 	ctx := context.Background()
 
 	containerID := "test-container"
-	container := domain.NewContainer(containerID, "", domain.BasicContainer)
+	container := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
 
 	// Setup expectations
 	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
@@ -327,8 +327,10 @@ func TestContainerService_DeleteContainer_NotEmpty(t *testing.T) {
 	ctx := context.Background()
 
 	containerID := "test-container"
-	container := domain.NewContainer(containerID, "", domain.BasicContainer)
-	container.AddMember("member1") // Make container non-empty
+	container := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
+	// Create a mock resource for AddMember
+	mockResource := domain.NewResource(ctx, "member1", "text/plain", []byte("test"))
+	container.AddMember(ctx, mockResource) // Make container non-empty
 
 	// Setup expectations
 	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
@@ -351,14 +353,18 @@ func TestContainerService_AddResource_Success(t *testing.T) {
 
 	containerID := "test-container"
 	resourceID := "test-resource"
+	mockResource := domain.NewResource(ctx, resourceID, "text/plain", []byte("test"))
+
+	// Create a container for the GetContainer call
+	container := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
 
 	// Setup expectations
-	mockRepo.On("AddMember", ctx, containerID, resourceID).Return(nil)
+	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
 	mockUoW.On("RegisterEvents", mock.Anything).Return()
 	mockUoW.On("Commit", ctx).Return([]pericarpdomain.Envelope{}, nil)
 
 	// Execute
-	err := service.AddResource(ctx, containerID, resourceID)
+	err := service.AddResource(ctx, containerID, resourceID, mockResource)
 
 	// Assert
 	require.NoError(t, err)
@@ -464,7 +470,7 @@ func TestContainerService_FindContainerByPath_Success(t *testing.T) {
 	ctx := context.Background()
 
 	path := "/root/parent/child"
-	expectedContainer := domain.NewContainer("child", "parent", domain.BasicContainer)
+	expectedContainer := domain.NewContainer(ctx, "child", "parent", domain.BasicContainer)
 
 	// Setup expectations
 	mockRepo.On("FindByPath", ctx, path).Return(expectedContainer, nil)
@@ -485,9 +491,9 @@ func TestContainerService_GetChildren_Success(t *testing.T) {
 	ctx := context.Background()
 
 	containerID := "parent-container"
-	child1 := domain.NewContainer("child1", containerID, domain.BasicContainer)
-	child2 := domain.NewContainer("child2", containerID, domain.BasicContainer)
-	expectedChildren := []*domain.Container{child1, child2}
+	child1 := domain.NewContainer(ctx, "child1", containerID, domain.BasicContainer)
+	child2 := domain.NewContainer(ctx, "child2", containerID, domain.BasicContainer)
+	expectedChildren := []domain.ContainerResource{child1, child2}
 
 	// Setup expectations
 	mockRepo.On("GetChildren", ctx, containerID).Return(expectedChildren, nil)
@@ -509,7 +515,7 @@ func TestContainerService_GetParent_Success(t *testing.T) {
 	ctx := context.Background()
 
 	containerID := "child-container"
-	expectedParent := domain.NewContainer("parent-container", "", domain.BasicContainer)
+	expectedParent := domain.NewContainer(ctx, "parent-container", "", domain.BasicContainer)
 
 	// Setup expectations
 	mockRepo.On("GetParent", ctx, containerID).Return(expectedParent, nil)
@@ -571,7 +577,7 @@ func TestContainerService_UpdateContainer_EventCommitError(t *testing.T) {
 	service, mockRepo, mockUoW := setupContainerServiceTest()
 	ctx := context.Background()
 
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(ctx, "test-container", "", domain.BasicContainer)
 	commitError := errors.New("commit failed")
 
 	// Setup expectations
