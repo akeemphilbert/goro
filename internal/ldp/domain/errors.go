@@ -286,3 +286,21 @@ func IsInvalidContainerType(err error) bool {
 	}
 	return false
 }
+
+// DomainError represents a domain-specific error
+type DomainError struct {
+	Code    string
+	Message string
+}
+
+func (e *DomainError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+}
+
+// NewDomainError creates a new domain error
+func NewDomainError(code, message string) *DomainError {
+	return &DomainError{
+		Code:    code,
+		Message: message,
+	}
+}

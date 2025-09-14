@@ -33,6 +33,23 @@ type PaginationOptions struct {
 	Offset int
 }
 
+// FilterOptions represents filtering options for container members
+type FilterOptions struct {
+	MemberType    string     `json:"memberType,omitempty"`    // "Container" or "Resource"
+	ContentType   string     `json:"contentType,omitempty"`   // MIME type filter
+	NamePattern   string     `json:"namePattern,omitempty"`   // Name pattern matching
+	CreatedAfter  *time.Time `json:"createdAfter,omitempty"`  // Created after timestamp
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"` // Created before timestamp
+	SizeMin       *int64     `json:"sizeMin,omitempty"`       // Minimum size in bytes
+	SizeMax       *int64     `json:"sizeMax,omitempty"`       // Maximum size in bytes
+}
+
+// SortOptions represents sorting options for container members
+type SortOptions struct {
+	Field     string `json:"field"`     // "name", "createdAt", "updatedAt", "size", "type"
+	Direction string `json:"direction"` // "asc" or "desc"
+}
+
 // MembershipIndexer defines the interface for container membership indexing
 type MembershipIndexer interface {
 	IndexMembership(ctx context.Context, containerID, memberID string) error
@@ -315,4 +332,160 @@ func (s *SQLiteMembershipIndexer) GetContainerStats(ctx context.Context, contain
 	stats["type_breakdown"] = typeStats
 
 	return stats, nil
+}
+
+// GetMembersWithFiltering retrieves container members with filtering and sorting
+func (s *SQLiteMembershipIndexer) GetMembersWithFiltering(ctx context.Context, containerID string, pagination PaginationOptions, filter FilterOptions, sort SortOptions) ([]MemberInfo, error) {
+	// Build base query
+	query := `
+		SELECT m.member_id, m.member_type, m.created_at,
+			   COALESCE(c.updated_at, m.created_at) as updated_at
+		FROM memberships m
+		LEFT JOIN containers c ON m.member_id = c.id AND m.member_type = 'Container'
+		WHERE m.container_id = ?`
+
+	args := []interface{}{containerID}
+
+	// Add filtering conditions
+	if filter.MemberType != "" {
+		query += " AND m.member_type = ?"
+		args = append(args, filter.MemberType)
+	}
+
+	if filter.NamePattern != "" {
+		query += " AND m.member_id LIKE ?"
+		args = append(args, "%"+filter.NamePattern+"%")
+	}
+
+	if filter.CreatedAfter != nil {
+		query += " AND m.created_at > ?"
+		args = append(args, filter.CreatedAfter.Format("2006-01-02 15:04:05"))
+	}
+
+	if filter.CreatedBefore != nil {
+		query += " AND m.created_at < ?"
+		args = append(args, filter.CreatedBefore.Format("2006-01-02 15:04:05"))
+	}
+
+	// Add sorting
+	if sort.Field != "" && sort.Direction != "" {
+		switch sort.Field {
+		case "name":
+			query += " ORDER BY m.member_id"
+		case "createdAt":
+			query += " ORDER BY m.created_at"
+		case "updatedAt":
+			query += " ORDER BY COALESCE(c.updated_at, m.created_at)"
+		case "type":
+			query += " ORDER BY m.member_type"
+		default:
+			query += " ORDER BY m.created_at" // Default sort
+		}
+
+		if sort.Direction == "desc" {
+			query += " DESC"
+		} else {
+			query += " ASC"
+		}
+	} else {
+		query += " ORDER BY m.created_at ASC" // Default sort
+	}
+
+	// Add pagination
+	if pagination.Limit > 0 {
+		query += " LIMIT ?"
+		args = append(args, pagination.Limit)
+
+		if pagination.Offset > 0 {
+			query += " OFFSET ?"
+			args = append(args, pagination.Offset)
+		}
+	}
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query filtered members: %w", err)
+	}
+	defer rows.Close()
+
+	var members []MemberInfo
+	for rows.Next() {
+		var member MemberInfo
+		var memberTypeStr string
+		var createdAtStr, updatedAtStr string
+
+		err := rows.Scan(&member.ID, &memberTypeStr, &createdAtStr, &updatedAtStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan member: %w", err)
+		}
+
+		// Parse timestamps
+		member.CreatedAt, err = time.Parse("2006-01-02 15:04:05", createdAtStr)
+		if err != nil {
+			member.CreatedAt, err = time.Parse(time.RFC3339, createdAtStr)
+			if err != nil {
+				member.CreatedAt = time.Now()
+			}
+		}
+
+		member.UpdatedAt, err = time.Parse("2006-01-02 15:04:05", updatedAtStr)
+		if err != nil {
+			member.UpdatedAt, err = time.Parse(time.RFC3339, updatedAtStr)
+			if err != nil {
+				member.UpdatedAt = member.CreatedAt
+			}
+		}
+
+		member.Type = ResourceType(memberTypeStr)
+
+		// Set default content type based on type
+		if member.Type == ResourceTypeContainer {
+			member.ContentType = "application/ld+json"
+		} else {
+			member.ContentType = "application/octet-stream"
+		}
+
+		members = append(members, member)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating filtered members: %w", err)
+	}
+
+	return members, nil
+}
+
+// GetFilteredMemberCount returns the count of members matching the filter
+func (s *SQLiteMembershipIndexer) GetFilteredMemberCount(ctx context.Context, containerID string, filter FilterOptions) (int, error) {
+	query := "SELECT COUNT(*) FROM memberships WHERE container_id = ?"
+	args := []interface{}{containerID}
+
+	// Add filtering conditions
+	if filter.MemberType != "" {
+		query += " AND member_type = ?"
+		args = append(args, filter.MemberType)
+	}
+
+	if filter.NamePattern != "" {
+		query += " AND member_id LIKE ?"
+		args = append(args, "%"+filter.NamePattern+"%")
+	}
+
+	if filter.CreatedAfter != nil {
+		query += " AND created_at > ?"
+		args = append(args, filter.CreatedAfter.Format("2006-01-02 15:04:05"))
+	}
+
+	if filter.CreatedBefore != nil {
+		query += " AND created_at < ?"
+		args = append(args, filter.CreatedBefore.Format("2006-01-02 15:04:05"))
+	}
+
+	var count int
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get filtered member count: %w", err)
+	}
+
+	return count, nil
 }
