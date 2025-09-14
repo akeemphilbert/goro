@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -14,7 +15,8 @@ func TestMetadataCorruptionDetector_DetectCorruption_HealthyContainer(t *testing
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Ensure container has proper timestamps (NewContainer sets createdAt but not updatedAt)
@@ -33,7 +35,8 @@ func TestMetadataCorruptionDetector_DetectCorruption_InvalidTimestamp(t *testing
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Corrupt timestamp
@@ -63,7 +66,8 @@ func TestMetadataCorruptionDetector_DetectCorruption_MissingTimestamp(t *testing
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Remove required timestamp
@@ -93,7 +97,8 @@ func TestMetadataCorruptionDetector_DetectCorruption_InvalidContainerType(t *tes
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Corrupt container type
@@ -123,7 +128,8 @@ func TestMetadataCorruptionDetector_DetectCorruption_DuplicateMembers(t *testing
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Add duplicate members
@@ -153,7 +159,8 @@ func TestMetadataCorruptionDetector_DetectCorruption_SelfParent(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Set container as its own parent
@@ -183,7 +190,8 @@ func TestMetadataCorruptionDetector_RepairCorruption_TimestampRepair(t *testing.
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Corrupt timestamp
@@ -214,7 +222,8 @@ func TestMetadataCorruptionDetector_RepairCorruption_ContainerTypeRepair(t *test
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Corrupt container type
@@ -244,7 +253,8 @@ func TestMetadataCorruptionDetector_RepairCorruption_MemberListRepair(t *testing
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Add duplicate and empty members
@@ -274,7 +284,8 @@ func TestMetadataCorruptionDetector_RepairCorruption_SelfParentRepair(t *testing
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Set container as its own parent
@@ -304,7 +315,8 @@ func TestMetadataCorruptionDetector_RepairCorruption_NoCorruption(t *testing.T) 
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Ensure container has proper timestamps
@@ -326,7 +338,8 @@ func TestMetadataCorruptionDetector_RepairCorruption_EventEmission(t *testing.T)
 	// Setup
 	tm := NewTimestampManager()
 	detector := NewMetadataCorruptionDetector(tm)
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Corrupt container

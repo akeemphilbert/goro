@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -13,7 +14,8 @@ func TestTimestampManager_SetCreatedTimestamp(t *testing.T) {
 	// Setup
 	fixedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManagerWithProvider(func() time.Time { return fixedTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Execute
@@ -31,7 +33,8 @@ func TestTimestampManager_UpdateTimestamp(t *testing.T) {
 	updatedTime := time.Date(2025, 9, 13, 11, 0, 0, 0, time.UTC)
 
 	tm := NewTimestampManagerWithProvider(func() time.Time { return createdTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Set initial timestamps
@@ -53,7 +56,8 @@ func TestTimestampManager_GetCreatedTimestamp(t *testing.T) {
 	// Setup
 	fixedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManagerWithProvider(func() time.Time { return fixedTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	tm.SetCreatedTimestamp(container)
@@ -69,7 +73,8 @@ func TestTimestampManager_GetCreatedTimestamp(t *testing.T) {
 func TestTimestampManager_GetCreatedTimestamp_Missing(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Remove the createdAt metadata that was set during construction
@@ -88,7 +93,8 @@ func TestTimestampManager_GetUpdatedTimestamp(t *testing.T) {
 	// Setup
 	fixedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManagerWithProvider(func() time.Time { return fixedTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	tm.UpdateTimestamp(container)
@@ -107,7 +113,8 @@ func TestTimestampManager_ValidateTimestamps_Valid(t *testing.T) {
 	updatedTime := time.Date(2025, 9, 13, 11, 0, 0, 0, time.UTC)
 
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	container.SetMetadata("createdAt", createdTime)
@@ -123,7 +130,8 @@ func TestTimestampManager_ValidateTimestamps_Valid(t *testing.T) {
 func TestTimestampManager_ValidateTimestamps_MissingCreated(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Remove createdAt but keep updatedAt
@@ -144,7 +152,8 @@ func TestTimestampManager_ValidateTimestamps_MissingCreated(t *testing.T) {
 func TestTimestampManager_ValidateTimestamps_MissingUpdated(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Remove updatedAt but keep createdAt
@@ -168,7 +177,8 @@ func TestTimestampManager_ValidateTimestamps_InvalidOrder(t *testing.T) {
 	updatedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC) // Before created
 
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	container.SetMetadata("createdAt", createdTime)
@@ -188,7 +198,8 @@ func TestTimestampManager_RepairTimestamps_MissingCreated(t *testing.T) {
 	// Setup
 	fixedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManagerWithProvider(func() time.Time { return fixedTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Remove createdAt
@@ -209,7 +220,8 @@ func TestTimestampManager_RepairTimestamps_MissingUpdated(t *testing.T) {
 	// Setup
 	createdTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	container.SetMetadata("createdAt", createdTime)
@@ -233,7 +245,8 @@ func TestTimestampManager_RepairTimestamps_InvalidOrder(t *testing.T) {
 	updatedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC) // Before created
 
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	container.SetMetadata("createdAt", createdTime)
@@ -255,7 +268,8 @@ func TestTimestampManager_RepairTimestamps_NoRepairNeeded(t *testing.T) {
 	updatedTime := time.Date(2025, 9, 13, 11, 0, 0, 0, time.UTC)
 
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	container.SetMetadata("createdAt", createdTime)
@@ -272,7 +286,8 @@ func TestContainer_SetTitleWithTimestamp(t *testing.T) {
 	// Setup
 	fixedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManagerWithProvider(func() time.Time { return fixedTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	title := "Test Title"
@@ -302,7 +317,8 @@ func TestContainer_AddMemberWithTimestamp(t *testing.T) {
 	// Setup
 	fixedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManagerWithProvider(func() time.Time { return fixedTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	memberID := "test-member"
@@ -333,7 +349,8 @@ func TestContainer_AddMemberWithTimestamp(t *testing.T) {
 func TestContainer_AddMemberWithTimestamp_MultipleMembers(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	memberID := "test-member"
@@ -358,7 +375,8 @@ func TestContainer_RemoveMemberWithTimestamp(t *testing.T) {
 	// Setup
 	fixedTime := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
 	tm := NewTimestampManagerWithProvider(func() time.Time { return fixedTime })
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	memberID := "test-member"
@@ -389,7 +407,8 @@ func TestContainer_RemoveMemberWithTimestamp(t *testing.T) {
 func TestContainer_RemoveMemberWithTimestamp_AlwaysSucceeds(t *testing.T) {
 	// Setup
 	tm := NewTimestampManager()
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	memberID := "non-existent-member"

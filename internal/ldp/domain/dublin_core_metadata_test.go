@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -12,7 +13,8 @@ import (
 
 func TestContainer_SetDublinCoreMetadata(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	testDate := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
@@ -72,7 +74,8 @@ func TestContainer_SetDublinCoreMetadata(t *testing.T) {
 
 func TestContainer_SetDublinCoreMetadata_PartialData(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	dc := DublinCoreMetadata{
@@ -98,7 +101,8 @@ func TestContainer_SetDublinCoreMetadata_PartialData(t *testing.T) {
 
 func TestContainer_GetDublinCoreMetadata(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	testDate := time.Date(2025, 9, 13, 10, 0, 0, 0, time.UTC)
@@ -147,7 +151,8 @@ func TestContainer_GetDublinCoreMetadata(t *testing.T) {
 
 func TestContainer_GetDublinCoreMetadata_EmptyContainer(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Execute
@@ -173,7 +178,8 @@ func TestContainer_GetDublinCoreMetadata_EmptyContainer(t *testing.T) {
 
 func TestContainer_GetDublinCoreMetadata_PartialData(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Manually set only some Dublin Core fields
@@ -195,7 +201,8 @@ func TestContainer_GetDublinCoreMetadata_PartialData(t *testing.T) {
 
 func TestContainer_DublinCoreMetadata_TypeSafety(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Set invalid type for a Dublin Core field
@@ -212,7 +219,8 @@ func TestContainer_DublinCoreMetadata_TypeSafety(t *testing.T) {
 
 func TestContainer_DublinCoreMetadata_Integration(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	// Test setting and getting Dublin Core metadata multiple times
@@ -253,7 +261,8 @@ func TestContainer_DublinCoreMetadata_Integration(t *testing.T) {
 
 func TestDublinCoreMetadata_EventEmission(t *testing.T) {
 	// Setup
-	container := NewContainer("test-container", "", BasicContainer)
+	ctx := context.Background()
+	container := NewContainer(ctx, "test-container", "", BasicContainer)
 	container.MarkEventsAsCommitted() // Clear creation events
 
 	dc := DublinCoreMetadata{

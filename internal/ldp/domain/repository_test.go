@@ -109,7 +109,7 @@ func (m *MockContainerRepository) ContainerExists(ctx context.Context, id string
 func TestContainerRepository_CreateContainer(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := new(MockContainerRepository)
-	container := NewContainer("test-container", "parent", BasicContainer)
+	container := NewContainer(ctx, "test-container", "parent", BasicContainer)
 
 	mockRepo.On("CreateContainer", ctx, container).Return(nil)
 
@@ -121,7 +121,7 @@ func TestContainerRepository_CreateContainer(t *testing.T) {
 func TestContainerRepository_CreateContainer_Error(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := new(MockContainerRepository)
-	container := NewContainer("test-container", "parent", BasicContainer)
+	container := NewContainer(ctx, "test-container", "parent", BasicContainer)
 
 	expectedErr := NewStorageError("CONTAINER_CREATE_FAILED", "failed to create container")
 	mockRepo.On("CreateContainer", ctx, container).Return(expectedErr)
@@ -135,7 +135,7 @@ func TestContainerRepository_CreateContainer_Error(t *testing.T) {
 func TestContainerRepository_GetContainer(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := new(MockContainerRepository)
-	expectedContainer := NewContainer("test-container", "parent", BasicContainer)
+	expectedContainer := NewContainer(ctx, "test-container", "parent", BasicContainer)
 
 	mockRepo.On("GetContainer", ctx, "test-container").Return(expectedContainer, nil)
 
@@ -161,7 +161,7 @@ func TestContainerRepository_GetContainer_NotFound(t *testing.T) {
 func TestContainerRepository_UpdateContainer(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := new(MockContainerRepository)
-	container := NewContainer("test-container", "parent", BasicContainer)
+	container := NewContainer(ctx, "test-container", "parent", BasicContainer)
 
 	mockRepo.On("UpdateContainer", ctx, container).Return(nil)
 
@@ -260,8 +260,8 @@ func TestContainerRepository_GetChildren(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := new(MockContainerRepository)
 	expectedChildren := []*Container{
-		NewContainer("child-1", "parent", BasicContainer),
-		NewContainer("child-2", "parent", BasicContainer),
+		NewContainer(ctx, "child-1", "parent", BasicContainer),
+		NewContainer(ctx, "child-2", "parent", BasicContainer),
 	}
 
 	mockRepo.On("GetChildren", ctx, "parent").Return(expectedChildren, nil)
@@ -275,7 +275,7 @@ func TestContainerRepository_GetChildren(t *testing.T) {
 func TestContainerRepository_GetParent(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := new(MockContainerRepository)
-	expectedParent := NewContainer("parent", "grandparent", BasicContainer)
+	expectedParent := NewContainer(ctx, "parent", "grandparent", BasicContainer)
 
 	mockRepo.On("GetParent", ctx, "child").Return(expectedParent, nil)
 
@@ -313,7 +313,7 @@ func TestContainerRepository_GetPath(t *testing.T) {
 func TestContainerRepository_FindByPath(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := new(MockContainerRepository)
-	expectedContainer := NewContainer("child", "parent", BasicContainer)
+	expectedContainer := NewContainer(ctx, "child", "parent", BasicContainer)
 
 	mockRepo.On("FindByPath", ctx, "/root/parent/child").Return(expectedContainer, nil)
 

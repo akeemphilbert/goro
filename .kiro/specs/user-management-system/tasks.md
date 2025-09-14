@@ -240,8 +240,8 @@
     - Run `wire ./cmd/server` to generate dependency injection code
     - _Requirements: 7.3_
 
-- [ ] 10. Write comprehensive integration and end-to-end tests
-  - [ ] 10.1 Write integration tests for complete workflows
+- [x] 10. Write comprehensive integration and end-to-end tests
+  - [x] 10.1 Write integration tests for complete workflows
     - Create integration tests for GORM repository implementations with temporary database
     - Write integration tests for event handlers with database operations and file storage
     - Test complete user registration workflow from HTTP request to database persistence
@@ -249,22 +249,22 @@
     - Verify atomic entity relationships through event projections
     - _Requirements: 1.5, 2.5, 3.5, 7.4_
 
-  - [ ] 10.2 Write end-to-end HTTP workflow tests
+  - [x] 10.2 Write end-to-end HTTP workflow tests
     - Write end-to-end tests for complete user workflows (registration, profile update, deletion)
     - Create end-to-end tests for account workflows (creation, invitation, membership management)
     - Test authentication and authorization for protected endpoints
     - Test error scenarios and edge cases across the entire system
     - _Requirements: 1.5, 2.5, 3.5, 6.5_
 
-- [ ] 11. Write BDD feature tests following TDD
-  - [ ] 11.1 Write failing BDD scenarios for user lifecycle
+- [-] 11. Write BDD feature tests following TDD
+  - [x] 11.1 Write failing BDD scenarios for user lifecycle
     - Create Gherkin scenarios for user registration with WebID creation that initially fail
     - Write scenarios for user profile management and self-deletion that fail initially
     - Create scenarios for user status transitions and validation rules that fail
     - Write step definitions that fail until implementation is complete
     - _Requirements: 1.1, 1.2, 2.1, 2.2, 5.1, 5.2, 6.1, 6.2_
 
-  - [ ] 11.2 Write failing BDD scenarios for account management
+  - [-] 11.2 Write failing BDD scenarios for account management
     - Create Gherkin scenarios for account creation and ownership that initially fail
     - Write invitation workflow scenarios (invite, accept, expire) that fail initially
     - Create membership management scenarios (add, remove, role updates) that fail

@@ -8,6 +8,7 @@ import (
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
 	"github.com/google/wire"
+	"gorm.io/gorm"
 )
 
 // InfrastructureSet provides all infrastructure dependencies
@@ -16,13 +17,14 @@ var InfrastructureSet = wire.NewSet(
 	EventStoreProvider,
 	NewEventDispatcher,
 	NewOptimizedFileSystemRepositoryProvider,
-	NewFileSystemContainerRepositoryProvider,
+	NewGORMContainerRepositoryProvider,
 	NewRDFConverter,
 	NewContainerRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
 	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),
 	wire.Bind(new(pericarpdomain.EventStore), new(*pericarpinfra.GormEventStore)),
+	wire.Bind(new(domain.ContainerRepository), new(*GORMContainerRepository)),
 )
 
 // OptimizedInfrastructureSet provides optimized infrastructure dependencies with caching and indexing
@@ -31,13 +33,14 @@ var OptimizedInfrastructureSet = wire.NewSet(
 	EventStoreProvider,
 	NewEventDispatcher,
 	NewOptimizedFileSystemRepositoryProvider,
-	NewFileSystemContainerRepositoryProvider,
+	NewGORMContainerRepositoryProvider,
 	NewRDFConverter,
 	NewContainerRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
 	wire.Bind(new(domain.FormatConverter), new(*RDFConverter)),
 	wire.Bind(new(pericarpdomain.EventStore), new(*pericarpinfra.GormEventStore)),
+	wire.Bind(new(domain.ContainerRepository), new(*GORMContainerRepository)),
 )
 
 // NewUnitOfWorkFactory creates a factory function for creating UnitOfWork instances
@@ -70,4 +73,13 @@ func NewFileSystemContainerRepositoryProvider(config *conf.Container) (domain.Co
 	}
 
 	return NewFileSystemContainerRepository(config.StoragePath, indexer)
+}
+
+// NewGORMContainerRepositoryProvider provides a GORMContainerRepository for Wire dependency injection
+func NewGORMContainerRepositoryProvider(db *gorm.DB) (domain.ContainerRepository, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database cannot be nil")
+	}
+
+	return NewGORMContainerRepository(db)
 }

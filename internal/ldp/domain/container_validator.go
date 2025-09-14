@@ -15,8 +15,13 @@ func NewContainerValidator() *ContainerValidator {
 }
 
 // ValidateContainer performs comprehensive validation on a container
-func (v *ContainerValidator) ValidateContainer(ctx context.Context, container *Container) error {
+func (v *ContainerValidator) ValidateContainer(ctx context.Context, container ContainerResource) error {
 	if container == nil {
+		return NewContainerError("INVALID_CONTAINER", "container cannot be nil")
+	}
+
+	// Additional check for nil underlying value in interface
+	if containerPtr, ok := container.(*Container); ok && containerPtr == nil {
 		return NewContainerError("INVALID_CONTAINER", "container cannot be nil")
 	}
 
@@ -26,19 +31,19 @@ func (v *ContainerValidator) ValidateContainer(ctx context.Context, container *C
 	}
 
 	// Validate container type
-	if err := v.ValidateContainerType(container.ContainerType); err != nil {
+	if err := v.ValidateContainerType(container.GetContainerType()); err != nil {
 		return err
 	}
 
 	// Validate parent ID if present
-	if container.ParentID != "" {
-		if err := v.ValidateContainerID(container.ParentID); err != nil {
+	if container.GetParentID() != "" {
+		if err := v.ValidateContainerID(container.GetParentID()); err != nil {
 			return WrapContainerError(err, "INVALID_PARENT_ID", "invalid parent container ID")
 		}
 	}
 
 	// Validate members
-	if err := v.ValidateMembers(container.Members); err != nil {
+	if err := v.ValidateMembers(container.GetMembers()); err != nil {
 		return err
 	}
 
@@ -139,7 +144,7 @@ func (v *ContainerValidator) buildAncestorPath(ctx context.Context, containerID 
 			return nil, err
 		}
 
-		currentID = container.ParentID
+		currentID = container.GetParentID()
 	}
 
 	return path, nil
@@ -205,8 +210,9 @@ func (v *ContainerValidator) ValidateMembershipOperation(ctx context.Context, co
 			}
 
 			// Ensure the member container's parent would be valid
-			if memberContainer.ParentID != "" && memberContainer.ParentID != containerID {
-				return NewContainerError("INVALID_PARENT_CHANGE", fmt.Sprintf("container %s already has parent %s", memberID, memberContainer.ParentID))
+			memberParentID := memberContainer.GetParentID()
+			if memberParentID != "" && memberParentID != containerID {
+				return NewContainerError("INVALID_PARENT_CHANGE", fmt.Sprintf("container %s already has parent %s", memberID, memberParentID))
 			}
 		}
 
@@ -260,8 +266,9 @@ func (v *ContainerValidator) ValidateContainerConstraints(ctx context.Context, c
 
 	// Validate maximum members
 	const maxMembers = 10000 // Configurable maximum members
-	if len(container.Members) > maxMembers {
-		return NewContainerError("MAX_MEMBERS_EXCEEDED", fmt.Sprintf("container has %d members, exceeds maximum allowed %d", len(container.Members), maxMembers))
+	memberCount := container.GetMemberCount()
+	if memberCount > maxMembers {
+		return NewContainerError("MAX_MEMBERS_EXCEEDED", fmt.Sprintf("container has %d members, exceeds maximum allowed %d", memberCount, maxMembers))
 	}
 
 	return nil
@@ -287,12 +294,12 @@ func (v *ContainerValidator) calculateContainerDepth(ctx context.Context, contai
 			return 0, err
 		}
 
-		if container.ParentID == "" {
+		if container.GetParentID() == "" {
 			break // Reached root
 		}
 
 		depth++
-		currentID = container.ParentID
+		currentID = container.GetParentID()
 	}
 
 	return depth, nil

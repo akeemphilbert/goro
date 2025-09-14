@@ -14,7 +14,7 @@ import (
 )
 
 // NewHTTPServer creates a new HTTP server with the given configuration and logger
-func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler, containerHandler *handlers.ContainerHandler) *http.Server {
+func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler, containerHandler *handlers.ContainerHandler, userHandler *handlers.UserHandler, accountHandler *handlers.AccountHandler) *http.Server {
 	var opts = []http.ServerOption{
 		http.Address(c.Addr),
 		http.Timeout(time.Duration(c.Timeout)),
@@ -50,7 +50,7 @@ func NewHTTPServer(c *conf.HTTP, logger log.Logger, healthHandler *handlers.Heal
 	srv := http.NewServer(opts...)
 
 	// Register basic routes
-	RegisterRoutes(srv, healthHandler, requestResponseHandler, resourceHandler, containerHandler)
+	RegisterRoutes(srv, healthHandler, requestResponseHandler, resourceHandler, containerHandler, userHandler, accountHandler)
 
 	return srv
 }
@@ -155,7 +155,7 @@ func RegisterContainerRoutes(srv *http.Server, containerHandler *handlers.Contai
 }
 
 // RegisterRoutes registers basic routes on the HTTP server
-func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler, containerHandler *handlers.ContainerHandler) {
+func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, requestResponseHandler *handlers.RequestResponseHandler, resourceHandler *handlers.ResourceHandler, containerHandler *handlers.ContainerHandler, userHandler *handlers.UserHandler, accountHandler *handlers.AccountHandler) {
 	// Health check route using the proper handler
 	srv.Route("/health").GET("/", healthHandler.Check)
 
@@ -179,6 +179,14 @@ func RegisterRoutes(srv *http.Server, healthHandler *handlers.HealthHandler, req
 
 	// Container endpoints
 	RegisterContainerRoutes(srv, containerHandler)
+
+	// User management endpoints (only if handlers are provided)
+	if userHandler != nil {
+		RegisterUserRoutes(srv, userHandler)
+	}
+	if accountHandler != nil {
+		RegisterAccountRoutes(srv, accountHandler)
+	}
 }
 
 // RegisterRouteGroups registers route groups for organized routing
@@ -635,4 +643,34 @@ func createTLSConfig(tlsConf conf.TLS, logger log.Logger) (*tls.Config, error) {
 
 	log.Infof("TLS configuration created successfully with certificate from %s", tlsConf.CertFile)
 	return tlsConfig, nil
+}
+
+// RegisterUserRoutes registers user management routes
+func RegisterUserRoutes(srv *http.Server, userHandler *handlers.UserHandler) {
+	// User registration and management
+	srv.Route("/api/v1/users").POST("/register", userHandler.RegisterUser)
+	srv.Route("/api/v1/users").GET("/{id}", userHandler.GetUser)
+	srv.Route("/api/v1/users").PUT("/{id}/profile", userHandler.UpdateProfile)
+	srv.Route("/api/v1/users").DELETE("/{id}", userHandler.DeleteAccount)
+
+	// WebID endpoints
+	srv.Route("/api/v1/users").GET("/{id}/webid", userHandler.GetWebID)
+}
+
+// RegisterAccountRoutes registers account management routes
+func RegisterAccountRoutes(srv *http.Server, accountHandler *handlers.AccountHandler) {
+	// Account management
+	srv.Route("/api/v1/accounts").POST("/", accountHandler.CreateAccount)
+	srv.Route("/api/v1/accounts").GET("/{id}", accountHandler.GetAccount)
+	srv.Route("/api/v1/accounts").PUT("/{id}", accountHandler.UpdateAccount)
+
+	// Invitation management
+	srv.Route("/api/v1/accounts").POST("/{id}/invitations", accountHandler.InviteUser)
+	srv.Route("/api/v1/accounts").GET("/{id}/invitations", accountHandler.ListInvitations)
+	srv.Route("/api/v1/invitations").POST("/{token}/accept", accountHandler.AcceptInvitation)
+
+	// Member management
+	srv.Route("/api/v1/accounts").GET("/{id}/members", accountHandler.ListMembers)
+	srv.Route("/api/v1/accounts").PUT("/{id}/members/{userId}/role", accountHandler.UpdateMemberRole)
+	srv.Route("/api/v1/accounts").DELETE("/{id}/members/{userId}", accountHandler.RemoveMember)
 }

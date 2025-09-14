@@ -6,6 +6,7 @@ import (
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	"github.com/akeemphilbert/goro/internal/ldp/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 )
 
@@ -14,6 +15,7 @@ var ProviderSet = wire.NewSet(
 	NewStorageServiceProvider,
 	NewContainerServiceProvider,
 	NewEventHandlerRegistrarProvider,
+	NewInitializationServiceProvider,
 )
 
 // NewStorageServiceProvider creates a StorageService with all dependencies and registers event handlers
@@ -71,4 +73,12 @@ func NewContainerServiceProvider(
 // NewEventHandlerRegistrarProvider creates an event handler registrar
 func NewEventHandlerRegistrarProvider(eventDispatcher pericarpdomain.EventDispatcher) *EventHandlerRegistrar {
 	return NewEventHandlerRegistrar(eventDispatcher)
+}
+
+// NewInitializationServiceProvider creates an InitializationService
+func NewInitializationServiceProvider(
+	containerRepo domain.ContainerRepository,
+	logger log.Logger,
+) *InitializationService {
+	return NewInitializationService(containerRepo, logger)
 }

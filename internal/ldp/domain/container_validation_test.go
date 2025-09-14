@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"testing"
 )
 
@@ -56,7 +57,8 @@ func TestContainerValidation_CircularReferenceDetection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			container := NewContainer(tt.containerID, tt.parentID, BasicContainer)
+			ctx := context.Background()
+			container := NewContainer(ctx, tt.containerID, tt.parentID, BasicContainer)
 
 			err := container.ValidateHierarchy(tt.ancestorPath)
 
@@ -112,11 +114,14 @@ func TestContainerValidation_EmptinessValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			container := NewContainer("test-container", "", BasicContainer)
+			ctx := context.Background()
+			container := NewContainer(ctx, "test-container", "", BasicContainer)
 
 			// Add members
 			for _, memberID := range tt.members {
-				err := container.AddMember(memberID)
+				// Create a resource for each member
+				resource := NewResource(ctx, memberID, "text/plain", []byte("test data"))
+				err := container.AddMember(ctx, resource)
 				if err != nil {
 					t.Fatalf("failed to add member %s: %v", memberID, err)
 				}
@@ -127,20 +132,9 @@ func TestContainerValidation_EmptinessValidation(t *testing.T) {
 				t.Errorf("expected IsEmpty() = %v, got %v", tt.expectEmpty, isEmpty)
 			}
 
-			// Test deletion validation
-			err := container.Delete()
-			if tt.expectEmpty {
-				if err != nil {
-					t.Errorf("expected no error for empty container deletion, got: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Errorf("expected error for non-empty container deletion")
-				}
-				if !containsString(err.Error(), "container is not empty") {
-					t.Errorf("expected 'container is not empty' error, got: %v", err)
-				}
-			}
+			// Test deletion - validation is now done at service layer
+			container.Delete(ctx)
+			// Note: Deletion validation is now handled at the service layer, not in the domain entity
 		})
 	}
 }
@@ -183,11 +177,14 @@ func TestContainerValidation_MembershipConsistency(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			container := NewContainer("test-container", "", BasicContainer)
+			ctx := context.Background()
+			container := NewContainer(ctx, "test-container", "", BasicContainer)
 
 			// Add initial members
 			for _, memberID := range tt.initialMembers {
-				err := container.AddMember(memberID)
+				// Create a resource for each initial member
+				resource := NewResource(ctx, memberID, "text/plain", []byte("test data"))
+				err := container.AddMember(ctx, resource)
 				if err != nil {
 					t.Fatalf("failed to add initial member %s: %v", memberID, err)
 				}
@@ -195,7 +192,9 @@ func TestContainerValidation_MembershipConsistency(t *testing.T) {
 
 			// Test adding member
 			if tt.addMember != "" {
-				err := container.AddMember(tt.addMember)
+				// Create a resource for the new member
+				resource := NewResource(ctx, tt.addMember, "text/plain", []byte("test data"))
+				err := container.AddMember(ctx, resource)
 				if tt.expectAddError {
 					if err == nil {
 						t.Errorf("expected error when adding duplicate member")
@@ -212,7 +211,7 @@ func TestContainerValidation_MembershipConsistency(t *testing.T) {
 
 			// Test removing member
 			if tt.removeMember != "" {
-				err := container.RemoveMember(tt.removeMember)
+				err := container.RemoveMember(ctx, tt.removeMember)
 				if tt.expectRemError {
 					if err == nil {
 						t.Errorf("expected error when removing non-existent member")
@@ -261,13 +260,14 @@ func TestContainerValidation_ContainerTypeValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			isValid := tt.containerType.IsValid()
 			if isValid != tt.expectValid {
 				t.Errorf("expected IsValid() = %v for type %s, got %v", tt.expectValid, tt.containerType, isValid)
 			}
 
 			// Test container creation with type validation
-			container := NewContainer("test-container", "", tt.containerType)
+			container := NewContainer(ctx, "test-container", "", tt.containerType)
 			if tt.expectValid {
 				if container.ContainerType != tt.containerType {
 					t.Errorf("expected container type %s, got %s", tt.containerType, container.ContainerType)

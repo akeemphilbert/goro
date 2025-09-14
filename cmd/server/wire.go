@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-kratos/kratos/v2"
@@ -27,7 +28,14 @@ func wireApp(*conf.Server, log.Logger) (*kratos.App, func(), error) {
 }
 
 // newAppWithCleanup creates both the app and cleanup function
-func newAppWithCleanup(logger log.Logger, hs *http.Server, gs *grpc.Server, config *conf.Server) (*kratos.App, func()) {
+func newAppWithCleanup(logger log.Logger, hs *http.Server, gs *grpc.Server, config *conf.Server, initService *application.InitializationService) (*kratos.App, func()) {
+	// Initialize the system (create root container, etc.)
+	ctx := context.Background()
+	if err := initService.Initialize(ctx); err != nil {
+		log.Errorf("Failed to initialize system: %v", err)
+		panic(err)
+	}
+
 	app := newApp(logger, hs, gs, config)
 	cleanup := func() {
 		// Simple cleanup function for testing
@@ -43,6 +51,11 @@ var ProviderSet = wire.NewSet(
 	handlers.ProviderSet,
 	application.ProviderSet,
 	infrastructure.InfrastructureSet,
+
+	// User management providers (basic set for now)
+	// userInfrastructure.UserManagementProviderSet,
+	// userApplication.UserApplicationProviderSet,
+
 	NewGRPCServer,
 	NewHTTPServerProvider,
 	wire.FieldsOf(new(*conf.Server), "HTTP", "GRPC", "Container"),
@@ -70,6 +83,8 @@ func NewHTTPServerProvider(
 	requestResponseHandler *handlers.RequestResponseHandler,
 	resourceHandler *handlers.ResourceHandler,
 	containerHandler *handlers.ContainerHandler,
+	// userHandler *handlers.UserHandler,
+	// accountHandler *handlers.AccountHandler,
 ) *http.Server {
-	return httpServer.NewHTTPServer(c, logger, healthHandler, requestResponseHandler, resourceHandler, containerHandler)
+	return httpServer.NewHTTPServer(c, logger, healthHandler, requestResponseHandler, resourceHandler, containerHandler, nil, nil)
 }

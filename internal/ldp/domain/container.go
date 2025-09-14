@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -32,24 +33,27 @@ func (ct ContainerType) IsValid() bool {
 
 // Container represents a container resource that can hold other resources
 type Container struct {
-	*Resource                   // Inherits from Resource
-	ParentID      string        // Parent container ID (empty for root)
-	ContainerType ContainerType // BasicContainer, DirectContainer, etc.
+	*BasicResource               // Inherits from BasicResource
+	ParentID       string        // Parent container ID (empty for root)
+	ContainerType  ContainerType // BasicContainer, DirectContainer, etc.
+	Members        []string      // Member resource IDs (for compatibility with existing code)
+	Children       []Resource    // Child resources loaded from projection
 }
 
 // NewContainer creates a new Container entity
-func NewContainer(id, parentID string, containerType ContainerType) *Container {
+func NewContainer(ctx context.Context, id, parentID string, containerType ContainerType) *Container {
 	if id == "" {
 		id = uuid.New().String()
 	}
 
 	// Create the underlying resource with container-specific content type
-	resource := NewResource(id, "application/ld+json", []byte("{}"))
+	resource := NewResource(ctx, id, "application/ld+json", []byte("{}"))
 
 	container := &Container{
-		Resource:      resource,
+		BasicResource: resource,
 		ParentID:      parentID,
 		ContainerType: containerType,
+		Children:      make([]Resource, 0),
 	}
 
 	// Set container-specific metadata
@@ -70,7 +74,7 @@ func NewContainer(id, parentID string, containerType ContainerType) *Container {
 }
 
 // AddMember adds a resource to the container using the resource entity
-func (c *Container) AddMember(resource *Resource) error {
+func (c *Container) AddMember(ctx context.Context, resource Resource) error {
 	if resource == nil {
 		return fmt.Errorf("resource cannot be nil")
 	}
@@ -80,6 +84,15 @@ func (c *Container) AddMember(resource *Resource) error {
 		return fmt.Errorf("resource ID cannot be empty")
 	}
 
+	// Check for duplicates
+	for _, existingID := range c.Members {
+		if existingID == memberID {
+			return fmt.Errorf("member already exists")
+		}
+	}
+
+	// Add to members list
+	c.Members = append(c.Members, memberID)
 	c.SetMetadata("updatedAt", time.Now())
 
 	// Emit member added event with resource information
@@ -96,9 +109,24 @@ func (c *Container) AddMember(resource *Resource) error {
 }
 
 // RemoveMember removes a resource from the container
-func (c *Container) RemoveMember(resourceID string) error {
+func (c *Container) RemoveMember(ctx context.Context, resourceID string) error {
 	if resourceID == "" {
 		return fmt.Errorf("resource ID cannot be empty")
+	}
+
+	// Find and remove the member
+	found := false
+	for i, existingID := range c.Members {
+		if existingID == resourceID {
+			// Remove by slicing
+			c.Members = append(c.Members[:i], c.Members[i+1:]...)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("member not found")
 	}
 
 	c.SetMetadata("updatedAt", time.Now())
@@ -115,30 +143,30 @@ func (c *Container) RemoveMember(resourceID string) error {
 }
 
 // HasMember checks if a resource is a member of the container
-// This method now needs to query the repository or membership index
 func (c *Container) HasMember(memberID string) bool {
-	// Note: This method signature needs to change to accept a repository
-	// or this functionality should be moved to the service layer
-	// For now, return false and mark for refactoring
+	for _, member := range c.Members {
+		if member == memberID {
+			return true
+		}
+	}
 	return false
 }
 
+// GetMembers returns a copy of the member IDs
+func (c *Container) GetMembers() []string {
+	members := make([]string, len(c.Members))
+	copy(members, c.Members)
+	return members
+}
+
 // GetMemberCount returns the number of members in the container
-// This method now needs to query the repository or membership index
 func (c *Container) GetMemberCount() int {
-	// Note: This method signature needs to change to accept a repository
-	// or this functionality should be moved to the service layer
-	// For now, return 0 and mark for refactoring
-	return 0
+	return len(c.Members)
 }
 
 // IsEmpty checks if the container has no members
-// This method now needs to query the repository or membership index
 func (c *Container) IsEmpty() bool {
-	// Note: This method signature needs to change to accept a repository
-	// or this functionality should be moved to the service layer
-	// For now, return true and mark for refactoring
-	return true
+	return len(c.Members) == 0
 }
 
 // ValidateHierarchy validates the container hierarchy to prevent circular references
@@ -375,17 +403,52 @@ func (c *Container) GetDublinCoreMetadata() DublinCoreMetadata {
 }
 
 // Delete marks the container as deleted and emits a delete event
-func (c *Container) Delete() error {
+func (c *Container) Delete(ctx context.Context) {
 	// Note: Empty check needs to be done at service layer with repository access
 	// For now, allow deletion and let service layer handle validation
 
-	// Emit delete event
+	// Emit container-specific delete event
 	event := NewContainerDeletedEvent(c.ID(), map[string]interface{}{
 		"deletedAt": time.Now(),
 	})
 	c.AddEvent(event)
+}
 
-	return nil
+// ContainerResource interface methods
+
+// GetParentID returns the parent container ID
+func (c *Container) GetParentID() string {
+	return c.ParentID
+}
+
+// GetContainerType returns the container type
+func (c *Container) GetContainerType() ContainerType {
+	return c.ContainerType
+}
+
+// GetChildren returns the children resources loaded from projection
+func (c *Container) GetChildren() []Resource {
+	return c.Children
+}
+
+// SetChildren sets the children resources (used by repository projections)
+func (c *Container) SetChildren(children []Resource) {
+	c.Children = children
+}
+
+// AddChild adds a child resource to the container's children collection
+func (c *Container) AddChild(resource Resource) {
+	c.Children = append(c.Children, resource)
+}
+
+// RemoveChild removes a child resource from the container's children collection
+func (c *Container) RemoveChild(resourceID string) {
+	for i, child := range c.Children {
+		if child.ID() == resourceID {
+			c.Children = append(c.Children[:i], c.Children[i+1:]...)
+			break
+		}
+	}
 }
 
 // PaginationOptions represents pagination parameters for listing operations

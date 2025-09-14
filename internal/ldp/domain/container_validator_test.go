@@ -137,13 +137,13 @@ func TestContainerValidator_ValidateContainer(t *testing.T) {
 		},
 		{
 			name:        "valid container",
-			container:   NewContainer("valid-container", "", BasicContainer),
+			container:   NewContainer(ctx, "valid-container", "", BasicContainer),
 			expectError: false,
 		},
 		{
 			name: "invalid container type",
 			container: func() *Container {
-				c := NewContainer("test-container", "", BasicContainer)
+				c := NewContainer(ctx, "test-container", "", BasicContainer)
 				c.ContainerType = ContainerType("InvalidType")
 				return c
 			}(),

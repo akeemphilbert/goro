@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
@@ -14,26 +11,13 @@ import (
 
 // ResourceEventHandler handles resource events and updates the repository accordingly
 type ResourceEventHandler struct {
-	repo                  domain.ResourceRepository
-	eventLogPath          string
-	enableFilePersistence bool
+	repo domain.ResourceRepository
 }
 
 // NewResourceEventHandler creates a new resource event handler
 func NewResourceEventHandler(repo domain.ResourceRepository) *ResourceEventHandler {
 	return &ResourceEventHandler{
-		repo:                  repo,
-		eventLogPath:          "pod-data/events",
-		enableFilePersistence: true,
-	}
-}
-
-// NewResourceEventHandlerWithConfig creates a new resource event handler with custom configuration
-func NewResourceEventHandlerWithConfig(repo domain.ResourceRepository, eventLogPath string, enableFilePersistence bool) *ResourceEventHandler {
-	return &ResourceEventHandler{
-		repo:                  repo,
-		eventLogPath:          eventLogPath,
-		enableFilePersistence: enableFilePersistence,
+		repo: repo,
 	}
 }
 
@@ -43,6 +27,9 @@ func (h *ResourceEventHandler) EventTypes() []string {
 		"resource.created",
 		"resource.updated",
 		"resource.deleted",
+		"resource.created_with_relations",
+		"resource.linked",
+		"resource.relationship_updated",
 	}
 }
 
@@ -64,6 +51,12 @@ func (h *ResourceEventHandler) Handle(ctx context.Context, envelope pericarpdoma
 			return h.handleResourceUpdated(ctx, entityEvent)
 		case domain.EventTypeResourceDeleted:
 			return h.handleResourceDeleted(ctx, entityEvent)
+		case domain.EventTypeResourceCreatedWithRelations:
+			return h.handleResourceCreatedWithRelations(ctx, entityEvent)
+		case domain.EventTypeResourceLinked:
+			return h.handleResourceLinked(ctx, entityEvent)
+		case domain.EventTypeResourceRelationshipUpdated:
+			return h.handleResourceRelationshipUpdated(ctx, entityEvent)
 		default:
 			// Unknown event type, log and ignore
 			fmt.Printf("Unknown resource event type: %s\n", entityEvent.Type)
@@ -76,11 +69,6 @@ func (h *ResourceEventHandler) Handle(ctx context.Context, envelope pericarpdoma
 
 // handleResourceCreated handles resource created events
 func (h *ResourceEventHandler) handleResourceCreated(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist created event to file system: %w", err)
-	}
-
 	// Extract resource data from event payload
 	resource, err := h.reconstructResourceFromEvent(event)
 	if err != nil {
@@ -98,11 +86,6 @@ func (h *ResourceEventHandler) handleResourceCreated(ctx context.Context, event 
 
 // handleResourceUpdated handles resource updated events
 func (h *ResourceEventHandler) handleResourceUpdated(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist updated event to file system: %w", err)
-	}
-
 	// Extract resource data from event payload
 	resource, err := h.reconstructResourceFromEvent(event)
 	if err != nil {
@@ -120,11 +103,6 @@ func (h *ResourceEventHandler) handleResourceUpdated(ctx context.Context, event 
 
 // handleResourceDeleted handles resource deleted events
 func (h *ResourceEventHandler) handleResourceDeleted(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist deleted event to file system: %w", err)
-	}
-
 	// Delete the resource from the repository
 	if err := h.repo.Delete(ctx, event.AggregateID()); err != nil {
 		return fmt.Errorf("failed to delete resource from repository: %w", err)
@@ -134,8 +112,63 @@ func (h *ResourceEventHandler) handleResourceDeleted(ctx context.Context, event 
 	return nil
 }
 
+// handleResourceCreatedWithRelations handles resource created with relations events
+func (h *ResourceEventHandler) handleResourceCreatedWithRelations(ctx context.Context, event *pericarpdomain.EntityEvent) error {
+	// This event indicates that a resource needs relationship processing
+	// In a production system, this might trigger the orchestration service
+	fmt.Printf("Resource created with relationships: %s (requires orchestration)\n", event.AggregateID())
+
+	// For now, we'll just log the event - the orchestration should be handled
+	// by a separate service that listens for these events
+	return nil
+}
+
+// handleResourceLinked handles resource linked events
+func (h *ResourceEventHandler) handleResourceLinked(ctx context.Context, event *pericarpdomain.EntityEvent) error {
+	// Extract linked resource information from event payload
+	var payload map[string]interface{}
+	if err := json.Unmarshal(event.Payload(), &payload); err != nil {
+		fmt.Printf("Failed to parse resource linked event payload: %v\n", err)
+		return nil // Don't fail the event processing
+	}
+
+	linkedResourceID, _ := payload["linkedResourceID"].(string)
+	alreadyExists, _ := payload["alreadyExists"].(bool)
+
+	if alreadyExists {
+		fmt.Printf("Resource linked to existing resource: %s -> %s\n", event.AggregateID(), linkedResourceID)
+	} else {
+		fmt.Printf("Resource linked to new resource: %s -> %s\n", event.AggregateID(), linkedResourceID)
+	}
+
+	return nil
+}
+
+// handleResourceRelationshipUpdated handles resource relationship updated events
+func (h *ResourceEventHandler) handleResourceRelationshipUpdated(ctx context.Context, event *pericarpdomain.EntityEvent) error {
+	// Extract relationship change information from event payload
+	var payload map[string]interface{}
+	if err := json.Unmarshal(event.Payload(), &payload); err != nil {
+		fmt.Printf("Failed to parse relationship updated event payload: %v\n", err)
+		return nil // Don't fail the event processing
+	}
+
+	// Handle different types of relationship updates
+	if removedLinkTo, exists := payload["removedLinkTo"]; exists {
+		fmt.Printf("Resource relationship removed: %s no longer links to %s\n", event.AggregateID(), removedLinkTo)
+	}
+
+	if removedLinkFrom, exists := payload["removedLinkFrom"]; exists {
+		reason, _ := payload["reason"].(string)
+		fmt.Printf("Resource relationship removed: %s no longer linked from %s (reason: %s)\n",
+			event.AggregateID(), removedLinkFrom, reason)
+	}
+
+	return nil
+}
+
 // reconstructResourceFromEvent reconstructs a resource from an event payload
-func (h *ResourceEventHandler) reconstructResourceFromEvent(event *pericarpdomain.EntityEvent) (*domain.Resource, error) {
+func (h *ResourceEventHandler) reconstructResourceFromEvent(event *pericarpdomain.EntityEvent) (domain.Resource, error) {
 	// The payload contains the resource data encoded as JSON
 	var payload map[string]interface{}
 	if err := json.Unmarshal(event.Payload(), &payload); err != nil {
@@ -159,80 +192,12 @@ func (h *ResourceEventHandler) reconstructResourceFromEvent(event *pericarpdomai
 	data := make([]byte, int(size))
 
 	// Create the resource
-	resource := domain.NewResource(event.AggregateID(), contentType, data)
+	resource := domain.NewResource(context.Background(), event.AggregateID(), contentType, data)
 
 	// Clear events since this is a reconstruction from events
 	resource.MarkEventsAsCommitted()
 
 	return resource, nil
-}
-
-// persistEventToFileSystem persists an event to the file system for audit trail
-func (h *ResourceEventHandler) persistEventToFileSystem(event *pericarpdomain.EntityEvent) error {
-	if !h.enableFilePersistence {
-		return nil // Skip persistence if disabled
-	}
-
-	// Create event log directory structure: pod-data/events/{date}/
-	now := time.Now()
-	dateDir := now.Format("2006-01-02")
-	eventDir := filepath.Join(h.eventLogPath, dateDir)
-
-	// Ensure directory exists
-	if err := os.MkdirAll(eventDir, 0755); err != nil {
-		return fmt.Errorf("failed to create event directory %s: %w", eventDir, err)
-	}
-
-	// Create event log entry
-	eventEntry := map[string]interface{}{
-		"eventID":     fmt.Sprintf("%s-%d", event.AggregateID(), now.UnixNano()),
-		"timestamp":   now.Format(time.RFC3339),
-		"entityType":  event.EntityType,
-		"eventType":   event.Type,
-		"aggregateID": event.AggregateID(),
-		"payload":     json.RawMessage(event.Payload()),
-	}
-
-	// Marshal event to JSON (single line for easier parsing)
-	eventJSON, err := json.Marshal(eventEntry)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event to JSON: %w", err)
-	}
-
-	// Write to event log file (append mode)
-	logFile := filepath.Join(eventDir, "events.log")
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open event log file %s: %w", logFile, err)
-	}
-	defer file.Close()
-
-	// Write event entry with newline
-	if _, err := file.Write(append(eventJSON, '\n')); err != nil {
-		return fmt.Errorf("failed to write event to log file: %w", err)
-	}
-
-	return nil
-}
-
-// GetEventLogPath returns the current event log path
-func (h *ResourceEventHandler) GetEventLogPath() string {
-	return h.eventLogPath
-}
-
-// SetEventLogPath sets the event log path
-func (h *ResourceEventHandler) SetEventLogPath(path string) {
-	h.eventLogPath = path
-}
-
-// IsFilePersistenceEnabled returns whether file persistence is enabled
-func (h *ResourceEventHandler) IsFilePersistenceEnabled() bool {
-	return h.enableFilePersistence
-}
-
-// SetFilePersistenceEnabled enables or disables file persistence
-func (h *ResourceEventHandler) SetFilePersistenceEnabled(enabled bool) {
-	h.enableFilePersistence = enabled
 }
 
 // EventHandlerRegistrar registers event handlers with the event dispatcher
@@ -271,17 +236,13 @@ func (r *EventHandlerRegistrar) RegisterResourceEventHandler(handler *ResourceEv
 
 // ContainerEventHandler handles container events and updates the repository accordingly
 type ContainerEventHandler struct {
-	containerRepo         domain.ContainerRepository
-	eventLogPath          string
-	enableFilePersistence bool
+	containerRepo domain.ContainerRepository
 }
 
 // NewContainerEventHandler creates a new container event handler
 func NewContainerEventHandler(containerRepo domain.ContainerRepository) *ContainerEventHandler {
 	return &ContainerEventHandler{
-		containerRepo:         containerRepo,
-		eventLogPath:          "pod-data/events",
-		enableFilePersistence: true,
+		containerRepo: containerRepo,
 	}
 }
 
@@ -330,11 +291,6 @@ func (h *ContainerEventHandler) Handle(ctx context.Context, envelope pericarpdom
 
 // handleContainerCreated handles container created events
 func (h *ContainerEventHandler) handleContainerCreated(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist container created event to file system: %w", err)
-	}
-
 	// Reconstruct container from event
 	container, err := h.reconstructContainerFromEvent(event)
 	if err != nil {
@@ -352,11 +308,6 @@ func (h *ContainerEventHandler) handleContainerCreated(ctx context.Context, even
 
 // handleContainerUpdated handles container updated events
 func (h *ContainerEventHandler) handleContainerUpdated(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist container updated event to file system: %w", err)
-	}
-
 	// Get existing container and apply updates
 	container, err := h.containerRepo.GetContainer(ctx, event.AggregateID())
 	if err != nil {
@@ -379,11 +330,6 @@ func (h *ContainerEventHandler) handleContainerUpdated(ctx context.Context, even
 
 // handleContainerDeleted handles container deleted events
 func (h *ContainerEventHandler) handleContainerDeleted(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist container deleted event to file system: %w", err)
-	}
-
 	// Delete the container from the repository
 	if err := h.containerRepo.DeleteContainer(ctx, event.AggregateID()); err != nil {
 		return fmt.Errorf("failed to delete container from repository: %w", err)
@@ -395,11 +341,6 @@ func (h *ContainerEventHandler) handleContainerDeleted(ctx context.Context, even
 
 // handleMemberAdded handles member added events
 func (h *ContainerEventHandler) handleMemberAdded(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist member added event to file system: %w", err)
-	}
-
 	// Extract member information from event payload
 	var payload map[string]interface{}
 	if err := json.Unmarshal(event.Payload(), &payload); err != nil {
@@ -428,11 +369,6 @@ func (h *ContainerEventHandler) handleMemberAdded(ctx context.Context, event *pe
 
 // handleMemberRemoved handles member removed events
 func (h *ContainerEventHandler) handleMemberRemoved(ctx context.Context, event *pericarpdomain.EntityEvent) error {
-	// Persist event to file system first
-	if err := h.persistEventToFileSystem(event); err != nil {
-		return fmt.Errorf("failed to persist member removed event to file system: %w", err)
-	}
-
 	// Extract member ID from event payload
 	var payload map[string]interface{}
 	if err := json.Unmarshal(event.Payload(), &payload); err != nil {
@@ -474,7 +410,7 @@ func (h *ContainerEventHandler) reconstructContainerFromEvent(event *pericarpdom
 	}
 
 	// Create the container
-	container := domain.NewContainer(event.AggregateID(), parentID, containerType)
+	container := domain.NewContainer(context.Background(), event.AggregateID(), parentID, containerType)
 
 	// Apply any additional metadata from payload
 	if title, ok := payload["title"].(string); ok && title != "" {
@@ -511,59 +447,6 @@ func (h *ContainerEventHandler) applyContainerUpdatesFromEvent(container *domain
 	return nil
 }
 
-// persistEventToFileSystem persists a container event to the file system for audit trail
-func (h *ContainerEventHandler) persistEventToFileSystem(event *pericarpdomain.EntityEvent) error {
-	if !h.enableFilePersistence {
-		return nil // Skip persistence if disabled
-	}
-
-	// Create event log directory structure: pod-data/events/{date}/
-	now := time.Now()
-	dateDir := now.Format("2006-01-02")
-	eventDir := filepath.Join(h.eventLogPath, dateDir)
-
-	// Ensure directory exists
-	if err := os.MkdirAll(eventDir, 0755); err != nil {
-		return fmt.Errorf("failed to create event directory %s: %w", eventDir, err)
-	}
-
-	// Create event log entry
-	eventEntry := map[string]interface{}{
-		"eventID":     fmt.Sprintf("%s-%d", event.AggregateID(), now.UnixNano()),
-		"timestamp":   now.Format(time.RFC3339),
-		"entityType":  event.EntityType,
-		"eventType":   event.Type,
-		"aggregateID": event.AggregateID(),
-		"payload":     json.RawMessage(event.Payload()),
-	}
-
-	// Marshal event to JSON (single line for easier parsing)
-	eventJSON, err := json.Marshal(eventEntry)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event to JSON: %w", err)
-	}
-
-	// Write to event log file (append mode)
-	logFile := filepath.Join(eventDir, "container-events.log")
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open container event log file %s: %w", logFile, err)
-	}
-	defer file.Close()
-
-	// Write event entry with newline
-	if _, err := file.Write(append(eventJSON, '\n')); err != nil {
-		return fmt.Errorf("failed to write container event to log file: %w", err)
-	}
-
-	return nil
-}
-
-// SetFilePersistenceEnabled enables or disables file persistence for container events
-func (h *ContainerEventHandler) SetFilePersistenceEnabled(enabled bool) {
-	h.enableFilePersistence = enabled
-}
-
 // RegisterContainerEventHandler registers the container event handler for all container events
 func (r *EventHandlerRegistrar) RegisterContainerEventHandler(handler *ContainerEventHandler) error {
 	// Register for all container event types
@@ -597,8 +480,44 @@ func (r *EventHandlerRegistrar) RegisterAllHandlers(repo domain.ResourceReposito
 	return nil
 }
 
+// RegisterEventPersistenceHandler registers the event persistence handler for all events
+func (r *EventHandlerRegistrar) RegisterEventPersistenceHandler(handler *EventPersistenceHandler) error {
+	// Subscribe to all events by registering for all known event types
+	allEventTypes := []string{
+		// Resource events
+		"resource.created",
+		"resource.updated",
+		"resource.deleted",
+		"resource.created_with_relations",
+		"resource.linked",
+		"resource.relationship_updated",
+		// Container events
+		"container.created",
+		"container.updated",
+		"container.deleted",
+		"container.member_added",
+		"container.member_removed",
+	}
+
+	for _, eventType := range allEventTypes {
+		if err := r.dispatcher.Subscribe(eventType, handler); err != nil {
+			return fmt.Errorf("failed to subscribe persistence handler to event type %s: %w", eventType, err)
+		}
+	}
+
+	r.handlers = append(r.handlers, handler)
+	fmt.Printf("Registered event persistence handler for all events: %v\n", allEventTypes)
+	return nil
+}
+
 // RegisterAllHandlersWithContainer registers all event handlers including container handlers
 func (r *EventHandlerRegistrar) RegisterAllHandlersWithContainer(repo domain.ResourceRepository, containerRepo domain.ContainerRepository) error {
+	// First, register the event persistence handler to capture all events
+	persistenceHandler := NewEventPersistenceHandler()
+	if err := r.RegisterEventPersistenceHandler(persistenceHandler); err != nil {
+		return fmt.Errorf("failed to register event persistence handler: %w", err)
+	}
+
 	// Create and register resource event handler
 	resourceHandler := NewResourceEventHandler(repo)
 	if err := r.RegisterResourceEventHandler(resourceHandler); err != nil {

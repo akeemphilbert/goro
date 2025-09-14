@@ -11,9 +11,13 @@ type EventHandler = pericarpdomain.EventHandler
 
 // Event types for resource operations
 const (
-	EventTypeResourceCreated = "created"
-	EventTypeResourceUpdated = "updated"
-	EventTypeResourceDeleted = "deleted"
+	EventTypeResourceCreated              = "created"
+	EventTypeResourceUpdated              = "updated"
+	EventTypeResourceDeleted              = "deleted"
+	EventTypeResourceCreatedWithRelations = "created_with_relations"
+	EventTypeResourceUpdatedWithRelations = "updated_with_relations"
+	EventTypeResourceLinked               = "linked"
+	EventTypeResourceRelationshipUpdated  = "relationship_updated"
 )
 
 // Event types for container operations
@@ -38,6 +42,26 @@ func NewResourceUpdatedEvent(resourceID string, data interface{}) *EntityEvent {
 // NewResourceDeletedEvent creates a new resource deleted event
 func NewResourceDeletedEvent(resourceID string, data interface{}) *EntityEvent {
 	return pericarpdomain.NewEntityEvent("resource", EventTypeResourceDeleted, resourceID, "", "", data)
+}
+
+// NewResourceCreatedWithRelationsEvent creates a new resource created event with RDF relationships
+func NewResourceCreatedWithRelationsEvent(resourceID string, data *ResourceEventData) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("resource", EventTypeResourceCreatedWithRelations, resourceID, "", "", data)
+}
+
+// NewResourceUpdatedWithRelationsEvent creates a new resource updated event with RDF relationships
+func NewResourceUpdatedWithRelationsEvent(resourceID string, data *ResourceEventData) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("resource", EventTypeResourceUpdated, resourceID, "", "", data)
+}
+
+// NewResourceLinkedEvent creates a new resource linked event
+func NewResourceLinkedEvent(resourceID string, data interface{}) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("resource", EventTypeResourceLinked, resourceID, "", "", data)
+}
+
+// NewResourceRelationshipUpdatedEvent creates a new resource relationship updated event
+func NewResourceRelationshipUpdatedEvent(resourceID string, data interface{}) *EntityEvent {
+	return pericarpdomain.NewEntityEvent("resource", EventTypeResourceRelationshipUpdated, resourceID, "", "", data)
 }
 
 // Container event constructors
