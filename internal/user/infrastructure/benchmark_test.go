@@ -1,8 +1,9 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ func BenchmarkUserLookup(b *testing.B) {
 	seedBenchmarkData(b, db, 1000)
 
 	b.Run("WithoutCache", func(b *testing.B) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		b.ResetTimer()
@@ -40,8 +41,8 @@ func BenchmarkUserLookup(b *testing.B) {
 	})
 
 	b.Run("WithCache", func(b *testing.B) {
-		cache := NewInMemoryCache(5 * time.Minute)
-		userRepo := NewOptimizedGormUserRepository(db, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 		ctx := context.Background()
 
 		b.ResetTimer()
@@ -64,7 +65,7 @@ func BenchmarkUserRegistration(b *testing.B) {
 	db := setupBenchmarkDB(b)
 	defer cleanupBenchmarkDB(db)
 
-	userWriteRepo := NewGormUserWriteRepository(db)
+	userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -101,7 +102,7 @@ func BenchmarkMembershipQuery(b *testing.B) {
 	seedMembershipBenchmarkData(b, db, 100, 50)
 
 	b.Run("AccountMembers", func(b *testing.B) {
-		memberRepo := NewOptimizedGormAccountMemberRepository(db)
+		memberRepo := infrastructure.NewOptimizedGormAccountMemberRepository(db)
 		ctx := context.Background()
 
 		b.ResetTimer()
@@ -119,7 +120,7 @@ func BenchmarkMembershipQuery(b *testing.B) {
 	})
 
 	b.Run("UserMemberships", func(b *testing.B) {
-		memberRepo := NewOptimizedGormAccountMemberRepository(db)
+		memberRepo := infrastructure.NewOptimizedGormAccountMemberRepository(db)
 		ctx := context.Background()
 
 		b.ResetTimer()
@@ -146,8 +147,8 @@ func BenchmarkBulkOperations(b *testing.B) {
 	seedBenchmarkData(b, db, 5000)
 
 	b.Run("UserList", func(b *testing.B) {
-		cache := NewInMemoryCache(5 * time.Minute)
-		userRepo := NewOptimizedGormUserRepository(db, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 		ctx := context.Background()
 
 		b.ResetTimer()
@@ -166,8 +167,8 @@ func BenchmarkBulkOperations(b *testing.B) {
 	})
 
 	b.Run("UserSearch", func(b *testing.B) {
-		cache := NewInMemoryCache(5 * time.Minute)
-		userRepo := NewOptimizedGormUserRepository(db, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 		ctx := context.Background()
 
 		b.ResetTimer()
@@ -187,7 +188,7 @@ func BenchmarkBulkOperations(b *testing.B) {
 
 // BenchmarkCacheOperations benchmarks cache performance
 func BenchmarkCacheOperations(b *testing.B) {
-	cache := NewInMemoryCache(5 * time.Minute)
+	cache := infrastructure.NewInMemoryCache(5 * time.Minute)
 
 	// Pre-populate cache
 	for i := 0; i < 1000; i++ {
@@ -269,7 +270,7 @@ func seedBenchmarkData(tb testing.TB, db *gorm.DB, userCount int) {
 	t := tb.(*testing.T)
 
 	// Seed system roles
-	roles := []RoleModel{
+	roles := []infrastructure.RoleModel{
 		{ID: "owner", Name: "Owner", Description: "Full access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		{ID: "admin", Name: "Admin", Description: "Admin access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		{ID: "member", Name: "Member", Description: "Member access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
@@ -291,9 +292,9 @@ func seedBenchmarkData(tb testing.TB, db *gorm.DB, userCount int) {
 			end = userCount
 		}
 
-		users := make([]UserModel, end-i)
+		users := make([]infrastructure.UserModel, end-i)
 		for j := i; j < end; j++ {
-			users[j-i] = UserModel{
+			users[j-i] = infrastructure.UserModel{
 				ID:        fmt.Sprintf("bench-user-%d", j),
 				WebID:     fmt.Sprintf("https://example.com/profile/bench-user-%d", j),
 				Email:     fmt.Sprintf("bench-user-%d@example.com", j),
@@ -319,9 +320,9 @@ func seedMembershipBenchmarkData(tb testing.TB, db *gorm.DB, accountCount, membe
 	seedBenchmarkData(tb, db, totalUsers)
 
 	// Seed accounts
-	accounts := make([]AccountModel, accountCount)
+	accounts := make([]infrastructure.AccountModel, accountCount)
 	for i := 0; i < accountCount; i++ {
-		accounts[i] = AccountModel{
+		accounts[i] = infrastructure.AccountModel{
 			ID:          fmt.Sprintf("bench-account-%d", i),
 			OwnerID:     fmt.Sprintf("bench-user-%d", i),
 			Name:        fmt.Sprintf("Bench Account %d", i),
@@ -338,14 +339,14 @@ func seedMembershipBenchmarkData(tb testing.TB, db *gorm.DB, accountCount, membe
 	}
 
 	// Seed memberships
-	var members []AccountMemberModel
+	var members []infrastructure.AccountMemberModel
 	memberID := 0
 
 	for accountIndex := 0; accountIndex < accountCount; accountIndex++ {
 		for memberIndex := 0; memberIndex < membersPerAccount; memberIndex++ {
 			userIndex := (accountIndex + memberIndex) % totalUsers
 
-			member := AccountMemberModel{
+			member := infrastructure.AccountMemberModel{
 				ID:        fmt.Sprintf("bench-member-%d", memberID),
 				AccountID: fmt.Sprintf("bench-account-%d", accountIndex),
 				UserID:    fmt.Sprintf("bench-user-%d", userIndex),

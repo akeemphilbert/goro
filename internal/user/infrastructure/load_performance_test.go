@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
 
@@ -35,7 +36,7 @@ func TestHighThroughputOperations(t *testing.T) {
 	defer cleanupPerformanceTestDB(db)
 
 	t.Run("HighThroughputUserRegistration", func(t *testing.T) {
-		userWriteRepo := NewGormUserWriteRepository(db)
+		userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
 		ctx := context.Background()
 
 		var wg sync.WaitGroup
@@ -116,7 +117,7 @@ func TestHighThroughputOperations(t *testing.T) {
 		// Seed data for lookups
 		seedPerformanceTestData(t, db, 1000)
 
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		var wg sync.WaitGroup
@@ -184,7 +185,7 @@ func TestScalabilityWithLargeDatasets(t *testing.T) {
 		largeDatasetSize := 10000
 		seedPerformanceTestData(t, db, largeDatasetSize)
 
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Test query performance with large dataset
@@ -231,7 +232,7 @@ func TestScalabilityWithLargeDatasets(t *testing.T) {
 		// Seed large membership dataset
 		seedMembershipTestData(t, db, 500, 200) // 500 accounts, 200 members each
 
-		memberRepo := NewGormAccountMemberRepository(db)
+		memberRepo := infrastructure.NewGormAccountMemberRepository(db)
 		ctx := context.Background()
 
 		// Test membership queries with large datasets
@@ -273,8 +274,8 @@ func TestConcurrentTransactionPerformance(t *testing.T) {
 	defer cleanupPerformanceTestDB(db)
 
 	t.Run("ConcurrentUserTransactions", func(t *testing.T) {
-		userWriteRepo := NewGormUserWriteRepository(db)
-		userRepo := NewGormUserRepository(db)
+		userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Seed initial users
@@ -342,7 +343,7 @@ func TestConcurrentTransactionPerformance(t *testing.T) {
 	})
 
 	t.Run("DatabaseConnectionPoolPerformance", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Seed data
@@ -408,7 +409,7 @@ func TestMemoryAndResourceUsage(t *testing.T) {
 	defer cleanupPerformanceTestDB(db)
 
 	t.Run("MemoryUsageUnderLoad", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Seed large dataset
@@ -436,7 +437,7 @@ func TestMemoryAndResourceUsage(t *testing.T) {
 	})
 
 	t.Run("ResourceCleanupPerformance", func(t *testing.T) {
-		userWriteRepo := NewGormUserWriteRepository(db)
+		userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
 		ctx := context.Background()
 
 		// Create and delete users to test resource cleanup
@@ -512,7 +513,7 @@ func setupLoadTestDB(t *testing.T) *gorm.DB {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	// Migrate models
-	err = MigrateUserModels(db)
+	err = infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
 
 	return db

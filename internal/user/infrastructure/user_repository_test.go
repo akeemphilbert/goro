@@ -1,9 +1,11 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +16,7 @@ import (
 
 // createTestUser creates a test user in the database
 func createTestUser(t *testing.T, db *gorm.DB, id, webID, email, name, status string) {
-	user := UserModel{
+	user := infrastructure.UserModel{
 		ID:        id,
 		WebID:     webID,
 		Email:     email,
@@ -29,7 +31,7 @@ func createTestUser(t *testing.T, db *gorm.DB, id, webID, email, name, status st
 
 func TestGormUserRepository_GetByID(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserRepository(db)
+	repo := infrastructure.NewGormUserRepository(db)
 	ctx := context.Background()
 
 	// Create test user
@@ -67,7 +69,7 @@ func TestGormUserRepository_GetByID(t *testing.T) {
 
 func TestGormUserRepository_GetByWebID(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserRepository(db)
+	repo := infrastructure.NewGormUserRepository(db)
 	ctx := context.Background()
 
 	// Create test user
@@ -103,7 +105,7 @@ func TestGormUserRepository_GetByWebID(t *testing.T) {
 
 func TestGormUserRepository_GetByEmail(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserRepository(db)
+	repo := infrastructure.NewGormUserRepository(db)
 	ctx := context.Background()
 
 	// Create test user
@@ -139,7 +141,7 @@ func TestGormUserRepository_GetByEmail(t *testing.T) {
 
 func TestGormUserRepository_List(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserRepository(db)
+	repo := infrastructure.NewGormUserRepository(db)
 	ctx := context.Background()
 
 	// Create multiple test users
@@ -205,7 +207,7 @@ func TestGormUserRepository_List(t *testing.T) {
 
 func TestGormUserRepository_Exists(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserRepository(db)
+	repo := infrastructure.NewGormUserRepository(db)
 	ctx := context.Background()
 
 	// Create test user

@@ -104,7 +104,7 @@ func TestContainerPaginationBasic(t *testing.T) {
 	memberCount := 100
 	for i := 0; i < memberCount; i++ {
 		memberID := fmt.Sprintf("member-%03d", i) // Zero-padded for consistent ordering
-		err := service.AddResource(ctx, containerID, memberID)
+		err := service.AddResource(ctx, containerID, memberID, domain.NewResource(ctx, memberID, "text/plain", []byte("Hello, World!")))
 		require.NoError(t, err)
 	}
 
@@ -156,7 +156,7 @@ func TestContainerPaginationEdgeCases(t *testing.T) {
 	assert.Empty(t, listing.Members)
 
 	// Add single member
-	err = service.AddResource(ctx, containerID, "single-member")
+	err = service.AddResource(ctx, containerID, "single-member", domain.NewResource(ctx, "single-member", "text/plain", []byte("Hello, World!")))
 	require.NoError(t, err)
 
 	// Test pagination with single member
@@ -194,7 +194,7 @@ func TestContainerPaginationConsistency(t *testing.T) {
 	for i := 0; i < memberCount; i++ {
 		memberID := fmt.Sprintf("member-%03d", i)
 		expectedMembers[i] = memberID
-		err := service.AddResource(ctx, containerID, memberID)
+		err := service.AddResource(ctx, containerID, memberID, domain.NewResource(ctx, memberID, "text/plain", []byte("Hello, World!")))
 		require.NoError(t, err)
 	}
 
@@ -239,7 +239,7 @@ func TestContainerPaginationWithInvalidOptions(t *testing.T) {
 	// Add some members
 	for i := 0; i < 10; i++ {
 		memberID := fmt.Sprintf("member-%d", i)
-		err := service.AddResource(ctx, containerID, memberID)
+		err := service.AddResource(ctx, containerID, memberID, domain.NewResource(ctx, memberID, "text/plain", []byte("Hello, World!")))
 		require.NoError(t, err)
 	}
 
@@ -272,7 +272,7 @@ func TestContainerPaginationBoundaryValues(t *testing.T) {
 	memberCount := 100
 	for i := 0; i < memberCount; i++ {
 		memberID := fmt.Sprintf("member-%d", i)
-		err := service.AddResource(ctx, containerID, memberID)
+		err := service.AddResource(ctx, containerID, memberID, domain.NewResource(ctx, memberID, "text/plain", []byte("Hello, World!")))
 		require.NoError(t, err)
 	}
 
@@ -341,7 +341,7 @@ func TestContainerPaginationWithTotalCount(t *testing.T) {
 	memberCount := 75
 	for i := 0; i < memberCount; i++ {
 		memberID := fmt.Sprintf("member-%d", i)
-		err := service.AddResource(ctx, containerID, memberID)
+		err := service.AddResource(ctx, containerID, memberID, domain.NewResource(ctx, memberID, "text/plain", []byte("Hello, World!")))
 		require.NoError(t, err)
 	}
 

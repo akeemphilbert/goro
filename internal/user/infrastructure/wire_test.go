@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"github.com/google/wire"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -27,7 +28,7 @@ func TestWireProviders(t *testing.T) {
 	}
 
 	t.Run("ProvideUserDatabase", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Errorf("ProvideUserDatabase failed: %v", err)
 		}
@@ -36,38 +37,38 @@ func TestWireProviders(t *testing.T) {
 		}
 
 		// Verify tables were created
-		if !userDB.Migrator().HasTable(&UserModel{}) {
+		if !userDB.Migrator().HasTable(&infrastructure.UserModel{}) {
 			t.Error("UserModel table was not created")
 		}
-		if !userDB.Migrator().HasTable(&AccountModel{}) {
+		if !userDB.Migrator().HasTable(&infrastructure.AccountModel{}) {
 			t.Error("AccountModel table was not created")
 		}
-		if !userDB.Migrator().HasTable(&RoleModel{}) {
+		if !userDB.Migrator().HasTable(&infrastructure.RoleModel{}) {
 			t.Error("RoleModel table was not created")
 		}
-		if !userDB.Migrator().HasTable(&AccountMemberModel{}) {
+		if !userDB.Migrator().HasTable(&infrastructure.AccountMemberModel{}) {
 			t.Error("AccountMemberModel table was not created")
 		}
-		if !userDB.Migrator().HasTable(&InvitationModel{}) {
+		if !userDB.Migrator().HasTable(&infrastructure.InvitationModel{}) {
 			t.Error("InvitationModel table was not created")
 		}
 
 		// Verify system roles were seeded
 		var roleCount int64
-		userDB.Model(&RoleModel{}).Count(&roleCount)
+		userDB.Model(&infrastructure.RoleModel{}).Count(&roleCount)
 		if roleCount < 4 { // Owner, Admin, Member, Viewer
 			t.Errorf("Expected at least 4 system roles, got %d", roleCount)
 		}
 	})
 
 	t.Run("ProvideUserRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		cache := ProvideCache()
-		repo, err := ProvideUserRepository(userDB, cache)
+		cache := infrastructure.ProvideCache()
+		repo, err := infrastructure.ProvideUserRepository(userDB, cache)
 		if err != nil {
 			t.Errorf("ProvideUserRepository failed: %v", err)
 		}
@@ -80,12 +81,12 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideAccountRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideAccountRepository(userDB)
+		repo, err := infrastructure.ProvideAccountRepository(userDB)
 		if err != nil {
 			t.Errorf("ProvideAccountRepository failed: %v", err)
 		}
@@ -98,13 +99,13 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideRoleRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		cache := ProvideCache()
-		repo, err := ProvideRoleRepository(userDB, cache)
+		cache := infrastructure.ProvideCache()
+		repo, err := infrastructure.ProvideRoleRepository(userDB, cache)
 		if err != nil {
 			t.Errorf("ProvideRoleRepository failed: %v", err)
 		}
@@ -117,12 +118,12 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideAccountMemberRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideAccountMemberRepository(userDB)
+		repo, err := infrastructure.ProvideAccountMemberRepository(userDB)
 		if err != nil {
 			t.Errorf("ProvideAccountMemberRepository failed: %v", err)
 		}
@@ -135,12 +136,12 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideInvitationRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideInvitationRepository(userDB)
+		repo, err := infrastructure.ProvideInvitationRepository(userDB)
 		if err != nil {
 			t.Errorf("ProvideInvitationRepository failed: %v", err)
 		}
@@ -153,12 +154,12 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideUserWriteRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideUserWriteRepository(userDB)
+		repo, err := infrastructure.ProvideUserWriteRepository(userDB)
 		if err != nil {
 			t.Errorf("ProvideUserWriteRepository failed: %v", err)
 		}
@@ -171,12 +172,12 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideAccountWriteRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideAccountWriteRepository(userDB)
+		repo, err := infrastructure.ProvideAccountWriteRepository(userDB)
 		if err != nil {
 			t.Errorf("ProvideAccountWriteRepository failed: %v", err)
 		}
@@ -189,12 +190,12 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideAccountMemberWriteRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideAccountMemberWriteRepository(userDB)
+		repo, err := infrastructure.ProvideAccountMemberWriteRepository(userDB)
 		if err != nil {
 			t.Errorf("ProvideAccountMemberWriteRepository failed: %v", err)
 		}
@@ -207,12 +208,12 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideInvitationWriteRepository", func(t *testing.T) {
-		userDB, err := ProvideUserDatabase(db)
+		userDB, err := infrastructure.ProvideUserDatabase(db)
 		if err != nil {
 			t.Fatalf("Failed to setup user database: %v", err)
 		}
 
-		repo, err := ProvideInvitationWriteRepository(userDB)
+		repo, err := infrastructure.ProvideInvitationWriteRepository(userDB)
 		if err != nil {
 			t.Errorf("ProvideInvitationWriteRepository failed: %v", err)
 		}
@@ -225,7 +226,7 @@ func TestWireProviders(t *testing.T) {
 	})
 
 	t.Run("ProvideWebIDGenerator", func(t *testing.T) {
-		generator, err := ProvideWebIDGenerator("https://example.com")
+		generator, err := infrastructure.ProvideWebIDGenerator("https://example.com")
 		if err != nil {
 			t.Errorf("ProvideWebIDGenerator failed: %v", err)
 		}
@@ -240,7 +241,7 @@ func TestWireProviders(t *testing.T) {
 	t.Run("ProvideFileStorage", func(t *testing.T) {
 		tempDir := t.TempDir()
 
-		storage, err := ProvideFileStorage(tempDir)
+		storage, err := infrastructure.ProvideFileStorage(tempDir)
 		if err != nil {
 			t.Errorf("ProvideFileStorage failed: %v", err)
 		}
@@ -267,10 +268,10 @@ func TestProviderSetIntegration(t *testing.T) {
 	testInjector := func(db *gorm.DB, baseDir string) (*TestUserComponents, error) {
 		// This would be generated by Wire in actual usage
 		panic(wire.Build(
-			UserInfrastructureProviderSet,
-			UserRepositoryProviderSet,
-			UserWriteRepositoryProviderSet,
-			UserManagementProviderSet,
+			infrastructure.UserInfrastructureProviderSet,
+			infrastructure.UserRepositoryProviderSet,
+			infrastructure.UserWriteRepositoryProviderSet,
+			infrastructure.UserManagementProviderSet,
 			wire.Struct(new(TestUserComponents), "*"),
 		))
 	}
@@ -308,18 +309,18 @@ func TestDatabaseMigrationIntegration(t *testing.T) {
 	}
 
 	// Test that ProvideUserDatabase handles migration
-	userDB, err := ProvideUserDatabase(db)
+	userDB, err := infrastructure.ProvideUserDatabase(db)
 	if err != nil {
 		t.Fatalf("ProvideUserDatabase failed: %v", err)
 	}
 
 	// Verify all tables exist
 	tables := []interface{}{
-		&UserModel{},
-		&AccountModel{},
-		&RoleModel{},
-		&AccountMemberModel{},
-		&InvitationModel{},
+		&infrastructure.UserModel{},
+		&infrastructure.AccountModel{},
+		&infrastructure.RoleModel{},
+		&infrastructure.AccountMemberModel{},
+		&infrastructure.InvitationModel{},
 	}
 
 	for _, table := range tables {
@@ -330,8 +331,8 @@ func TestDatabaseMigrationIntegration(t *testing.T) {
 
 	// Verify system roles were seeded
 	ctx := context.Background()
-	cache := ProvideCache()
-	roleRepo, err := ProvideRoleRepository(userDB, cache)
+	cache := infrastructure.ProvideCache()
+	roleRepo, err := infrastructure.ProvideRoleRepository(userDB, cache)
 	if err != nil {
 		t.Fatalf("Failed to create role repository: %v", err)
 	}
@@ -363,7 +364,7 @@ func TestDatabaseMigrationIntegration(t *testing.T) {
 // TestProviderErrorHandling tests error scenarios in providers
 func TestProviderErrorHandling(t *testing.T) {
 	t.Run("ProvideUserDatabase with nil database", func(t *testing.T) {
-		_, err := ProvideUserDatabase(nil)
+		_, err := infrastructure.ProvideUserDatabase(nil)
 		if err == nil {
 			t.Error("Expected error when providing nil database")
 		}
@@ -377,7 +378,7 @@ func TestProviderErrorHandling(t *testing.T) {
 		}
 
 		invalidPath := filepath.Join(tempFile, "subdir") // Cannot create directory under file
-		_, err := ProvideFileStorage(invalidPath)
+		_, err := infrastructure.ProvideFileStorage(invalidPath)
 		if err == nil {
 			t.Error("Expected error when providing invalid storage path")
 		}

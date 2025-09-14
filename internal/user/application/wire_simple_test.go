@@ -1,7 +1,8 @@
-package application
+package application_test
 
 import (
 	"context"
+	"github.com/akeemphilbert/goro/internal/user/application"
 	"testing"
 
 	"github.com/akeemphilbert/goro/internal/user/infrastructure"
@@ -22,7 +23,7 @@ func (m *SimpleMockEventDispatcher) Subscribe(eventType string, handler pericarp
 // TestSimpleWireProviders tests the basic Wire providers
 func TestSimpleWireProviders(t *testing.T) {
 	t.Run("ProvideInvitationGenerator", func(t *testing.T) {
-		generator := ProvideInvitationGenerator()
+		generator := application.ProvideInvitationGenerator()
 		if generator == nil {
 			t.Error("ProvideInvitationGenerator returned nil generator")
 		}

@@ -27,7 +27,7 @@ func TestContainerService_EventSourcing_CreateContainer(t *testing.T) {
 	mockRepo.On("GetPath", ctx, parentID).Return([]string{parentID}, nil)
 
 	// Mock for hierarchy validation
-	parentContainer := domain.NewContainer(parentID, "", domain.BasicContainer)
+	parentContainer := domain.NewContainer(ctx, parentID, "", domain.BasicContainer)
 	mockRepo.On("GetContainer", ctx, parentID).Return(parentContainer, nil)
 
 	// Event sourcing expectations
@@ -56,7 +56,7 @@ func TestContainerService_EventSourcing_UpdateContainer(t *testing.T) {
 	service, mockRepo, mockUoW := setupContainerServiceTest()
 	ctx := context.Background()
 
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(ctx, "test-container", "", domain.BasicContainer)
 	container.SetTitle("Updated Title")
 
 	// Setup expectations - NO repository persistence calls
@@ -82,7 +82,7 @@ func TestContainerService_EventSourcing_DeleteContainer(t *testing.T) {
 	ctx := context.Background()
 
 	containerID := "test-container"
-	container := domain.NewContainer(containerID, "", domain.BasicContainer)
+	container := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
 
 	// Setup expectations - only for validation, NO repository persistence calls
 	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
@@ -114,7 +114,7 @@ func TestContainerService_EventSourcing_AddResource(t *testing.T) {
 	resourceID := "test-resource"
 
 	// Setup expectations - validation mocks, NO repository persistence calls
-	container := domain.NewContainer(containerID, "", domain.BasicContainer)
+	container := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
 	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
 	mockRepo.On("GetContainer", ctx, resourceID).Return(nil, domain.ErrContainerNotFound) // Resource is not a container
 
@@ -122,7 +122,7 @@ func TestContainerService_EventSourcing_AddResource(t *testing.T) {
 	mockUoW.On("Commit", ctx).Return([]pericarpdomain.Envelope{}, nil)
 
 	// Execute
-	err := service.AddResource(ctx, containerID, resourceID)
+	err := service.AddResource(ctx, containerID, resourceID, domain.NewResource(ctx, resourceID, "text/plain", []byte("Hello, World!")))
 
 	// Assert
 	require.NoError(t, err)
@@ -141,10 +141,11 @@ func TestContainerService_EventSourcing_RemoveResource(t *testing.T) {
 
 	containerID := "test-container"
 	resourceID := "test-resource"
+	resource := domain.NewResource(ctx, resourceID, "text/plain", []byte("Hello, World!"))
 
 	// Setup expectations - validation mocks, NO repository persistence calls
-	container := domain.NewContainer(containerID, "", domain.BasicContainer)
-	container.AddMember(resourceID) // Add the resource so it can be removed
+	container := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
+	container.AddMember(ctx, resource) // Add the resource so it can be removed
 	mockRepo.On("GetContainer", ctx, containerID).Return(container, nil)
 
 	mockUoW.On("RegisterEvents", mock.Anything).Return()
@@ -197,7 +198,7 @@ func TestContainerService_ReadOperations_UseRepositoryDirectly(t *testing.T) {
 	ctx := context.Background()
 
 	containerID := "test-container"
-	expectedContainer := domain.NewContainer(containerID, "", domain.BasicContainer)
+	expectedContainer := domain.NewContainer(ctx, containerID, "", domain.BasicContainer)
 
 	// Setup expectations for read operations
 	mockRepo.On("GetContainer", ctx, containerID).Return(expectedContainer, nil)

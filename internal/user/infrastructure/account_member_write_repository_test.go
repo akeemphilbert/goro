@@ -1,7 +1,8 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 
 func TestGormAccountMemberWriteRepository_Create(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountMemberWriteRepository(db)
+	repo := infrastructure.NewGormAccountMemberWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should create account member successfully", func(t *testing.T) {
@@ -35,7 +36,7 @@ func TestGormAccountMemberWriteRepository_Create(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify member was created in database
-		var memberModel AccountMemberModel
+		var memberModel infrastructure.AccountMemberModel
 		err = db.First(&memberModel, "id = ?", "member-create-1").Error
 		require.NoError(t, err)
 		assert.Equal(t, "member-create-1", memberModel.ID)
@@ -130,7 +131,7 @@ func TestGormAccountMemberWriteRepository_Create(t *testing.T) {
 
 func TestGormAccountMemberWriteRepository_Update(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountMemberWriteRepository(db)
+	repo := infrastructure.NewGormAccountMemberWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should update account member successfully", func(t *testing.T) {
@@ -154,7 +155,7 @@ func TestGormAccountMemberWriteRepository_Update(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify member was updated in database
-		var memberModel AccountMemberModel
+		var memberModel infrastructure.AccountMemberModel
 		err = db.First(&memberModel, "id = ?", "member-update-1").Error
 		require.NoError(t, err)
 		assert.Equal(t, "admin", memberModel.RoleID)
@@ -194,7 +195,7 @@ func TestGormAccountMemberWriteRepository_Update(t *testing.T) {
 
 func TestGormAccountMemberWriteRepository_Delete(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountMemberWriteRepository(db)
+	repo := infrastructure.NewGormAccountMemberWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should delete account member successfully", func(t *testing.T) {
@@ -207,7 +208,7 @@ func TestGormAccountMemberWriteRepository_Delete(t *testing.T) {
 
 		// Verify member was deleted from database
 		var count int64
-		err = db.Model(&AccountMemberModel{}).Where("id = ?", "member-delete-1").Count(&count).Error
+		err = db.Model(&infrastructure.AccountMemberModel{}).Where("id = ?", "member-delete-1").Count(&count).Error
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), count)
 	})

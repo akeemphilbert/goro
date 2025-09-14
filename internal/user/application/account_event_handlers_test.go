@@ -1,4 +1,4 @@
-package application
+package application_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/akeemphilbert/goro/internal/user/application"
 	"github.com/akeemphilbert/goro/internal/user/domain"
 )
 
@@ -80,7 +81,7 @@ func TestAccountEventHandler_HandleAccountCreated_Success(t *testing.T) {
 	mockInvitationRepo := &MockInvitationWriteRepository{}
 	mockFileStorage := &MockFileStorage{}
 
-	handler := NewAccountEventHandler(mockAccountRepo, mockMemberRepo, mockInvitationRepo, mockFileStorage)
+	handler := application.NewAccountEventHandler(mockAccountRepo, mockMemberRepo, mockInvitationRepo, mockFileStorage)
 
 	owner, _ := domain.NewUser(context.Background(), "owner-123", "https://example.com/users/owner-123#me", "owner@example.com", domain.UserProfile{
 		Name: "Account Owner",
@@ -114,7 +115,7 @@ func TestAccountEventHandler_HandleMemberAdded_Success(t *testing.T) {
 	mockInvitationRepo := &MockInvitationWriteRepository{}
 	mockFileStorage := &MockFileStorage{}
 
-	handler := NewAccountEventHandler(mockAccountRepo, mockMemberRepo, mockInvitationRepo, mockFileStorage)
+	handler := application.NewAccountEventHandler(mockAccountRepo, mockMemberRepo, mockInvitationRepo, mockFileStorage)
 
 	owner, _ := domain.NewUser(context.Background(), "owner-123", "https://example.com/users/owner-123#me", "owner@example.com", domain.UserProfile{
 		Name: "Account Owner",

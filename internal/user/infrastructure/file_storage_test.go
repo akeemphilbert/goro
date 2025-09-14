@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +19,7 @@ func TestUserFileStorage_StoreUserProfile(t *testing.T) {
 		userID   string
 		profile  domain.UserProfile
 		wantErr  bool
-		validate func(t *testing.T, storage UserFileStorage, userID string)
+		validate func(t *testing.T, storage infrastructure.UserFileStorage, userID string)
 	}{
 		{
 			name:   "valid profile is stored successfully",
@@ -30,7 +31,7 @@ func TestUserFileStorage_StoreUserProfile(t *testing.T) {
 				Preferences: map[string]interface{}{"theme": "dark", "language": "en"},
 			},
 			wantErr: false,
-			validate: func(t *testing.T, storage UserFileStorage, userID string) {
+			validate: func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {
 				// Verify file exists
 				exists, err := storage.UserProfileExists(context.Background(), userID)
 				assert.NoError(t, err)
@@ -67,7 +68,7 @@ func TestUserFileStorage_StoreUserProfile(t *testing.T) {
 				Bio:  "Software developer\nwith newlines",
 			},
 			wantErr: false,
-			validate: func(t *testing.T, storage UserFileStorage, userID string) {
+			validate: func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {
 				profile, err := storage.LoadUserProfile(context.Background(), userID)
 				assert.NoError(t, err)
 				assert.Equal(t, "John \"Doe\" O'Connor", profile.Name)
@@ -83,7 +84,7 @@ func TestUserFileStorage_StoreUserProfile(t *testing.T) {
 			require.NoError(t, err)
 			defer os.RemoveAll(tempDir)
 
-			storage := NewUserFileStorage(tempDir)
+			storage := infrastructure.NewUserFileStorage(tempDir)
 
 			err = storage.StoreUserProfile(context.Background(), tt.userID, tt.profile)
 
@@ -106,7 +107,7 @@ func TestUserFileStorage_StoreWebIDDocument(t *testing.T) {
 		webID    string
 		document string
 		wantErr  bool
-		validate func(t *testing.T, storage UserFileStorage, userID string)
+		validate func(t *testing.T, storage infrastructure.UserFileStorage, userID string)
 	}{
 		{
 			name:   "valid WebID document is stored successfully",
@@ -119,7 +120,7 @@ func TestUserFileStorage_StoreWebIDDocument(t *testing.T) {
     foaf:name "John Doe" ;
     foaf:mbox <mailto:john@example.com> .`,
 			wantErr: false,
-			validate: func(t *testing.T, storage UserFileStorage, userID string) {
+			validate: func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {
 				// Verify file exists
 				exists, err := storage.WebIDDocumentExists(context.Background(), userID)
 				assert.NoError(t, err)
@@ -162,7 +163,7 @@ func TestUserFileStorage_StoreWebIDDocument(t *testing.T) {
 			require.NoError(t, err)
 			defer os.RemoveAll(tempDir)
 
-			storage := NewUserFileStorage(tempDir)
+			storage := infrastructure.NewUserFileStorage(tempDir)
 
 			err = storage.StoreWebIDDocument(context.Background(), tt.userID, tt.webID, tt.document)
 
@@ -182,14 +183,14 @@ func TestUserFileStorage_LoadUserProfile(t *testing.T) {
 	tests := []struct {
 		name     string
 		userID   string
-		setup    func(t *testing.T, storage UserFileStorage, userID string)
+		setup    func(t *testing.T, storage infrastructure.UserFileStorage, userID string)
 		wantErr  bool
 		validate func(t *testing.T, profile domain.UserProfile)
 	}{
 		{
 			name:   "existing profile is loaded successfully",
 			userID: "user-123",
-			setup: func(t *testing.T, storage UserFileStorage, userID string) {
+			setup: func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {
 				profile := domain.UserProfile{
 					Name:        "John Doe",
 					Bio:         "Software developer",
@@ -208,13 +209,13 @@ func TestUserFileStorage_LoadUserProfile(t *testing.T) {
 		{
 			name:    "non-existent profile returns error",
 			userID:  "non-existent-user",
-			setup:   func(t *testing.T, storage UserFileStorage, userID string) {},
+			setup:   func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {},
 			wantErr: true,
 		},
 		{
 			name:    "empty user ID returns error",
 			userID:  "",
-			setup:   func(t *testing.T, storage UserFileStorage, userID string) {},
+			setup:   func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {},
 			wantErr: true,
 		},
 	}
@@ -226,7 +227,7 @@ func TestUserFileStorage_LoadUserProfile(t *testing.T) {
 			require.NoError(t, err)
 			defer os.RemoveAll(tempDir)
 
-			storage := NewUserFileStorage(tempDir)
+			storage := infrastructure.NewUserFileStorage(tempDir)
 			tt.setup(t, storage, tt.userID)
 
 			profile, err := storage.LoadUserProfile(context.Background(), tt.userID)
@@ -247,14 +248,14 @@ func TestUserFileStorage_DeleteUserData(t *testing.T) {
 	tests := []struct {
 		name     string
 		userID   string
-		setup    func(t *testing.T, storage UserFileStorage, userID string)
+		setup    func(t *testing.T, storage infrastructure.UserFileStorage, userID string)
 		wantErr  bool
-		validate func(t *testing.T, storage UserFileStorage, userID string)
+		validate func(t *testing.T, storage infrastructure.UserFileStorage, userID string)
 	}{
 		{
 			name:   "existing user data is deleted successfully",
 			userID: "user-123",
-			setup: func(t *testing.T, storage UserFileStorage, userID string) {
+			setup: func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {
 				// Create profile and WebID document
 				profile := domain.UserProfile{Name: "John Doe", Bio: "Developer"}
 				err := storage.StoreUserProfile(context.Background(), userID, profile)
@@ -265,7 +266,7 @@ func TestUserFileStorage_DeleteUserData(t *testing.T) {
 				require.NoError(t, err)
 			},
 			wantErr: false,
-			validate: func(t *testing.T, storage UserFileStorage, userID string) {
+			validate: func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {
 				// Verify profile no longer exists
 				exists, err := storage.UserProfileExists(context.Background(), userID)
 				assert.NoError(t, err)
@@ -285,13 +286,13 @@ func TestUserFileStorage_DeleteUserData(t *testing.T) {
 		{
 			name:    "non-existent user returns no error (idempotent)",
 			userID:  "non-existent-user",
-			setup:   func(t *testing.T, storage UserFileStorage, userID string) {},
+			setup:   func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {},
 			wantErr: false,
 		},
 		{
 			name:    "empty user ID returns error",
 			userID:  "",
-			setup:   func(t *testing.T, storage UserFileStorage, userID string) {},
+			setup:   func(t *testing.T, storage infrastructure.UserFileStorage, userID string) {},
 			wantErr: true,
 		},
 	}
@@ -303,7 +304,7 @@ func TestUserFileStorage_DeleteUserData(t *testing.T) {
 			require.NoError(t, err)
 			defer os.RemoveAll(tempDir)
 
-			storage := NewUserFileStorage(tempDir)
+			storage := infrastructure.NewUserFileStorage(tempDir)
 			tt.setup(t, storage, tt.userID)
 
 			err = storage.DeleteUserData(context.Background(), tt.userID)
@@ -327,7 +328,7 @@ func TestUserFileStorage_AtomicOperations(t *testing.T) {
 		require.NoError(t, err)
 		defer os.RemoveAll(tempDir)
 
-		storage := NewUserFileStorage(tempDir)
+		storage := infrastructure.NewUserFileStorage(tempDir)
 
 		// Perform concurrent updates with different user IDs to avoid conflicts
 		done := make(chan error, 2)
@@ -368,7 +369,7 @@ func TestUserFileStorage_AtomicOperations(t *testing.T) {
 		require.NoError(t, err)
 		defer os.RemoveAll(tempDir)
 
-		storage := NewUserFileStorage(tempDir)
+		storage := infrastructure.NewUserFileStorage(tempDir)
 		userID := "user-123"
 
 		// Store a valid profile first
@@ -400,7 +401,7 @@ func TestUserFileStorage_DirectoryStructure(t *testing.T) {
 		require.NoError(t, err)
 		defer os.RemoveAll(tempDir)
 
-		storage := NewUserFileStorage(tempDir)
+		storage := infrastructure.NewUserFileStorage(tempDir)
 		userID := "user-123"
 
 		// Store profile and WebID document
@@ -434,7 +435,7 @@ func TestUserFileStorage_DirectoryStructure(t *testing.T) {
 
 	t.Run("user directory path is correctly generated", func(t *testing.T) {
 		tempDir := "/tmp/test-storage"
-		storage := NewUserFileStorage(tempDir)
+		storage := infrastructure.NewUserFileStorage(tempDir)
 
 		tests := []struct {
 			userID   string
@@ -459,7 +460,7 @@ func TestUserFileStorage_ErrorHandling(t *testing.T) {
 		require.NoError(t, err)
 		defer os.RemoveAll(tempDir)
 
-		storage := NewUserFileStorage(tempDir)
+		storage := infrastructure.NewUserFileStorage(tempDir)
 		userID := "user-123"
 
 		// Create user directory and write invalid JSON
@@ -482,7 +483,7 @@ func TestUserFileStorage_ErrorHandling(t *testing.T) {
 		tempDir := filepath.Join(os.TempDir(), "non-existent-dir", "user-storage")
 		defer os.RemoveAll(filepath.Dir(tempDir))
 
-		storage := NewUserFileStorage(tempDir)
+		storage := infrastructure.NewUserFileStorage(tempDir)
 		userID := "user-123"
 
 		// Store profile (should create directories automatically)
@@ -516,7 +517,7 @@ func TestNewUserFileStorage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage, err := NewUserFileStorageWithValidation(tt.baseDir)
+			storage, err := infrastructure.NewUserFileStorageWithValidation(tt.baseDir)
 
 			if tt.wantErr {
 				assert.Error(t, err)

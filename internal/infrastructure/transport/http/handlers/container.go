@@ -70,12 +70,12 @@ func (h *ContainerHandler) GetContainer(ctx khttp.Context) error {
 	}
 
 	// Build container response
-	response := h.buildContainerResponse(container, listing, acceptFormat)
+	response := h.buildContainerResponse(container.(*domain.Container), listing, acceptFormat)
 
 	// Set LDP-specific headers
-	h.setLDPHeaders(ctx, container)
+	h.setLDPHeaders(ctx, container.(*domain.Container))
 	ctx.Response().Header().Set("Content-Type", h.getResponseContentType(acceptFormat))
-	ctx.Response().Header().Set("ETag", fmt.Sprintf(`"%s"`, h.generateContainerETag(container)))
+	ctx.Response().Header().Set("ETag", fmt.Sprintf(`"%s"`, h.generateContainerETag(container.(*domain.Container))))
 
 	return ctx.JSON(http.StatusOK, response)
 }
@@ -203,7 +203,7 @@ func (h *ContainerHandler) PutContainer(ctx khttp.Context) error {
 
 	// Set response headers
 	ctx.Response().Header().Set("Content-Type", "application/json")
-	ctx.Response().Header().Set("ETag", fmt.Sprintf(`"%s"`, h.generateContainerETag(container)))
+	ctx.Response().Header().Set("ETag", fmt.Sprintf(`"%s"`, h.generateContainerETag(container.(*domain.Container))))
 
 	// Build response
 	response := map[string]interface{}{
@@ -274,9 +274,9 @@ func (h *ContainerHandler) HeadContainer(ctx khttp.Context) error {
 	}
 
 	// Set response headers (same as GET but no body)
-	h.setLDPHeaders(ctx, container)
+	h.setLDPHeaders(ctx, container.(*domain.Container))
 	ctx.Response().Header().Set("Content-Type", h.getResponseContentType(acceptFormat))
-	ctx.Response().Header().Set("ETag", fmt.Sprintf(`"%s"`, h.generateContainerETag(container)))
+	ctx.Response().Header().Set("ETag", fmt.Sprintf(`"%s"`, h.generateContainerETag(container.(*domain.Container))))
 
 	ctx.Response().WriteHeader(http.StatusOK)
 	return nil
@@ -427,7 +427,7 @@ func (h *ContainerHandler) generateContainerETag(container *domain.Container) st
 }
 
 // generateResourceETag generates an ETag for a resource
-func (h *ContainerHandler) generateResourceETag(resource *domain.Resource) string {
+func (h *ContainerHandler) generateResourceETag(resource domain.Resource) string {
 	return fmt.Sprintf("%s-%d", resource.ID(), len(resource.GetData()))
 }
 

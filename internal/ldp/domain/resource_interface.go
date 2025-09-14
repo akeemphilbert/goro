@@ -9,6 +9,7 @@ import (
 
 // Resource defines the interface that all resource types must implement
 type Resource interface {
+	pericarpdomain.Entity
 	// Identity
 	ID() string
 
@@ -22,15 +23,7 @@ type Resource interface {
 	SetMetadata(key string, value interface{})
 
 	// Validation and Error handling
-	IsValid() bool
-	Errors() []error
 	Reset()
-	AddError(err error)
-
-	// Event sourcing
-	UncommittedEvents() []pericarpdomain.Event
-	AddEvent(event pericarpdomain.Event)
-	ClearEvents()
 
 	// Resource operations
 	Update(ctx context.Context, data []byte, contentType string)

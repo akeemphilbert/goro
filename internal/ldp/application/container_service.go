@@ -113,7 +113,7 @@ func NewContainerService(
 }
 
 // CreateContainer creates a new container with validation and event handling
-func (s *ContainerService) CreateContainer(ctx context.Context, id, parentID string, containerType domain.ContainerType) (*domain.Container, error) {
+func (s *ContainerService) CreateContainer(ctx context.Context, id, parentID string, containerType domain.ContainerType) (domain.ContainerResource, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -258,7 +258,7 @@ func (s *ContainerService) GetContainer(ctx context.Context, id string) (domain.
 }
 
 // UpdateContainer updates an existing container
-func (s *ContainerService) UpdateContainer(ctx context.Context, container *domain.Container) error {
+func (s *ContainerService) UpdateContainer(ctx context.Context, container domain.ContainerResource) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -303,7 +303,7 @@ func (s *ContainerService) UpdateContainer(ctx context.Context, container *domai
 	}
 
 	// Mark events as committed
-	container.ClearEvents()
+	container.(*domain.Container).ClearEvents()
 
 	// Log successful event processing
 	if len(envelopes) > 0 {
@@ -597,7 +597,7 @@ func (s *ContainerService) GetContainerPath(ctx context.Context, containerID str
 }
 
 // FindContainerByPath finds a container by its hierarchical path
-func (s *ContainerService) FindContainerByPath(ctx context.Context, path string) (*domain.Container, error) {
+func (s *ContainerService) FindContainerByPath(ctx context.Context, path string) (domain.ContainerResource, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -637,7 +637,7 @@ func (s *ContainerService) FindContainerByPath(ctx context.Context, path string)
 }
 
 // GetChildren returns all child containers of a container
-func (s *ContainerService) GetChildren(ctx context.Context, containerID string) ([]*domain.Container, error) {
+func (s *ContainerService) GetChildren(ctx context.Context, containerID string) ([]domain.ContainerResource, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -660,25 +660,12 @@ func (s *ContainerService) GetChildren(ctx context.Context, containerID string) 
 		).WithOperation("GetChildren").WithContext("containerID", containerID)
 	}
 
-	// Convert ContainerResource slice to Container slice
-	concreteChildren := make([]*domain.Container, len(children))
-	for i, child := range children {
-		concreteChild, ok := child.(*domain.Container)
-		if !ok {
-			return nil, domain.WrapStorageError(
-				fmt.Errorf("invalid container type in children"),
-				domain.ErrInvalidResource.Code,
-				"invalid container type in children",
-			).WithOperation("GetChildren").WithContext("containerID", containerID)
-		}
-		concreteChildren[i] = concreteChild
-	}
-
-	return concreteChildren, nil
+	// Return the ContainerResource slice as-is
+	return children, nil
 }
 
 // GetParent returns the parent container of a container
-func (s *ContainerService) GetParent(ctx context.Context, containerID string) (*domain.Container, error) {
+func (s *ContainerService) GetParent(ctx context.Context, containerID string) (domain.ContainerResource, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

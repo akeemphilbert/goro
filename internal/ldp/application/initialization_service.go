@@ -124,8 +124,7 @@ func (s *InitializationService) GetRootContainer(ctx context.Context) (domain.Co
 	}
 
 	s.logger.Debug("Root container retrieved successfully",
-		"id", rootContainer.ID(),
-		"childCount", len(rootContainer.GetChildren()))
+		"id", rootContainer.ID())
 
 	return rootContainer, nil
 }

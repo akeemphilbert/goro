@@ -1,7 +1,8 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 
 // createTestAccountMember creates a test account member in the database
 func createTestAccountMember(t *testing.T, db *gorm.DB, id, accountID, userID, roleID, invitedBy string, joinedAt time.Time) {
-	member := AccountMemberModel{
+	member := infrastructure.AccountMemberModel{
 		ID:        id,
 		AccountID: accountID,
 		UserID:    userID,
@@ -30,7 +31,7 @@ func createTestAccountMember(t *testing.T, db *gorm.DB, id, accountID, userID, r
 
 func TestGormAccountMemberRepository_GetByID(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountMemberRepository(db)
+	repo := infrastructure.NewGormAccountMemberRepository(db)
 	ctx := context.Background()
 
 	// Create test data
@@ -73,7 +74,7 @@ func TestGormAccountMemberRepository_GetByID(t *testing.T) {
 
 func TestGormAccountMemberRepository_GetByAccountAndUser(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountMemberRepository(db)
+	repo := infrastructure.NewGormAccountMemberRepository(db)
 	ctx := context.Background()
 
 	// Create test data
@@ -120,7 +121,7 @@ func TestGormAccountMemberRepository_GetByAccountAndUser(t *testing.T) {
 
 func TestGormAccountMemberRepository_ListByAccount(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountMemberRepository(db)
+	repo := infrastructure.NewGormAccountMemberRepository(db)
 	ctx := context.Background()
 
 	// Create test data
@@ -181,7 +182,7 @@ func TestGormAccountMemberRepository_ListByAccount(t *testing.T) {
 
 func TestGormAccountMemberRepository_ListByUser(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountMemberRepository(db)
+	repo := infrastructure.NewGormAccountMemberRepository(db)
 	ctx := context.Background()
 
 	// Create test data

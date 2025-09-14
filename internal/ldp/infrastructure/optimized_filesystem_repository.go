@@ -71,7 +71,7 @@ func NewOptimizedFileSystemRepositoryProvider() (domain.StreamingResourceReposit
 }
 
 // Store saves a resource with optimized indexing and cache invalidation
-func (r *OptimizedFileSystemRepository) Store(ctx context.Context, resource *domain.Resource) error {
+func (r *OptimizedFileSystemRepository) Store(ctx context.Context, resource domain.Resource) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -87,13 +87,15 @@ func (r *OptimizedFileSystemRepository) Store(ctx context.Context, resource *dom
 	}
 
 	// Update cache
-	r.cache.Put(ctx, resource)
+	if concreteResource, ok := resource.(*domain.BasicResource); ok {
+		r.cache.Put(ctx, concreteResource)
+	}
 
 	return nil
 }
 
 // Retrieve loads a resource with cache-first lookup and index optimization
-func (r *OptimizedFileSystemRepository) Retrieve(ctx context.Context, id string) (*domain.Resource, error) {
+func (r *OptimizedFileSystemRepository) Retrieve(ctx context.Context, id string) (domain.Resource, error) {
 	// Try cache first
 	if resource, found := r.cache.Get(ctx, id); found {
 		return resource, nil
@@ -117,8 +119,10 @@ func (r *OptimizedFileSystemRepository) Retrieve(ctx context.Context, id string)
 		return nil, err
 	}
 
-	// Cache the retrieved resource
-	r.cache.Put(ctx, resource)
+	// Cache the retrieved resource (type assert if cache needs concrete type)
+	if concreteResource, ok := resource.(*domain.BasicResource); ok {
+		r.cache.Put(ctx, concreteResource)
+	}
 
 	return resource, nil
 }
@@ -160,14 +164,14 @@ func (r *OptimizedFileSystemRepository) Exists(ctx context.Context, id string) (
 }
 
 // FindByContentType finds resources by content type using index
-func (r *OptimizedFileSystemRepository) FindByContentType(ctx context.Context, contentType string) ([]*domain.Resource, error) {
+func (r *OptimizedFileSystemRepository) FindByContentType(ctx context.Context, contentType string) ([]domain.Resource, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	// Use index for fast lookup
 	indexEntries := r.indexer.FindByContentType(contentType)
 
-	resources := make([]*domain.Resource, 0, len(indexEntries))
+	resources := make([]domain.Resource, 0, len(indexEntries))
 	for _, entry := range indexEntries {
 		// Try cache first
 		if resource, found := r.cache.Get(ctx, entry.ID); found {
@@ -192,14 +196,14 @@ func (r *OptimizedFileSystemRepository) FindByContentType(ctx context.Context, c
 }
 
 // FindByTag finds resources by tag using index
-func (r *OptimizedFileSystemRepository) FindByTag(ctx context.Context, key, value string) ([]*domain.Resource, error) {
+func (r *OptimizedFileSystemRepository) FindByTag(ctx context.Context, key, value string) ([]domain.Resource, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	// Use index for fast lookup
 	indexEntries := r.indexer.FindByTag(key, value)
 
-	resources := make([]*domain.Resource, 0, len(indexEntries))
+	resources := make([]domain.Resource, 0, len(indexEntries))
 	for _, entry := range indexEntries {
 		// Try cache first
 		if resource, found := r.cache.Get(ctx, entry.ID); found {
@@ -224,7 +228,7 @@ func (r *OptimizedFileSystemRepository) FindByTag(ctx context.Context, key, valu
 }
 
 // ListResources returns a paginated list of resources using index
-func (r *OptimizedFileSystemRepository) ListResources(ctx context.Context, offset, limit int) ([]*domain.Resource, error) {
+func (r *OptimizedFileSystemRepository) ListResources(ctx context.Context, offset, limit int) ([]domain.Resource, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -234,7 +238,7 @@ func (r *OptimizedFileSystemRepository) ListResources(ctx context.Context, offse
 	// Apply pagination
 	start := offset
 	if start >= len(allEntries) {
-		return []*domain.Resource{}, nil
+		return []domain.Resource{}, nil
 	}
 
 	end := start + limit
@@ -243,7 +247,7 @@ func (r *OptimizedFileSystemRepository) ListResources(ctx context.Context, offse
 	}
 
 	entries := allEntries[start:end]
-	resources := make([]*domain.Resource, 0, len(entries))
+	resources := make([]domain.Resource, 0, len(entries))
 
 	for _, entry := range entries {
 		// Try cache first
@@ -319,7 +323,9 @@ func (r *OptimizedFileSystemRepository) WarmupCache(ctx context.Context) error {
 			if err != nil {
 				continue
 			}
-			r.cache.Put(ctx, resource)
+			if concreteResource, ok := resource.(*domain.BasicResource); ok {
+				r.cache.Put(ctx, concreteResource)
+			}
 		}
 	}
 

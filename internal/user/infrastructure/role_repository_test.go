@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
@@ -8,11 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 )
 
 func TestGormRoleRepository_GetByID(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormRoleRepository(db)
+	repo := infrastructure.NewGormRoleRepository(db)
 	ctx := context.Background()
 
 	t.Run("should return system role when found", func(t *testing.T) {
@@ -141,7 +142,7 @@ func TestGormRoleRepository_GetByID(t *testing.T) {
 
 func TestGormRoleRepository_List(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormRoleRepository(db)
+	repo := infrastructure.NewGormRoleRepository(db)
 	ctx := context.Background()
 
 	t.Run("should return all roles", func(t *testing.T) {
@@ -183,7 +184,7 @@ func TestGormRoleRepository_List(t *testing.T) {
 
 func TestGormRoleRepository_GetSystemRoles(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormRoleRepository(db)
+	repo := infrastructure.NewGormRoleRepository(db)
 	ctx := context.Background()
 
 	t.Run("should return all system roles", func(t *testing.T) {

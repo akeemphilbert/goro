@@ -10,7 +10,7 @@ import (
 
 // CacheEntry represents a cached resource with metadata
 type CacheEntry struct {
-	Resource *domain.Resource
+	Resource domain.Resource
 	AccessAt time.Time
 	HitCount int64
 	Size     int
@@ -60,7 +60,7 @@ func NewResourceCache(config CacheConfig) *ResourceCache {
 }
 
 // Get retrieves a resource from the cache
-func (rc *ResourceCache) Get(ctx context.Context, id string) (*domain.Resource, bool) {
+func (rc *ResourceCache) Get(ctx context.Context, id string) (domain.Resource, bool) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
@@ -84,7 +84,7 @@ func (rc *ResourceCache) Get(ctx context.Context, id string) (*domain.Resource, 
 }
 
 // Put stores a resource in the cache
-func (rc *ResourceCache) Put(ctx context.Context, resource *domain.Resource) {
+func (rc *ResourceCache) Put(ctx context.Context, resource domain.Resource) {
 	if resource == nil {
 		return
 	}
@@ -256,7 +256,7 @@ func (rc *ResourceCache) cleanupExpired() {
 }
 
 // Warmup preloads frequently accessed resources into the cache
-func (rc *ResourceCache) Warmup(ctx context.Context, resources []*domain.Resource) {
+func (rc *ResourceCache) Warmup(ctx context.Context, resources []domain.Resource) {
 	for _, resource := range resources {
 		if resource != nil {
 			rc.Put(ctx, resource)

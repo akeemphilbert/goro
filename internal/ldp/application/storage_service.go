@@ -181,7 +181,7 @@ func (s *StorageService) DeleteResource(ctx context.Context, id string) error {
 	}
 
 	// Mark as deleted (this will add delete event)
-	resource.Delete()
+	resource.Delete(ctx)
 
 	// Create a new unit of work for this operation
 	unitOfWork := s.unitOfWorkFactory()
@@ -249,7 +249,7 @@ func (s *StorageService) StreamResource(ctx context.Context, id string, acceptFo
 		}
 
 		// Create temporary resource for conversion
-		tempResource := domain.NewResource(id, metadata.ContentType, data)
+		tempResource := domain.NewResource(ctx, id, metadata.ContentType, data)
 		convertedResource, err := s.convertResourceFormat(tempResource, acceptFormat)
 		if err != nil {
 			return nil, "", err

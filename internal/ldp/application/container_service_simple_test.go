@@ -152,7 +152,7 @@ func TestContainerService_DeleteContainer_Logic(t *testing.T) {
 
 	t.Run("container not empty", func(t *testing.T) {
 		container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
-		container.AddMember("member1") // Make container non-empty
+		container.AddMember(ctx, domain.NewResource(ctx, "member1", "text/plain", []byte("Hello, World!"))) // Make container non-empty
 
 		mockRepo.On("GetContainer", ctx, "test-container").Return(container, nil)
 
@@ -169,13 +169,15 @@ func TestContainerService_MembershipOperations_Logic(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("add resource - empty container ID", func(t *testing.T) {
-		err := service.AddResource(ctx, "", "resource1")
+		resource := domain.NewResource(ctx, "resource1", "text/plain", []byte("Hello, World!"))
+		err := service.AddResource(ctx, "", "resource1", resource)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "container ID cannot be empty")
 	})
 
 	t.Run("add resource - empty resource ID", func(t *testing.T) {
-		err := service.AddResource(ctx, "container1", "")
+		resource := domain.NewResource(ctx, "resource1", "text/plain", []byte("Hello, World!"))
+		err := service.AddResource(ctx, "container1", "", resource)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "resource ID cannot be empty")
 	})

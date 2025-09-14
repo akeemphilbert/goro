@@ -34,7 +34,7 @@ func NewResourceOrchestrationService(
 }
 
 // OrchestratResourceCreation handles the creation of a resource and all its related resources
-func (s *ResourceOrchestrationService) OrchestratResourceCreation(ctx context.Context, resource *domain.Resource, eventData *domain.ResourceEventData) error {
+func (s *ResourceOrchestrationService) OrchestratResourceCreation(ctx context.Context, resource domain.Resource, eventData *domain.ResourceEventData) error {
 	log.Context(ctx).Debugf("[OrchestratResourceCreation] Starting orchestration for resource: resourceID=%s, requiresOrchestration=%t",
 		resource.ID(), eventData.RequiresOrchestration)
 
@@ -45,7 +45,6 @@ func (s *ResourceOrchestrationService) OrchestratResourceCreation(ctx context.Co
 
 	// Create unit of work for transactional consistency
 	unitOfWork := s.unitOfWorkFactory()
-	defer unitOfWork.Complete()
 
 	// Process relationships and create linked resources
 	err := s.processResourceRelationships(ctx, resource, eventData, unitOfWork)
@@ -55,7 +54,7 @@ func (s *ResourceOrchestrationService) OrchestratResourceCreation(ctx context.Co
 	}
 
 	// Commit the unit of work
-	err = unitOfWork.Commit()
+	_, err = unitOfWork.Commit(ctx)
 	if err != nil {
 		log.Context(ctx).Debugf("[OrchestratResourceCreation] Unit of work commit failed: %v", err)
 		return fmt.Errorf("failed to commit orchestration changes: %w", err)
@@ -68,7 +67,7 @@ func (s *ResourceOrchestrationService) OrchestratResourceCreation(ctx context.Co
 }
 
 // processResourceRelationships processes the relationships for a resource
-func (s *ResourceOrchestrationService) processResourceRelationships(ctx context.Context, resource *domain.Resource, eventData *domain.ResourceEventData, unitOfWork pericarpdomain.UnitOfWork) error {
+func (s *ResourceOrchestrationService) processResourceRelationships(ctx context.Context, resource domain.Resource, eventData *domain.ResourceEventData, unitOfWork pericarpdomain.UnitOfWork) error {
 	log.Context(ctx).Debugf("[processResourceRelationships] Processing %d relationships for resource: %s",
 		len(eventData.Relationships), resource.ID())
 
@@ -115,7 +114,6 @@ func (s *ResourceOrchestrationService) processResourceRelationships(ctx context.
 			events := linkedResource.UncommittedEvents()
 			if len(events) > 0 {
 				unitOfWork.RegisterEvents(events)
-				linkedResource.ClearEvents()
 			}
 
 			// Emit resource linked event
@@ -124,7 +122,7 @@ func (s *ResourceOrchestrationService) processResourceRelationships(ctx context.
 				"relationship":     relationship,
 				"createdAt":        time.Now(),
 			})
-			unitOfWork.RegisterEvents([]*domain.EntityEvent{linkedEvent})
+			unitOfWork.RegisterEvents([]pericarpdomain.Event{linkedEvent})
 
 			log.Context(ctx).Infof("Created and linked resource: %s -> %s", resource.ID(), linkedResourceID)
 		} else {
@@ -137,7 +135,7 @@ func (s *ResourceOrchestrationService) processResourceRelationships(ctx context.
 				"alreadyExists":    true,
 				"linkedAt":         time.Now(),
 			})
-			unitOfWork.RegisterEvents([]*domain.EntityEvent{linkedEvent})
+			unitOfWork.RegisterEvents([]pericarpdomain.Event{linkedEvent})
 		}
 	}
 
@@ -145,7 +143,7 @@ func (s *ResourceOrchestrationService) processResourceRelationships(ctx context.
 }
 
 // OrchestratResourceUpdate handles the update of a resource and its relationships
-func (s *ResourceOrchestrationService) OrchestratResourceUpdate(ctx context.Context, resource *domain.Resource, eventData *domain.ResourceEventData) error {
+func (s *ResourceOrchestrationService) OrchestratResourceUpdate(ctx context.Context, resource domain.Resource, eventData *domain.ResourceEventData) error {
 	log.Context(ctx).Debugf("[OrchestratResourceUpdate] Starting update orchestration for resource: resourceID=%s", resource.ID())
 
 	if !eventData.RequiresOrchestration {
@@ -155,7 +153,6 @@ func (s *ResourceOrchestrationService) OrchestratResourceUpdate(ctx context.Cont
 
 	// Create unit of work for transactional consistency
 	unitOfWork := s.unitOfWorkFactory()
-	defer unitOfWork.Complete()
 
 	// Get existing relationships for comparison
 	existingRelatedResources, err := s.relationshipService.GetRelatedResources(ctx, resource.ID())
@@ -191,12 +188,12 @@ func (s *ResourceOrchestrationService) OrchestratResourceUpdate(ctx context.Cont
 				"removedLinkTo": existingResourceID,
 				"updatedAt":     time.Now(),
 			})
-			unitOfWork.RegisterEvents([]*domain.EntityEvent{relationshipUpdatedEvent})
+			unitOfWork.RegisterEvents([]pericarpdomain.Event{relationshipUpdatedEvent})
 		}
 	}
 
 	// Commit the unit of work
-	err = unitOfWork.Commit()
+	_, err = unitOfWork.Commit(ctx)
 	if err != nil {
 		log.Context(ctx).Debugf("[OrchestratResourceUpdate] Unit of work commit failed: %v", err)
 		return fmt.Errorf("failed to commit update orchestration changes: %w", err)
@@ -233,7 +230,6 @@ func (s *ResourceOrchestrationService) OrchestratResourceDeletion(ctx context.Co
 
 	// Create unit of work for transactional consistency
 	unitOfWork := s.unitOfWorkFactory()
-	defer unitOfWork.Complete()
 
 	// Get related resources that might need cleanup
 	relatedResources, err := s.relationshipService.GetRelatedResources(ctx, resourceID)
@@ -251,11 +247,11 @@ func (s *ResourceOrchestrationService) OrchestratResourceDeletion(ctx context.Co
 			"updatedAt":       time.Now(),
 			"reason":          "source_resource_deleted",
 		})
-		unitOfWork.RegisterEvents([]*domain.EntityEvent{relationshipUpdatedEvent})
+		unitOfWork.RegisterEvents([]pericarpdomain.Event{relationshipUpdatedEvent})
 	}
 
 	// Commit the unit of work
-	err = unitOfWork.Commit()
+	_, err = unitOfWork.Commit(ctx)
 	if err != nil {
 		log.Context(ctx).Debugf("[OrchestratResourceDeletion] Unit of work commit failed: %v", err)
 		return fmt.Errorf("failed to commit deletion orchestration changes: %w", err)

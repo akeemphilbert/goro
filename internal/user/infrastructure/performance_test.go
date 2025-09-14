@@ -1,20 +1,20 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/akeemphilbert/goro/internal/user/domain"
+	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	"github.com/akeemphilbert/goro/internal/user/domain"
-	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
 
 // Performance targets that should initially fail without optimizations
@@ -43,8 +43,8 @@ func TestDatabaseQueryPerformance(t *testing.T) {
 	seedPerformanceTestData(t, db, 1000) // 1000 users for performance testing
 
 	// Use optimized repository with caching
-	cache := NewInMemoryCache(5 * time.Minute)
-	userRepo := NewOptimizedGormUserRepository(db, cache)
+	cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+	userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 	ctx := context.Background()
 
 	t.Run("UserLookupPerformance", func(t *testing.T) {
@@ -128,7 +128,7 @@ func TestMembershipQueryPerformance(t *testing.T) {
 	seedMembershipTestData(t, db, 100, 50) // 100 accounts, 50 members each
 
 	// Use optimized membership repository
-	memberRepo := NewOptimizedGormAccountMemberRepository(db)
+	memberRepo := infrastructure.NewOptimizedGormAccountMemberRepository(db)
 	ctx := context.Background()
 
 	t.Run("AccountMembershipQueryPerformance", func(t *testing.T) {
@@ -196,8 +196,8 @@ func TestCachingEffectiveness(t *testing.T) {
 	// This test will fail initially because no caching is implemented
 	t.Run("UserCachePerformance", func(t *testing.T) {
 		// Use optimized repository with caching
-		cache := NewInMemoryCache(5 * time.Minute)
-		userRepo := NewOptimizedGormUserRepository(db, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 		ctx := context.Background()
 		userID := "perf-user-50"
 
@@ -229,9 +229,9 @@ func TestCachingEffectiveness(t *testing.T) {
 
 	t.Run("RoleCachePerformance", func(t *testing.T) {
 		// Use cached role repository
-		cache := NewInMemoryCache(5 * time.Minute)
-		baseRoleRepo := NewGormRoleRepository(db)
-		roleRepo := NewCachedRoleRepository(baseRoleRepo, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		baseRoleRepo := infrastructure.NewGormRoleRepository(db)
+		roleRepo := infrastructure.NewCachedRoleRepository(baseRoleRepo, cache)
 		ctx := context.Background()
 
 		// Test role caching (roles are frequently accessed)
@@ -280,8 +280,8 @@ func TestConcurrentOperationPerformance(t *testing.T) {
 
 	t.Run("ConcurrentUserLookups", func(t *testing.T) {
 		// Use optimized repository with caching
-		cache := NewInMemoryCache(5 * time.Minute)
-		userRepo := NewOptimizedGormUserRepository(db, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 		ctx := context.Background()
 
 		var wg sync.WaitGroup
@@ -339,7 +339,7 @@ func TestConcurrentOperationPerformance(t *testing.T) {
 		// Seed membership data
 		seedMembershipTestData(t, db, 50, 20)
 
-		memberRepo := NewGormAccountMemberRepository(db)
+		memberRepo := infrastructure.NewGormAccountMemberRepository(db)
 		ctx := context.Background()
 
 		var wg sync.WaitGroup
@@ -388,7 +388,7 @@ func TestLoadAndScalabilityPerformance(t *testing.T) {
 	defer cleanupPerformanceTestDB(db)
 
 	t.Run("ConcurrentUserRegistrations", func(t *testing.T) {
-		userWriteRepo := NewGormUserWriteRepository(db)
+		userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
 		ctx := context.Background()
 
 		var wg sync.WaitGroup
@@ -451,8 +451,8 @@ func TestLoadAndScalabilityPerformance(t *testing.T) {
 		seedPerformanceTestData(t, db, 5000) // 5000 users for scalability testing
 
 		// Use optimized repository with caching
-		cache := NewInMemoryCache(5 * time.Minute)
-		userRepo := NewOptimizedGormUserRepository(db, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 		ctx := context.Background()
 
 		// Test pagination performance with large dataset
@@ -480,7 +480,7 @@ func TestLoadAndScalabilityPerformance(t *testing.T) {
 		// Seed complex membership data
 		seedMembershipTestData(t, db, 200, 100) // 200 accounts, 100 members each
 
-		memberRepo := NewGormAccountMemberRepository(db)
+		memberRepo := infrastructure.NewGormAccountMemberRepository(db)
 		ctx := context.Background()
 
 		// Test querying memberships for accounts with many members
@@ -510,7 +510,7 @@ func setupPerformanceTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 
 	// Migrate models
-	err = MigrateUserModels(db)
+	err = infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
 
 	return db
@@ -522,7 +522,7 @@ func cleanupPerformanceTestDB(db *gorm.DB) {
 
 func seedPerformanceTestData(t *testing.T, db *gorm.DB, userCount int) {
 	// Seed system roles first
-	roles := []RoleModel{
+	roles := []infrastructure.RoleModel{
 		{ID: "owner", Name: "Owner", Description: "Full access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		{ID: "admin", Name: "Admin", Description: "Admin access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		{ID: "member", Name: "Member", Description: "Member access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
@@ -535,9 +535,9 @@ func seedPerformanceTestData(t *testing.T, db *gorm.DB, userCount int) {
 	}
 
 	// Seed users
-	users := make([]UserModel, userCount)
+	users := make([]infrastructure.UserModel, userCount)
 	for i := 0; i < userCount; i++ {
-		users[i] = UserModel{
+		users[i] = infrastructure.UserModel{
 			ID:        fmt.Sprintf("perf-user-%d", i),
 			WebID:     fmt.Sprintf("https://example.com/profile/perf-user-%d", i),
 			Email:     fmt.Sprintf("perf-user-%d@example.com", i),
@@ -559,9 +559,9 @@ func seedMembershipTestData(t *testing.T, db *gorm.DB, accountCount, membersPerA
 	seedPerformanceTestData(t, db, totalUsers)
 
 	// Seed accounts
-	accounts := make([]AccountModel, accountCount)
+	accounts := make([]infrastructure.AccountModel, accountCount)
 	for i := 0; i < accountCount; i++ {
-		accounts[i] = AccountModel{
+		accounts[i] = infrastructure.AccountModel{
 			ID:          fmt.Sprintf("perf-account-%d", i),
 			OwnerID:     fmt.Sprintf("perf-user-%d", i%100), // Cycle through users as owners
 			Name:        fmt.Sprintf("Performance Account %d", i),
@@ -576,7 +576,7 @@ func seedMembershipTestData(t *testing.T, db *gorm.DB, accountCount, membersPerA
 	require.NoError(t, err)
 
 	// Seed account memberships
-	var members []AccountMemberModel
+	var members []infrastructure.AccountMemberModel
 	memberID := 0
 
 	for accountIndex := 0; accountIndex < accountCount; accountIndex++ {
@@ -584,7 +584,7 @@ func seedMembershipTestData(t *testing.T, db *gorm.DB, accountCount, membersPerA
 			// Create overlapping memberships so users belong to multiple accounts
 			userIndex := memberIndex % totalUsers
 
-			member := AccountMemberModel{
+			member := infrastructure.AccountMemberModel{
 				ID:        fmt.Sprintf("perf-member-%d", memberID),
 				AccountID: fmt.Sprintf("perf-account-%d", accountIndex),
 				UserID:    fmt.Sprintf("perf-user-%d", userIndex),

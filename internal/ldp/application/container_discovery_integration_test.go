@@ -29,17 +29,17 @@ func TestContainerDiscovery_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a hierarchy: root -> documents -> images
-	rootContainer := domain.NewContainer("root", "", domain.BasicContainer)
+	rootContainer := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 	rootContainer.SetTitle("Root Container")
 	err = repo.CreateContainer(ctx, rootContainer)
 	require.NoError(t, err)
 
-	documentsContainer := domain.NewContainer("documents", "root", domain.BasicContainer)
+	documentsContainer := domain.NewContainer(context.Background(), "documents", "root", domain.BasicContainer)
 	documentsContainer.SetTitle("Documents")
 	err = repo.CreateContainer(ctx, documentsContainer)
 	require.NoError(t, err)
 
-	imagesContainer := domain.NewContainer("images", "documents", domain.BasicContainer)
+	imagesContainer := domain.NewContainer(context.Background(), "images", "documents", domain.BasicContainer)
 	imagesContainer.SetTitle("Images")
 	err = repo.CreateContainer(ctx, imagesContainer)
 	require.NoError(t, err)

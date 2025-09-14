@@ -426,8 +426,8 @@ func (r *GORMContainerRepository) FindByPath(ctx context.Context, path string) (
 
 func (r *GORMContainerRepository) containerDomainToModel(container domain.ContainerResource) *ContainerModel {
 	var parentID *string
-	if container.GetParentID() != "" {
-		parentID = &container.GetParentID()
+	if pid := container.GetParentID(); pid != "" {
+		parentID = &pid
 	}
 
 	return &ContainerModel{

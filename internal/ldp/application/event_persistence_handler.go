@@ -83,7 +83,7 @@ func (h *EventPersistenceHandler) handleEntityEvent(ctx context.Context, event *
 // handleGenericEvent handles non-entity events
 func (h *EventPersistenceHandler) handleGenericEvent(ctx context.Context, event pericarpdomain.Event) error {
 	// For now, just log generic events
-	fmt.Printf("Generic event received: Type=%T, ID=%s\n", event, event.GetID())
+	fmt.Printf("Generic event received: Type=%T, ID=%s\n", event, event.AggregateID())
 
 	// Future: Implement generic event persistence
 	return nil
@@ -117,7 +117,7 @@ func (h *EventPersistenceHandler) persistEventToFileSystem(event *pericarpdomain
 		// Additional metadata for activity stream compatibility
 		"version":     "1.0",
 		"source":      "ldp-server",
-		"dataVersion": event.GetVersion(), // If available
+		"dataVersion": event.SequenceNo(), // If available
 	}
 
 	// Marshal event to JSON (single line for easier parsing)
@@ -197,7 +197,7 @@ func (h *EventPersistenceHandler) convertToActivityStreamFormat(event *pericarpd
 			},
 		},
 		"type":      activityType,
-		"id":        fmt.Sprintf("urn:event:%s", event.GetID()),
+		"id":        fmt.Sprintf("urn:event:%s", event.AggregateID()),
 		"published": time.Now().Format(time.RFC3339),
 		"actor": map[string]interface{}{
 			"type": "Service",

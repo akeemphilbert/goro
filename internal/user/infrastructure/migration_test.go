@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"encoding/json"
@@ -11,13 +11,14 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 )
 
 func TestMigrateUserModels(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Test that MigrateUserModels function exists and works
-	err := MigrateUserModels(db)
+	err := infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
 
 	// Verify that all tables were created
@@ -30,7 +31,7 @@ func TestMigrateUserModels(t *testing.T) {
 	}
 
 	// Test that migration is idempotent (can be run multiple times)
-	err = MigrateUserModels(db)
+	err = infrastructure.MigrateUserModels(db)
 	assert.NoError(t, err, "Migration should be idempotent")
 }
 
@@ -38,11 +39,11 @@ func TestSeedSystemRoles(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Migrate models first
-	err := MigrateUserModels(db)
+	err := infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
 
 	// Test that SeedSystemRoles function exists and works
-	err = SeedSystemRoles(db)
+	err = infrastructure.SeedSystemRoles(db)
 	require.NoError(t, err)
 
 	// Verify that system roles were created
@@ -58,7 +59,7 @@ func TestSeedSystemRoles(t *testing.T) {
 	}
 
 	for _, expectedRole := range expectedRoles {
-		var role RoleModel
+		var role infrastructure.RoleModel
 		err := db.First(&role, "id = ?", expectedRole.ID).Error
 		require.NoError(t, err, "System role %s should exist", expectedRole.ID)
 		assert.Equal(t, expectedRole.Name, role.Name)
@@ -67,12 +68,12 @@ func TestSeedSystemRoles(t *testing.T) {
 	}
 
 	// Test that seeding is idempotent (can be run multiple times)
-	err = SeedSystemRoles(db)
+	err = infrastructure.SeedSystemRoles(db)
 	assert.NoError(t, err, "Seeding should be idempotent")
 
 	// Verify no duplicate roles were created
 	var roleCount int64
-	err = db.Model(&RoleModel{}).Count(&roleCount).Error
+	err = db.Model(&infrastructure.RoleModel{}).Count(&roleCount).Error
 	require.NoError(t, err)
 	assert.Equal(t, int64(4), roleCount, "Should have exactly 4 system roles")
 }
@@ -81,13 +82,13 @@ func TestSystemRolePermissions(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Migrate and seed
-	err := MigrateUserModels(db)
+	err := infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
-	err = SeedSystemRoles(db)
+	err = infrastructure.SeedSystemRoles(db)
 	require.NoError(t, err)
 
 	// Test Owner role permissions
-	var ownerRole RoleModel
+	var ownerRole infrastructure.RoleModel
 	err = db.First(&ownerRole, "id = ?", "owner").Error
 	require.NoError(t, err)
 
@@ -95,7 +96,7 @@ func TestSystemRolePermissions(t *testing.T) {
 	assert.Contains(t, ownerPermissions, domain.Permission{Resource: "*", Action: "*", Scope: "account"})
 
 	// Test Admin role permissions
-	var adminRole RoleModel
+	var adminRole infrastructure.RoleModel
 	err = db.First(&adminRole, "id = ?", "admin").Error
 	require.NoError(t, err)
 
@@ -111,7 +112,7 @@ func TestSystemRolePermissions(t *testing.T) {
 	}
 
 	// Test Member role permissions
-	var memberRole RoleModel
+	var memberRole infrastructure.RoleModel
 	err = db.First(&memberRole, "id = ?", "member").Error
 	require.NoError(t, err)
 
@@ -127,7 +128,7 @@ func TestSystemRolePermissions(t *testing.T) {
 	}
 
 	// Test Viewer role permissions
-	var viewerRole RoleModel
+	var viewerRole infrastructure.RoleModel
 	err = db.First(&viewerRole, "id = ?", "viewer").Error
 	require.NoError(t, err)
 
@@ -148,12 +149,12 @@ func TestWireProviderIntegration(t *testing.T) {
 	// Test that we can create a provider function that accepts a GORM DB
 	provider := func(db *gorm.DB) error {
 		// Ensure models are migrated
-		if err := MigrateUserModels(db); err != nil {
+		if err := infrastructure.MigrateUserModels(db); err != nil {
 			return err
 		}
 
 		// Seed system roles
-		if err := SeedSystemRoles(db); err != nil {
+		if err := infrastructure.SeedSystemRoles(db); err != nil {
 			return err
 		}
 
@@ -179,21 +180,21 @@ func TestDatabaseIntegrationWithExistingSetup(t *testing.T) {
 
 	// Test that user models can be migrated alongside existing models
 	// First migrate user models
-	err = MigrateUserModels(db)
+	err = infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
 
 	// Then seed system roles
-	err = SeedSystemRoles(db)
+	err = infrastructure.SeedSystemRoles(db)
 	require.NoError(t, err)
 
 	// Verify everything works together
 	var roleCount int64
-	err = db.Model(&RoleModel{}).Count(&roleCount).Error
+	err = db.Model(&infrastructure.RoleModel{}).Count(&roleCount).Error
 	require.NoError(t, err)
 	assert.Equal(t, int64(4), roleCount)
 
 	// Test that we can create users, accounts, etc.
-	user := &UserModel{
+	user := &infrastructure.UserModel{
 		ID:     "test-user",
 		WebID:  "https://example.com/user/test",
 		Email:  "test@example.com",
@@ -203,7 +204,7 @@ func TestDatabaseIntegrationWithExistingSetup(t *testing.T) {
 	err = db.Create(user).Error
 	require.NoError(t, err)
 
-	account := &AccountModel{
+	account := &infrastructure.AccountModel{
 		ID:       "test-account",
 		OwnerID:  "test-user",
 		Name:     "Test Account",

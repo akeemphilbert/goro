@@ -69,7 +69,7 @@ func TestFilteringByMemberType(t *testing.T) {
 
 	// Create parent container
 	parentID := "parent-container"
-	_, err := service.CreateContainer(ctx, parentID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, parentID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add child containers
@@ -77,14 +77,14 @@ func TestFilteringByMemberType(t *testing.T) {
 		childID := fmt.Sprintf("child-container-%d", i)
 		_, err := service.CreateContainer(ctx, childID, parentID, domain.BasicContainer)
 		require.NoError(t, err)
-		err = service.AddResource(ctx, parentID, childID)
+		err = service.AddResource(ctx, parentID, childID, container)
 		require.NoError(t, err)
 	}
 
 	// Add regular resources
 	for i := 0; i < 10; i++ {
 		resourceID := fmt.Sprintf("resource-%d", i)
-		err := service.AddResource(ctx, parentID, resourceID)
+		err := service.AddResource(ctx, parentID, resourceID, container)
 		require.NoError(t, err)
 	}
 
@@ -115,7 +115,7 @@ func TestFilteringByContentType(t *testing.T) {
 
 	// Create container
 	containerID := "content-type-test"
-	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add resources with different content types (simulated)
@@ -130,7 +130,7 @@ func TestFilteringByContentType(t *testing.T) {
 	for _, contentType := range contentTypes {
 		for j := 0; j < 3; j++ {
 			resourceID := fmt.Sprintf("%s-resource-%d", strings.ReplaceAll(contentType, "/", "-"), j)
-			err := service.AddResource(ctx, containerID, resourceID)
+			err := service.AddResource(ctx, containerID, resourceID, container)
 			require.NoError(t, err)
 		}
 	}
@@ -156,7 +156,7 @@ func TestFilteringByNamePattern(t *testing.T) {
 
 	// Create container
 	containerID := "name-pattern-test"
-	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add resources with different naming patterns
@@ -173,7 +173,7 @@ func TestFilteringByNamePattern(t *testing.T) {
 	for _, pattern := range patterns {
 		for i := 0; i < pattern.count; i++ {
 			resourceID := fmt.Sprintf("%s-%03d", pattern.prefix, i)
-			err := service.AddResource(ctx, containerID, resourceID)
+			err := service.AddResource(ctx, containerID, resourceID, container)
 			require.NoError(t, err)
 		}
 	}
@@ -210,14 +210,14 @@ func TestFilteringByDateRange(t *testing.T) {
 
 	// Create container
 	containerID := "date-range-test"
-	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add resources (in real implementation, we'd control creation timestamps)
 	resourceCount := 20
 	for i := 0; i < resourceCount; i++ {
 		resourceID := fmt.Sprintf("resource-%03d", i)
-		err := service.AddResource(ctx, containerID, resourceID)
+		err := service.AddResource(ctx, containerID, resourceID, container)
 		require.NoError(t, err)
 
 		// In a real implementation, we might add a small delay or mock timestamps
@@ -245,7 +245,7 @@ func TestSortingByName(t *testing.T) {
 
 	// Create container
 	containerID := "name-sort-test"
-	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add resources with names that should sort differently
@@ -258,7 +258,7 @@ func TestSortingByName(t *testing.T) {
 	}
 
 	for _, name := range names {
-		err := service.AddResource(ctx, containerID, name)
+		err := service.AddResource(ctx, containerID, name, container)
 		require.NoError(t, err)
 	}
 
@@ -293,7 +293,7 @@ func TestSortingByCreationDate(t *testing.T) {
 
 	// Create container
 	containerID := "date-sort-test"
-	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add resources with controlled timing
@@ -303,7 +303,7 @@ func TestSortingByCreationDate(t *testing.T) {
 	for i := 0; i < resourceCount; i++ {
 		resourceID := fmt.Sprintf("resource-%03d", i)
 		addedResources[i] = resourceID
-		err := service.AddResource(ctx, containerID, resourceID)
+		err := service.AddResource(ctx, containerID, resourceID, container)
 		require.NoError(t, err)
 
 		// Small delay to ensure different timestamps
@@ -334,7 +334,7 @@ func TestSortingBySize(t *testing.T) {
 
 	// Create container
 	containerID := "size-sort-test"
-	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add resources (size would be tracked in enhanced implementation)
@@ -342,7 +342,7 @@ func TestSortingBySize(t *testing.T) {
 
 	for i, size := range sizes {
 		resourceID := fmt.Sprintf("resource-%d-bytes-%d", size, i)
-		err := service.AddResource(ctx, containerID, resourceID)
+		err := service.AddResource(ctx, containerID, resourceID, container)
 		require.NoError(t, err)
 	}
 
@@ -367,21 +367,21 @@ func TestCombinedFilteringAndSorting(t *testing.T) {
 
 	// Create container
 	containerID := "combined-test"
-	_, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
+	container, err := service.CreateContainer(ctx, containerID, "", domain.BasicContainer)
 	require.NoError(t, err)
 
 	// Add mixed content
 	// Documents
 	for i := 0; i < 5; i++ {
 		resourceID := fmt.Sprintf("document-%03d.txt", i)
-		err := service.AddResource(ctx, containerID, resourceID)
+		err := service.AddResource(ctx, containerID, resourceID, container)
 		require.NoError(t, err)
 	}
 
 	// Images
 	for i := 0; i < 3; i++ {
 		resourceID := fmt.Sprintf("image-%03d.jpg", i)
-		err := service.AddResource(ctx, containerID, resourceID)
+		err := service.AddResource(ctx, containerID, resourceID, container)
 		require.NoError(t, err)
 	}
 
@@ -390,7 +390,7 @@ func TestCombinedFilteringAndSorting(t *testing.T) {
 		childID := fmt.Sprintf("subfolder-%d", i)
 		_, err := service.CreateContainer(ctx, childID, containerID, domain.BasicContainer)
 		require.NoError(t, err)
-		err = service.AddResource(ctx, containerID, childID)
+		err = service.AddResource(ctx, containerID, childID, container)
 		require.NoError(t, err)
 	}
 

@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
 
@@ -37,7 +38,7 @@ func TestUserRegistrationThroughput(t *testing.T) {
 	db := setupScalabilityDB(t)
 	defer cleanupPerformanceTestDB(db)
 
-	userWriteRepo := NewGormUserWriteRepository(db)
+	userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
 
 	t.Run("HighThroughputRegistrations", func(t *testing.T) {
 		var wg sync.WaitGroup
@@ -125,8 +126,8 @@ func TestUserLookupThroughput(t *testing.T) {
 	// Seed data for lookups
 	seedScalabilityTestData(t, db, 1000)
 
-	cache := NewInMemoryCache(5 * time.Minute)
-	userRepo := NewOptimizedGormUserRepository(db, cache)
+	cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+	userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 
 	t.Run("HighThroughputLookups", func(t *testing.T) {
 		var wg sync.WaitGroup
@@ -208,8 +209,8 @@ func TestLargeDatasetScalability(t *testing.T) {
 		// Test with increasingly large datasets
 		dataSizes := []int{1000, 5000, 10000, 25000}
 
-		cache := NewInMemoryCache(5 * time.Minute)
-		userRepo := NewOptimizedGormUserRepository(db, cache)
+		cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+		userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 		ctx := context.Background()
 
 		for _, size := range dataSizes {
@@ -269,7 +270,7 @@ func TestLargeDatasetScalability(t *testing.T) {
 			{500, 200},
 		}
 
-		memberRepo := NewOptimizedGormAccountMemberRepository(db)
+		memberRepo := infrastructure.NewOptimizedGormAccountMemberRepository(db)
 		ctx := context.Background()
 
 		for _, size := range membershipSizes {
@@ -306,9 +307,9 @@ func TestConcurrentUserLoad(t *testing.T) {
 	// Seed initial data
 	seedScalabilityTestData(t, db, 500)
 
-	cache := NewInMemoryCache(5 * time.Minute)
-	userRepo := NewOptimizedGormUserRepository(db, cache)
-	userWriteRepo := NewGormUserWriteRepository(db)
+	cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+	userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
+	userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
 
 	t.Run("MixedWorkload", func(t *testing.T) {
 		var wg sync.WaitGroup
@@ -424,8 +425,8 @@ func TestDatabaseConnectionScaling(t *testing.T) {
 	// Seed data
 	seedScalabilityTestData(t, db, 200)
 
-	cache := NewInMemoryCache(5 * time.Minute)
-	userRepo := NewOptimizedGormUserRepository(db, cache)
+	cache := infrastructure.NewInMemoryCache(5 * time.Minute)
+	userRepo := infrastructure.NewOptimizedGormUserRepository(db, cache)
 
 	t.Run("ConnectionPoolStress", func(t *testing.T) {
 		var wg sync.WaitGroup
@@ -531,7 +532,7 @@ func clearTestData(t *testing.T, db *gorm.DB) {
 
 func seedScalabilityTestData(t *testing.T, db *gorm.DB, userCount int) {
 	// Seed system roles first
-	roles := []RoleModel{
+	roles := []infrastructure.RoleModel{
 		{ID: "owner", Name: "Owner", Description: "Full access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		{ID: "admin", Name: "Admin", Description: "Admin access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
 		{ID: "member", Name: "Member", Description: "Member access", Permissions: `[]`, CreatedAt: time.Now(), UpdatedAt: time.Now()},
@@ -551,9 +552,9 @@ func seedScalabilityTestData(t *testing.T, db *gorm.DB, userCount int) {
 			end = userCount
 		}
 
-		users := make([]UserModel, end-i)
+		users := make([]infrastructure.UserModel, end-i)
 		for j := i; j < end; j++ {
-			users[j-i] = UserModel{
+			users[j-i] = infrastructure.UserModel{
 				ID:        fmt.Sprintf("scale-user-%d", j),
 				WebID:     fmt.Sprintf("https://example.com/profile/scale-user-%d", j),
 				Email:     fmt.Sprintf("scale-user-%d@example.com", j),
@@ -575,9 +576,9 @@ func seedMembershipScalabilityData(t *testing.T, db *gorm.DB, accountCount, memb
 	seedScalabilityTestData(t, db, totalUsers)
 
 	// Seed accounts
-	accounts := make([]AccountModel, accountCount)
+	accounts := make([]infrastructure.AccountModel, accountCount)
 	for i := 0; i < accountCount; i++ {
-		accounts[i] = AccountModel{
+		accounts[i] = infrastructure.AccountModel{
 			ID:          fmt.Sprintf("scale-account-%d", i),
 			OwnerID:     fmt.Sprintf("scale-user-%d", i),
 			Name:        fmt.Sprintf("Scale Account %d", i),
@@ -592,14 +593,14 @@ func seedMembershipScalabilityData(t *testing.T, db *gorm.DB, accountCount, memb
 	require.NoError(t, err)
 
 	// Seed memberships
-	var members []AccountMemberModel
+	var members []infrastructure.AccountMemberModel
 	memberID := 0
 
 	for accountIndex := 0; accountIndex < accountCount; accountIndex++ {
 		for memberIndex := 0; memberIndex < membersPerAccount; memberIndex++ {
 			userIndex := (accountIndex + memberIndex) % totalUsers
 
-			member := AccountMemberModel{
+			member := infrastructure.AccountMemberModel{
 				ID:        fmt.Sprintf("scale-member-%d", memberID),
 				AccountID: fmt.Sprintf("scale-account-%d", accountIndex),
 				UserID:    fmt.Sprintf("scale-user-%d", userIndex),

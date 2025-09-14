@@ -1,34 +1,34 @@
 # Implementation Plan
 
-- [-] 1. Set up shared email infrastructure
+- [x] 1. Set up shared email infrastructure
   - Create email service interface and implementations in `internal/infrastructure/email/`
   - Implement SMTP and AWS SES providers with configuration support
   - Add email template system for transactional emails
   - Write unit tests for email service implementations
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 2. Create authentication domain layer
-  - [ ] 2.1 Define core authentication entities
+- [x] 2. Create authentication domain layer
+  - [x] 2.1 Define core authentication entities
     - Implement Session, PasswordCredential, and PasswordResetToken domain entities
     - Add AuthenticationMethod enum and validation logic
     - Create domain-specific error types for authentication failures
     - _Requirements: 1.1, 2.1, 3.1, 3.2, 3.3_
 
-  - [ ] 2.2 Define repository interfaces
+  - [x] 2.2 Define repository interfaces
     - Create SessionRepository interface for session management
     - Create PasswordRepository interface for credential storage
     - Create PasswordResetRepository interface for reset token management
     - Create ExternalIdentityRepository interface for OAuth identity linking
     - _Requirements: 2.2, 2.3, 5.3, 6.3_
 
-- [ ] 3. Implement GORM data models and repositories
-  - [ ] 3.1 Create GORM models for authentication data
+- [x] 3. Implement GORM data models and repositories
+  - [x] 3.1 Create GORM models for authentication data
     - Implement SessionModel, PasswordCredentialModel, and PasswordResetTokenModel
     - Add proper GORM tags, indexes, and constraints
     - Create ExternalIdentityModel with unique constraints
     - _Requirements: 2.1, 5.3, 6.3, 7.2_
 
-  - [ ] 3.2 Implement GORM repository implementations
+  - [x] 3.2 Implement GORM repository implementations
     - Create GormSessionRepository with CRUD operations
     - Create GormPasswordRepository with secure credential storage
     - Create GormPasswordResetRepository with expiration handling
@@ -36,30 +36,30 @@
     - Write comprehensive unit tests for all repository implementations
     - _Requirements: 2.2, 2.3, 2.4, 5.3, 6.2, 6.3_
 
-- [ ] 4. Build password management infrastructure
-  - [ ] 4.1 Implement password security components
+- [x] 4. Build password management infrastructure
+  - [x] 4.1 Implement password security components
     - Create BCryptPasswordHasher with configurable cost
     - Implement SecureTokenGenerator for reset tokens
     - Add password strength validation logic
     - Write unit tests for password hashing and validation
     - _Requirements: 7.1, 7.2_
 
-  - [ ] 4.2 Create password management service
+  - [x] 4.2 Create password management service
     - Implement PasswordService with set, change, and reset operations
     - Add password reset token generation and validation
     - Integrate with email service for reset notifications
     - Write unit tests for all password operations
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 5. Implement OAuth and WebID-OIDC providers
-  - [ ] 5.1 Create OAuth provider implementations
+- [x] 5. Implement OAuth and WebID-OIDC providers
+  - [x] 5.1 Create OAuth provider implementations
     - Implement GoogleOAuthProvider with OAuth2 flow
     - Implement GitHubOAuthProvider with OAuth2 flow
     - Add OAuth configuration management with environment variables
     - Write integration tests with mock OAuth servers
     - _Requirements: 3.3, 8.1, 8.2, 8.3_
 
-  - [ ] 5.2 Implement WebID-OIDC provider
+  - [x] 5.2 Implement WebID-OIDC provider
     - Create WebIDOIDCProvider with JWT validation
     - Add OIDC discovery and provider configuration
     - Implement WebID document validation

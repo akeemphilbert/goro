@@ -21,11 +21,14 @@ func TestContainerService_GetContainerWithFormat_Turtle(t *testing.T) {
 	}
 
 	// Create a test container with members
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	container.SetTitle("Test Container")
 	container.SetDescription("A test container")
-	container.AddMember("resource-1")
-	container.AddMember("resource-2")
+
+	resource := domain.NewResource(context.Background(), "resource-1", "text/plain", []byte("Hello, World!"))
+	resource2 := domain.NewResource(context.Background(), "resource-2", "text/plain", []byte("Hello, World!"))
+	container.AddMember(context.Background(), resource)
+	container.AddMember(context.Background(), resource2)
 
 	// Set up mock expectations
 	mockRepo.On("GetContainer", mock.Anything, container.ID()).Return(container, nil)
@@ -67,11 +70,13 @@ func TestContainerService_GetContainerWithFormat_JSONLD(t *testing.T) {
 	}
 
 	// Create a test container with members
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	container.SetTitle("Test Container")
 	container.SetDescription("A test container")
-	container.AddMember("resource-1")
-	container.AddMember("resource-2")
+	resource := domain.NewResource(context.Background(), "resource-1", "text/plain", []byte("Hello, World!"))
+	resource2 := domain.NewResource(context.Background(), "resource-2", "text/plain", []byte("Hello, World!"))
+	container.AddMember(context.Background(), resource)
+	container.AddMember(context.Background(), resource2)
 
 	// Set up mock expectations
 	mockRepo.On("GetContainer", mock.Anything, container.ID()).Return(container, nil)
@@ -116,11 +121,13 @@ func TestContainerService_GetContainerWithFormat_RDFXML(t *testing.T) {
 	}
 
 	// Create a test container with members
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	container.SetTitle("Test Container")
 	container.SetDescription("A test container")
-	container.AddMember("resource-1")
-	container.AddMember("resource-2")
+
+	resource := domain.NewResource(context.Background(), "resource-1", "text/plain", []byte("Hello, World!"))
+	container.AddMember(context.Background(), resource)
+	container.AddMember(context.Background(), resource)
 
 	// Set up mock expectations
 	mockRepo.On("GetContainer", mock.Anything, container.ID()).Return(container, nil)
@@ -165,7 +172,7 @@ func TestContainerService_GetContainerWithFormat_UnsupportedFormat(t *testing.T)
 	}
 
 	// Create a test container
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 
 	// Set up mock expectations
 	mockRepo.On("GetContainer", mock.Anything, container.ID()).Return(container, nil)
@@ -195,7 +202,7 @@ func TestContainerService_GetContainerWithFormat_EmptyContainer(t *testing.T) {
 	}
 
 	// Create an empty test container
-	container := domain.NewContainer("empty-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "empty-container", "", domain.BasicContainer)
 	container.SetTitle("Empty Container")
 
 	// Set up mock expectations
@@ -236,11 +243,15 @@ func TestContainerService_ListContainerMembersWithFormat_Turtle(t *testing.T) {
 	}
 
 	// Create a test container with multiple members
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
+
+	resource := domain.NewResource(context.Background(), "resource-1", "text/plain", []byte("Hello, World!"))
+	resource2 := domain.NewResource(context.Background(), "resource-2", "text/plain", []byte("Hello, World!"))
+	subContainer := domain.NewContainer(context.Background(), "sub-container-1", "", domain.BasicContainer)
 	container.SetTitle("Test Container")
-	container.AddMember("resource-1")
-	container.AddMember("resource-2")
-	container.AddMember("sub-container-1")
+	container.AddMember(context.Background(), resource)
+	container.AddMember(context.Background(), resource2)
+	container.AddMember(context.Background(), subContainer)
 
 	// Set up mock expectations
 	mockRepo.On("GetContainer", mock.Anything, container.ID()).Return(container, nil)
@@ -282,11 +293,15 @@ func TestContainerService_ListContainerMembersWithFormat_JSONLD(t *testing.T) {
 	}
 
 	// Create a test container with multiple members
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
+
+	resource := domain.NewResource(context.Background(), "resource-1", "text/plain", []byte("Hello, World!"))
+	resource2 := domain.NewResource(context.Background(), "resource-2", "text/plain", []byte("Hello, World!"))
+	subContainer := domain.NewContainer(context.Background(), "sub-container-1", "", domain.BasicContainer)
 	container.SetTitle("Test Container")
-	container.AddMember("resource-1")
-	container.AddMember("resource-2")
-	container.AddMember("sub-container-1")
+	container.AddMember(context.Background(), resource)
+	container.AddMember(context.Background(), resource2)
+	container.AddMember(context.Background(), subContainer)
 
 	// Set up mock expectations
 	mockRepo.On("GetContainer", mock.Anything, container.ID()).Return(container, nil)

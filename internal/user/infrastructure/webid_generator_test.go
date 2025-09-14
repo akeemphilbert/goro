@@ -1,10 +1,11 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
 	"strings"
 	"testing"
 
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,7 +66,7 @@ func TestWebIDGenerator_GenerateWebID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			generator := NewWebIDGenerator("https://example.com")
+			generator := infrastructure.NewWebIDGenerator("https://example.com")
 
 			webID, err := generator.GenerateWebID(context.Background(), tt.userID, tt.email, tt.userName)
 
@@ -143,7 +144,7 @@ func TestWebIDGenerator_GenerateWebIDDocument(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			generator := NewWebIDGenerator("https://example.com")
+			generator := infrastructure.NewWebIDGenerator("https://example.com")
 
 			document, err := generator.GenerateWebIDDocument(context.Background(), tt.webID, tt.email, tt.userName)
 
@@ -201,7 +202,7 @@ func TestWebIDGenerator_ValidateWebID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			generator := NewWebIDGenerator("https://example.com")
+			generator := infrastructure.NewWebIDGenerator("https://example.com")
 
 			err := generator.ValidateWebID(context.Background(), tt.webID)
 
@@ -253,7 +254,7 @@ func TestWebIDGenerator_IsUniqueWebID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			generator := NewWebIDGenerator("https://example.com")
+			generator := infrastructure.NewWebIDGenerator("https://example.com")
 
 			// Mock the uniqueness check by creating a simple in-memory store
 			mockChecker := &MockWebIDUniquenessChecker{
@@ -327,7 +328,7 @@ func TestWebIDGenerator_GenerateAlternativeWebID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			generator := NewWebIDGenerator("https://example.com")
+			generator := infrastructure.NewWebIDGenerator("https://example.com")
 
 			// Mock the uniqueness check
 			mockChecker := &MockWebIDUniquenessChecker{
@@ -361,7 +362,7 @@ type MockWebIDUniquenessChecker struct {
 
 func (m *MockWebIDUniquenessChecker) WebIDExists(ctx context.Context, webID string) (bool, error) {
 	if webID == "" {
-		return false, ErrInvalidWebID
+		return false, infrastructure.ErrInvalidWebID
 	}
 	return m.existingWebIDs[webID], nil
 }
@@ -396,7 +397,7 @@ func TestNewWebIDGenerator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			generator, err := NewWebIDGeneratorWithValidation(tt.baseURL)
+			generator, err := infrastructure.NewWebIDGeneratorWithValidation(tt.baseURL)
 
 			if tt.wantErr {
 				assert.Error(t, err)

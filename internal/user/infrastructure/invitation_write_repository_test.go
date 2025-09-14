@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
@@ -9,12 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
 
 func TestGormInvitationWriteRepository_Create(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormInvitationWriteRepository(db)
+	repo := infrastructure.NewGormInvitationWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should create invitation successfully", func(t *testing.T) {
@@ -37,7 +38,7 @@ func TestGormInvitationWriteRepository_Create(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify invitation was created in database
-		var invitationModel InvitationModel
+		var invitationModel infrastructure.InvitationModel
 		err = db.First(&invitationModel, "id = ?", "invitation-create-1").Error
 		require.NoError(t, err)
 		assert.Equal(t, "invitation-create-1", invitationModel.ID)
@@ -155,7 +156,7 @@ func TestGormInvitationWriteRepository_Create(t *testing.T) {
 
 func TestGormInvitationWriteRepository_Update(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormInvitationWriteRepository(db)
+	repo := infrastructure.NewGormInvitationWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should update invitation successfully", func(t *testing.T) {
@@ -181,7 +182,7 @@ func TestGormInvitationWriteRepository_Update(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify invitation was updated in database
-		var invitationModel InvitationModel
+		var invitationModel infrastructure.InvitationModel
 		err = db.First(&invitationModel, "id = ?", "invitation-update-1").Error
 		require.NoError(t, err)
 		assert.Equal(t, "admin", invitationModel.RoleID)
@@ -224,7 +225,7 @@ func TestGormInvitationWriteRepository_Update(t *testing.T) {
 
 func TestGormInvitationWriteRepository_Delete(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormInvitationWriteRepository(db)
+	repo := infrastructure.NewGormInvitationWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should delete invitation successfully", func(t *testing.T) {
@@ -237,7 +238,7 @@ func TestGormInvitationWriteRepository_Delete(t *testing.T) {
 
 		// Verify invitation was deleted from database
 		var count int64
-		err = db.Model(&InvitationModel{}).Where("id = ?", "invitation-delete-1").Count(&count).Error
+		err = db.Model(&infrastructure.InvitationModel{}).Where("id = ?", "invitation-delete-1").Count(&count).Error
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), count)
 	})

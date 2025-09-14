@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"encoding/json"
@@ -9,17 +9,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 )
 
 func TestUserModel_Validation(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Test that UserModel can be created and migrated
-	err := db.AutoMigrate(&UserModel{})
+	err := db.AutoMigrate(&infrastructure.UserModel{})
 	require.NoError(t, err)
 
 	// Test valid user model
-	user := &UserModel{
+	user := &infrastructure.UserModel{
 		ID:        "user-123",
 		WebID:     "https://example.com/user/123",
 		Email:     "user@example.com",
@@ -33,7 +34,7 @@ func TestUserModel_Validation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test unique constraints
-	duplicateUser := &UserModel{
+	duplicateUser := &infrastructure.UserModel{
 		ID:        "user-456",
 		WebID:     "https://example.com/user/123", // Same WebID
 		Email:     "different@example.com",
@@ -47,7 +48,7 @@ func TestUserModel_Validation(t *testing.T) {
 	assert.Error(t, err, "Should fail due to unique WebID constraint")
 
 	// Test unique email constraint
-	duplicateEmailUser := &UserModel{
+	duplicateEmailUser := &infrastructure.UserModel{
 		ID:        "user-789",
 		WebID:     "https://example.com/user/789",
 		Email:     "user@example.com", // Same email
@@ -65,7 +66,7 @@ func TestRoleModel_Validation(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Test that RoleModel can be created and migrated
-	err := db.AutoMigrate(&RoleModel{})
+	err := db.AutoMigrate(&infrastructure.RoleModel{})
 	require.NoError(t, err)
 
 	// Test valid role model with JSON permissions
@@ -76,7 +77,7 @@ func TestRoleModel_Validation(t *testing.T) {
 	permissionsJSON, err := json.Marshal(permissions)
 	require.NoError(t, err)
 
-	role := &RoleModel{
+	role := &infrastructure.RoleModel{
 		ID:          "role-123",
 		Name:        "Test Role",
 		Description: "A test role",
@@ -89,7 +90,7 @@ func TestRoleModel_Validation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test retrieval and JSON deserialization
-	var retrievedRole RoleModel
+	var retrievedRole infrastructure.RoleModel
 	err = db.First(&retrievedRole, "id = ?", "role-123").Error
 	require.NoError(t, err)
 
@@ -103,7 +104,7 @@ func TestAccountModel_Validation(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Test that AccountModel can be created and migrated
-	err := db.AutoMigrate(&AccountModel{})
+	err := db.AutoMigrate(&infrastructure.AccountModel{})
 	require.NoError(t, err)
 
 	// Test valid account model with JSON settings
@@ -115,7 +116,7 @@ func TestAccountModel_Validation(t *testing.T) {
 	settingsJSON, err := json.Marshal(settings)
 	require.NoError(t, err)
 
-	account := &AccountModel{
+	account := &infrastructure.AccountModel{
 		ID:          "account-123",
 		OwnerID:     "user-123",
 		Name:        "Test Account",
@@ -129,7 +130,7 @@ func TestAccountModel_Validation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test retrieval and JSON deserialization
-	var retrievedAccount AccountModel
+	var retrievedAccount infrastructure.AccountModel
 	err = db.First(&retrievedAccount, "id = ?", "account-123").Error
 	require.NoError(t, err)
 
@@ -139,7 +140,7 @@ func TestAccountModel_Validation(t *testing.T) {
 	assert.Equal(t, settings, retrievedSettings)
 
 	// Test owner index exists (should be able to query by owner)
-	var accountsByOwner []AccountModel
+	var accountsByOwner []infrastructure.AccountModel
 	err = db.Where("owner_id = ?", "user-123").Find(&accountsByOwner).Error
 	require.NoError(t, err)
 	assert.Len(t, accountsByOwner, 1)
@@ -149,11 +150,11 @@ func TestAccountMemberModel_Validation(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Test that AccountMemberModel can be created and migrated
-	err := db.AutoMigrate(&AccountMemberModel{})
+	err := db.AutoMigrate(&infrastructure.AccountMemberModel{})
 	require.NoError(t, err)
 
 	// Test valid account member model
-	member := &AccountMemberModel{
+	member := &infrastructure.AccountMemberModel{
 		ID:        "member-123",
 		AccountID: "account-123",
 		UserID:    "user-123",
@@ -168,7 +169,7 @@ func TestAccountMemberModel_Validation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test unique constraint on account+user combination
-	duplicateMember := &AccountMemberModel{
+	duplicateMember := &infrastructure.AccountMemberModel{
 		ID:        "member-456",
 		AccountID: "account-123", // Same account
 		UserID:    "user-123",    // Same user
@@ -183,12 +184,12 @@ func TestAccountMemberModel_Validation(t *testing.T) {
 	assert.Error(t, err, "Should fail due to unique account+user constraint")
 
 	// Test indexes exist (should be able to query by account and user)
-	var membersByAccount []AccountMemberModel
+	var membersByAccount []infrastructure.AccountMemberModel
 	err = db.Where("account_id = ?", "account-123").Find(&membersByAccount).Error
 	require.NoError(t, err)
 	assert.Len(t, membersByAccount, 1)
 
-	var membersByUser []AccountMemberModel
+	var membersByUser []infrastructure.AccountMemberModel
 	err = db.Where("user_id = ?", "user-123").Find(&membersByUser).Error
 	require.NoError(t, err)
 	assert.Len(t, membersByUser, 1)
@@ -198,11 +199,11 @@ func TestInvitationModel_Validation(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Test that InvitationModel can be created and migrated
-	err := db.AutoMigrate(&InvitationModel{})
+	err := db.AutoMigrate(&infrastructure.InvitationModel{})
 	require.NoError(t, err)
 
 	// Test valid invitation model
-	invitation := &InvitationModel{
+	invitation := &infrastructure.InvitationModel{
 		ID:        "invitation-123",
 		AccountID: "account-123",
 		Email:     "invited@example.com",
@@ -219,7 +220,7 @@ func TestInvitationModel_Validation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test unique token constraint
-	duplicateTokenInvitation := &InvitationModel{
+	duplicateTokenInvitation := &infrastructure.InvitationModel{
 		ID:        "invitation-456",
 		AccountID: "account-456",
 		Email:     "other@example.com",
@@ -236,7 +237,7 @@ func TestInvitationModel_Validation(t *testing.T) {
 	assert.Error(t, err, "Should fail due to unique token constraint")
 
 	// Test indexes exist (should be able to query by account)
-	var invitationsByAccount []InvitationModel
+	var invitationsByAccount []infrastructure.InvitationModel
 	err = db.Where("account_id = ?", "account-123").Find(&invitationsByAccount).Error
 	require.NoError(t, err)
 	assert.Len(t, invitationsByAccount, 1)
@@ -246,11 +247,11 @@ func TestModels_Relationships(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Migrate all models
-	err := db.AutoMigrate(&UserModel{}, &AccountModel{}, &RoleModel{}, &AccountMemberModel{}, &InvitationModel{})
+	err := db.AutoMigrate(&infrastructure.UserModel{}, &infrastructure.AccountModel{}, &infrastructure.RoleModel{}, &infrastructure.AccountMemberModel{}, &infrastructure.InvitationModel{})
 	require.NoError(t, err)
 
 	// Create test data
-	user := &UserModel{
+	user := &infrastructure.UserModel{
 		ID:        "user-123",
 		WebID:     "https://example.com/user/123",
 		Email:     "user@example.com",
@@ -262,7 +263,7 @@ func TestModels_Relationships(t *testing.T) {
 	err = db.Create(user).Error
 	require.NoError(t, err)
 
-	role := &RoleModel{
+	role := &infrastructure.RoleModel{
 		ID:          "role-123",
 		Name:        "Member",
 		Description: "Standard member role",
@@ -273,7 +274,7 @@ func TestModels_Relationships(t *testing.T) {
 	err = db.Create(role).Error
 	require.NoError(t, err)
 
-	account := &AccountModel{
+	account := &infrastructure.AccountModel{
 		ID:          "account-123",
 		OwnerID:     "user-123",
 		Name:        "Test Account",
@@ -285,7 +286,7 @@ func TestModels_Relationships(t *testing.T) {
 	err = db.Create(account).Error
 	require.NoError(t, err)
 
-	member := &AccountMemberModel{
+	member := &infrastructure.AccountMemberModel{
 		ID:        "member-123",
 		AccountID: "account-123",
 		UserID:    "user-123",
@@ -298,7 +299,7 @@ func TestModels_Relationships(t *testing.T) {
 	err = db.Create(member).Error
 	require.NoError(t, err)
 
-	invitation := &InvitationModel{
+	invitation := &infrastructure.InvitationModel{
 		ID:        "invitation-123",
 		AccountID: "account-123",
 		Email:     "invited@example.com",
@@ -315,19 +316,19 @@ func TestModels_Relationships(t *testing.T) {
 
 	// Test that all relationships work correctly
 	// Query members by account
-	var members []AccountMemberModel
+	var members []infrastructure.AccountMemberModel
 	err = db.Where("account_id = ?", "account-123").Find(&members).Error
 	require.NoError(t, err)
 	assert.Len(t, members, 1)
 
 	// Query invitations by account
-	var invitations []InvitationModel
+	var invitations []infrastructure.InvitationModel
 	err = db.Where("account_id = ?", "account-123").Find(&invitations).Error
 	require.NoError(t, err)
 	assert.Len(t, invitations, 1)
 
 	// Query accounts by owner
-	var accounts []AccountModel
+	var accounts []infrastructure.AccountModel
 	err = db.Where("owner_id = ?", "user-123").Find(&accounts).Error
 	require.NoError(t, err)
 	assert.Len(t, accounts, 1)

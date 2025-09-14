@@ -1,9 +1,11 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +16,7 @@ import (
 
 // createTestInvitation creates a test invitation in the database
 func createTestInvitation(t *testing.T, db *gorm.DB, id, accountID, email, roleID, token, invitedBy, status string, expiresAt time.Time) {
-	invitation := InvitationModel{
+	invitation := infrastructure.InvitationModel{
 		ID:        id,
 		AccountID: accountID,
 		Email:     email,
@@ -32,7 +34,7 @@ func createTestInvitation(t *testing.T, db *gorm.DB, id, accountID, email, roleI
 
 func TestGormInvitationRepository_GetByID(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormInvitationRepository(db)
+	repo := infrastructure.NewGormInvitationRepository(db)
 	ctx := context.Background()
 
 	// Create test data
@@ -78,7 +80,7 @@ func TestGormInvitationRepository_GetByID(t *testing.T) {
 
 func TestGormInvitationRepository_GetByToken(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormInvitationRepository(db)
+	repo := infrastructure.NewGormInvitationRepository(db)
 	ctx := context.Background()
 
 	// Create test data
@@ -121,7 +123,7 @@ func TestGormInvitationRepository_GetByToken(t *testing.T) {
 
 func TestGormInvitationRepository_ListByAccount(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormInvitationRepository(db)
+	repo := infrastructure.NewGormInvitationRepository(db)
 	ctx := context.Background()
 
 	// Create test data
@@ -191,7 +193,7 @@ func TestGormInvitationRepository_ListByAccount(t *testing.T) {
 
 func TestGormInvitationRepository_ListByEmail(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormInvitationRepository(db)
+	repo := infrastructure.NewGormInvitationRepository(db)
 	ctx := context.Background()
 
 	// Create test data

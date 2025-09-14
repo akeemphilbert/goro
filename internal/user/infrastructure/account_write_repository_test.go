@@ -1,7 +1,8 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 
 func TestGormAccountWriteRepository_Create(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountWriteRepository(db)
+	repo := infrastructure.NewGormAccountWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should create account successfully", func(t *testing.T) {
@@ -38,7 +39,7 @@ func TestGormAccountWriteRepository_Create(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify account was created in database
-		var accountModel AccountModel
+		var accountModel infrastructure.AccountModel
 		err = db.First(&accountModel, "id = ?", "account-123").Error
 		require.NoError(t, err)
 		assert.Equal(t, "account-123", accountModel.ID)
@@ -91,7 +92,7 @@ func TestGormAccountWriteRepository_Create(t *testing.T) {
 
 func TestGormAccountWriteRepository_Update(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountWriteRepository(db)
+	repo := infrastructure.NewGormAccountWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should update account successfully", func(t *testing.T) {
@@ -119,7 +120,7 @@ func TestGormAccountWriteRepository_Update(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify account was updated in database
-		var accountModel AccountModel
+		var accountModel infrastructure.AccountModel
 		err = db.First(&accountModel, "id = ?", "account-update-1").Error
 		require.NoError(t, err)
 		assert.Equal(t, "Updated Account", accountModel.Name)
@@ -160,7 +161,7 @@ func TestGormAccountWriteRepository_Update(t *testing.T) {
 
 func TestGormAccountWriteRepository_Delete(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountWriteRepository(db)
+	repo := infrastructure.NewGormAccountWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should delete account successfully", func(t *testing.T) {
@@ -172,7 +173,7 @@ func TestGormAccountWriteRepository_Delete(t *testing.T) {
 
 		// Verify account was deleted from database
 		var count int64
-		err = db.Model(&AccountModel{}).Where("id = ?", "account-delete-1").Count(&count).Error
+		err = db.Model(&infrastructure.AccountModel{}).Where("id = ?", "account-delete-1").Count(&count).Error
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), count)
 	})
@@ -201,19 +202,19 @@ func TestGormAccountWriteRepository_Delete(t *testing.T) {
 
 		// Verify account was deleted
 		var accountCount int64
-		err = db.Model(&AccountModel{}).Where("id = ?", "account-cascade-1").Count(&accountCount).Error
+		err = db.Model(&infrastructure.AccountModel{}).Where("id = ?", "account-cascade-1").Count(&accountCount).Error
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), accountCount)
 
 		// Verify related members were deleted
 		var memberCount int64
-		err = db.Model(&AccountMemberModel{}).Where("account_id = ?", "account-cascade-1").Count(&memberCount).Error
+		err = db.Model(&infrastructure.AccountMemberModel{}).Where("account_id = ?", "account-cascade-1").Count(&memberCount).Error
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), memberCount)
 
 		// Verify related invitations were deleted
 		var invitationCount int64
-		err = db.Model(&InvitationModel{}).Where("account_id = ?", "account-cascade-1").Count(&invitationCount).Error
+		err = db.Model(&infrastructure.InvitationModel{}).Where("account_id = ?", "account-cascade-1").Count(&invitationCount).Error
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), invitationCount)
 	})

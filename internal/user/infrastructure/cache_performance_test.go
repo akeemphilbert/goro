@@ -1,8 +1,9 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"sync"
 	"testing"
 	"time"
@@ -33,7 +34,7 @@ func TestUserCacheEffectiveness(t *testing.T) {
 	seedPerformanceTestData(t, db, 500)
 
 	t.Run("UserCacheHitRatio", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Perform multiple lookups to test cache hit ratio
@@ -89,7 +90,7 @@ func TestUserCacheEffectiveness(t *testing.T) {
 	})
 
 	t.Run("RoleCacheWarmup", func(t *testing.T) {
-		roleRepo := NewGormRoleRepository(db)
+		roleRepo := infrastructure.NewGormRoleRepository(db)
 		ctx := context.Background()
 
 		// Test cache warmup performance
@@ -127,7 +128,7 @@ func TestUserCacheEffectiveness(t *testing.T) {
 	})
 
 	t.Run("CacheEvictionPerformance", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Fill cache with users
@@ -166,7 +167,7 @@ func TestConcurrentCacheAccess(t *testing.T) {
 	seedPerformanceTestData(t, db, 100)
 
 	t.Run("ConcurrentUserCacheAccess", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		var wg sync.WaitGroup
@@ -218,7 +219,7 @@ func TestConcurrentCacheAccess(t *testing.T) {
 	})
 
 	t.Run("CacheConsistencyUnderConcurrency", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		var wg sync.WaitGroup
@@ -269,7 +270,7 @@ func TestCacheMemoryUsage(t *testing.T) {
 	seedPerformanceTestData(t, db, 1000)
 
 	t.Run("CacheMemoryEfficiency", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// This test would need actual memory profiling to work properly
@@ -295,7 +296,7 @@ func TestCacheMemoryUsage(t *testing.T) {
 	})
 
 	t.Run("CacheGarbageCollection", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Load users and then test garbage collection efficiency
@@ -335,8 +336,8 @@ func TestCacheInvalidation(t *testing.T) {
 	seedPerformanceTestData(t, db, 100)
 
 	t.Run("CacheInvalidationSpeed", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
-		userWriteRepo := NewGormUserWriteRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
+		userWriteRepo := infrastructure.NewGormUserWriteRepository(db)
 		ctx := context.Background()
 
 		userID := "perf-user-1"
@@ -370,7 +371,7 @@ func TestCacheInvalidation(t *testing.T) {
 	})
 
 	t.Run("BulkCacheInvalidation", func(t *testing.T) {
-		userRepo := NewGormUserRepository(db)
+		userRepo := infrastructure.NewGormUserRepository(db)
 		ctx := context.Background()
 
 		// Load multiple users into cache
@@ -411,7 +412,7 @@ func setupCacheTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 
 	// Migrate models
-	err = MigrateUserModels(db)
+	err = infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
 
 	return db

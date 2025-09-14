@@ -25,7 +25,7 @@ func TestContainerService_GenerateBreadcrumbs(t *testing.T) {
 			setupMocks: func(mockRepo *MockContainerRepository) {
 				container := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				container.SetTitle("Root Container")
-				mockRepo.On("GetContainer", mock.Anything, "root").Return(container, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "root").Return(container, nil)
 				mockRepo.On("GetPath", mock.Anything, "root").Return([]string{"root"}, nil)
 			},
 			expectedCrumbs: []BreadcrumbItem{
@@ -42,9 +42,9 @@ func TestContainerService_GenerateBreadcrumbs(t *testing.T) {
 				childContainer := domain.NewContainer(context.Background(), "child", "root", domain.BasicContainer)
 				childContainer.SetTitle("Child")
 
-				mockRepo.On("GetContainer", mock.Anything, "child").Return(childContainer, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "child").Return(childContainer, nil)
 				mockRepo.On("GetPath", mock.Anything, "child").Return([]string{"root", "child"}, nil)
-				mockRepo.On("GetContainer", mock.Anything, "root").Return(rootContainer, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "root").Return(rootContainer, nil)
 			},
 			expectedCrumbs: []BreadcrumbItem{
 				{ID: "root", Title: "Root", Path: "/root"},
@@ -63,9 +63,9 @@ func TestContainerService_GenerateBreadcrumbs(t *testing.T) {
 				grandchildContainer := domain.NewContainer(context.Background(), "grandchild", "child", domain.BasicContainer)
 				grandchildContainer.SetTitle("Grandchild")
 
-				mockRepo.On("GetContainer", mock.Anything, "grandchild").Return(grandchildContainer, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "grandchild").Return(grandchildContainer, nil)
 				mockRepo.On("GetPath", mock.Anything, "grandchild").Return([]string{"root", "child", "grandchild"}, nil)
-				mockRepo.On("GetContainer", mock.Anything, "root").Return(rootContainer, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "root").Return(rootContainer, nil)
 				mockRepo.On("GetContainer", mock.Anything, "child").Return(childContainer, nil)
 			},
 			expectedCrumbs: []BreadcrumbItem{
@@ -79,7 +79,7 @@ func TestContainerService_GenerateBreadcrumbs(t *testing.T) {
 			name:        "container not found",
 			containerID: "nonexistent",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				mockRepo.On("GetContainer", mock.Anything, "nonexistent").Return(nil, domain.ErrResourceNotFound)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "nonexistent").Return(nil, domain.ErrResourceNotFound)
 			},
 			expectedCrumbs: nil,
 			expectError:    true,
@@ -127,9 +127,9 @@ func TestContainerService_ResolveContainerPath(t *testing.T) {
 			setupMocks: func(mockRepo *MockContainerRepository) {
 				container := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				container.SetTitle("Root Container")
-				mockRepo.On("FindByPath", mock.Anything, "/root").Return(container, nil)
+				mockRepo.On("FindByPath", mock.Anything, context.Background(), "/root").Return(container, nil)
 				// Mocks for breadcrumb generation
-				mockRepo.On("GetContainer", mock.Anything, "root").Return(container, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "root").Return(container, nil)
 				mockRepo.On("GetPath", mock.Anything, "root").Return([]string{"root"}, nil)
 			},
 			expectedResult: &ContainerPathResolution{
@@ -147,13 +147,13 @@ func TestContainerService_ResolveContainerPath(t *testing.T) {
 			setupMocks: func(mockRepo *MockContainerRepository) {
 				container := domain.NewContainer(context.Background(), "documents", "root", domain.BasicContainer)
 				container.SetTitle("Documents")
-				mockRepo.On("FindByPath", mock.Anything, "/root/documents").Return(container, nil)
+				mockRepo.On("FindByPath", mock.Anything, context.Background(), "/root/documents").Return(container, nil)
 				mockRepo.On("GetPath", mock.Anything, "documents").Return([]string{"root", "documents"}, nil)
 
 				rootContainer := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				rootContainer.SetTitle("Root")
-				mockRepo.On("GetContainer", mock.Anything, "root").Return(rootContainer, nil)
-				mockRepo.On("GetContainer", mock.Anything, "documents").Return(container, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "root").Return(rootContainer, nil)
+				mockRepo.On("GetContainer", mock.Anything, context.Background(), "documents").Return(container, nil)
 			},
 			expectedResult: &ContainerPathResolution{
 				Container:   &ContainerInfo{ID: "documents", Title: "Documents", Type: "BasicContainer", ParentID: "root"},
@@ -171,7 +171,7 @@ func TestContainerService_ResolveContainerPath(t *testing.T) {
 			name: "nonexistent path",
 			path: "/nonexistent",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				mockRepo.On("FindByPath", mock.Anything, "/nonexistent").Return(nil, domain.ErrResourceNotFound)
+				mockRepo.On("FindByPath", mock.Anything, context.Background(), "/nonexistent").Return(nil, domain.ErrResourceNotFound)
 			},
 			expectedResult: &ContainerPathResolution{
 				Container:   nil,
@@ -235,8 +235,10 @@ func TestContainerService_GetContainerTypeInfo(t *testing.T) {
 				container := domain.NewContainer(context.Background(), "container1", "", domain.BasicContainer)
 				container.SetTitle("Test Container")
 				container.SetDescription("A test container")
-				container.AddMember(context.Background(), "resource1")
-				container.AddMember(context.Background(), "resource2")
+				resource1 := domain.NewResource(context.Background(), "resource1", "text/plain", []byte("Hello, World!"))
+				resource2 := domain.NewResource(context.Background(), "resource2", "text/plain", []byte("Hello, World!"))
+				container.AddMember(context.Background(), resource1)
+				container.AddMember(context.Background(), resource2)
 
 				mockRepo.On("GetContainer", mock.Anything, "container1").Return(container, nil)
 				mockRepo.On("ListMembers", mock.Anything, "container1", mock.AnythingOfType("domain.PaginationOptions")).Return([]string{"resource1", "resource2"}, nil)
@@ -360,7 +362,8 @@ func TestContainerService_GenerateStructureInfo(t *testing.T) {
 			setupMocks: func(mockRepo *MockContainerRepository) {
 				container := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				container.SetTitle("Root Container")
-				container.AddMember("resource1")
+				resource1 := domain.NewResource(context.Background(), "resource1", "text/plain", []byte("Hello, World!"))
+				container.AddMember(context.Background(), resource1)
 
 				child1 := domain.NewContainer(context.Background(), "child1", "root", domain.BasicContainer)
 				child1.SetTitle("Child 1")

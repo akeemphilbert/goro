@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/akeemphilbert/goro/internal/ldp/application"
+	userApplication "github.com/akeemphilbert/goro/internal/user/application"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 )

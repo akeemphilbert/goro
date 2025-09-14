@@ -1,6 +1,7 @@
-package infrastructure
+package infrastructure_test
 
 import (
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,11 +24,11 @@ func setupTestDBWithMigration(t *testing.T) *gorm.DB {
 	db := setupTestDB(t)
 
 	// Run migrations
-	err := MigrateUserModels(db)
+	err := infrastructure.MigrateUserModels(db)
 	require.NoError(t, err)
 
 	// Seed system roles
-	err = SeedSystemRoles(db)
+	err = infrastructure.SeedSystemRoles(db)
 	require.NoError(t, err)
 
 	return db

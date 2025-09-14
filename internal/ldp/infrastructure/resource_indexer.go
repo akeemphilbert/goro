@@ -47,7 +47,7 @@ func NewResourceIndexer(basePath string) (*ResourceIndexer, error) {
 }
 
 // AddResource adds a resource to the index
-func (ri *ResourceIndexer) AddResource(resource *domain.Resource) error {
+func (ri *ResourceIndexer) AddResource(resource domain.Resource) error {
 	ri.mu.Lock()
 	defer ri.mu.Unlock()
 

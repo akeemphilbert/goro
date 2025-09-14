@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
@@ -9,12 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/akeemphilbert/goro/internal/user/domain"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 )
 
 func TestGormUserWriteRepository_Create(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserWriteRepository(db)
+	repo := infrastructure.NewGormUserWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should create user successfully", func(t *testing.T) {
@@ -39,7 +40,7 @@ func TestGormUserWriteRepository_Create(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify user was created in database
-		var userModel UserModel
+		var userModel infrastructure.UserModel
 		err = db.First(&userModel, "id = ?", "user-123").Error
 		require.NoError(t, err)
 		assert.Equal(t, "user-123", userModel.ID)
@@ -119,7 +120,7 @@ func TestGormUserWriteRepository_Create(t *testing.T) {
 
 func TestGormUserWriteRepository_Update(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserWriteRepository(db)
+	repo := infrastructure.NewGormUserWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should update user successfully", func(t *testing.T) {
@@ -148,7 +149,7 @@ func TestGormUserWriteRepository_Update(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify user was updated in database
-		var userModel UserModel
+		var userModel infrastructure.UserModel
 		err = db.First(&userModel, "id = ?", "user-update-1").Error
 		require.NoError(t, err)
 		assert.Equal(t, "Updated Name", userModel.Name)
@@ -189,7 +190,7 @@ func TestGormUserWriteRepository_Update(t *testing.T) {
 
 func TestGormUserWriteRepository_Delete(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormUserWriteRepository(db)
+	repo := infrastructure.NewGormUserWriteRepository(db)
 	ctx := context.Background()
 
 	t.Run("should delete user successfully", func(t *testing.T) {
@@ -201,7 +202,7 @@ func TestGormUserWriteRepository_Delete(t *testing.T) {
 
 		// Verify user was deleted from database
 		var count int64
-		err = db.Model(&UserModel{}).Where("id = ?", "user-delete-1").Count(&count).Error
+		err = db.Model(&infrastructure.UserModel{}).Where("id = ?", "user-delete-1").Count(&count).Error
 		require.NoError(t, err)
 		assert.Equal(t, int64(0), count)
 	})

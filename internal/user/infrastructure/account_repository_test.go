@@ -1,7 +1,8 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"context"
+	"github.com/akeemphilbert/goro/internal/user/infrastructure"
 	"testing"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 func createTestAccount(t *testing.T, db *gorm.DB, id, ownerID, name, description string) {
 	settingsJSON := `{"allow_invitations":true,"default_role_id":"member","max_members":100}`
 
-	account := AccountModel{
+	account := infrastructure.AccountModel{
 		ID:          id,
 		OwnerID:     ownerID,
 		Name:        name,
@@ -31,7 +32,7 @@ func createTestAccount(t *testing.T, db *gorm.DB, id, ownerID, name, description
 
 func TestGormAccountRepository_GetByID(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountRepository(db)
+	repo := infrastructure.NewGormAccountRepository(db)
 	ctx := context.Background()
 
 	// Create test owner user first
@@ -73,7 +74,7 @@ func TestGormAccountRepository_GetByID(t *testing.T) {
 
 func TestGormAccountRepository_GetByOwner(t *testing.T) {
 	db := setupTestDBWithMigration(t)
-	repo := NewGormAccountRepository(db)
+	repo := infrastructure.NewGormAccountRepository(db)
 	ctx := context.Background()
 
 	// Create test owner users

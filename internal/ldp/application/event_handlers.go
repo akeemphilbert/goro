@@ -427,7 +427,7 @@ func (h *ContainerEventHandler) reconstructContainerFromEvent(event *pericarpdom
 }
 
 // applyContainerUpdatesFromEvent applies updates to a container from an event payload
-func (h *ContainerEventHandler) applyContainerUpdatesFromEvent(container *domain.Container, event *pericarpdomain.EntityEvent) error {
+func (h *ContainerEventHandler) applyContainerUpdatesFromEvent(container domain.ContainerResource, event *pericarpdomain.EntityEvent) error {
 	var payload map[string]interface{}
 	if err := json.Unmarshal(event.Payload(), &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal event payload: %w", err)

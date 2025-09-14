@@ -525,7 +525,7 @@ func (h *ResourceHandler) writeDetailedErrorResponse(ctx khttp.Context, status i
 }
 
 // generateETag generates an ETag for a resource
-func (h *ResourceHandler) generateETag(resource *domain.Resource) string {
+func (h *ResourceHandler) generateETag(resource domain.Resource) string {
 	// Simple ETag generation based on resource ID and content hash
 	// In production, this could be more sophisticated
 	return fmt.Sprintf("%s-%d", resource.ID(), len(resource.GetData()))
