@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	"github.com/go-kratos/kratos/v2/log"
@@ -386,53 +387,124 @@ func (h *ResourceHandler) matchesMediaType(acceptType, format string) bool {
 
 // handleStorageError converts storage errors to appropriate HTTP responses
 func (h *ResourceHandler) handleStorageError(ctx khttp.Context, err error) error {
+	// Extract storage error details if available
+	storageErr, isStorageErr := domain.GetStorageError(err)
+
+	// Log error with context
+	h.logError(err, storageErr)
+
+	// Handle specific storage error types
 	if domain.IsResourceNotFound(err) {
-		return h.writeErrorResponse(ctx, http.StatusNotFound, "RESOURCE_NOT_FOUND", "Resource not found")
+		return h.writeDetailedErrorResponse(ctx, http.StatusNotFound, "RESOURCE_NOT_FOUND",
+			"The requested resource could not be found", storageErr)
 	}
 
 	if domain.IsUnsupportedFormat(err) {
-		return h.writeErrorResponse(ctx, http.StatusNotAcceptable, "UNSUPPORTED_FORMAT", "Unsupported format requested")
+		return h.writeDetailedErrorResponse(ctx, http.StatusNotAcceptable, "UNSUPPORTED_FORMAT",
+			"The requested format is not supported. Supported formats: application/ld+json, text/turtle, application/rdf+xml", storageErr)
 	}
 
 	if domain.IsInsufficientStorage(err) {
-		return h.writeErrorResponse(ctx, http.StatusInsufficientStorage, "INSUFFICIENT_STORAGE", "Insufficient storage space")
+		return h.writeDetailedErrorResponse(ctx, http.StatusInsufficientStorage, "INSUFFICIENT_STORAGE",
+			"Insufficient storage space available to complete the operation", storageErr)
 	}
 
 	if domain.IsDataCorruption(err) {
-		return h.writeErrorResponse(ctx, http.StatusUnprocessableEntity, "DATA_CORRUPTION", "Data corruption detected")
+		return h.writeDetailedErrorResponse(ctx, http.StatusUnprocessableEntity, "DATA_CORRUPTION",
+			"Data corruption detected. The resource cannot be processed safely", storageErr)
 	}
 
 	if domain.IsFormatConversion(err) {
-		return h.writeErrorResponse(ctx, http.StatusBadRequest, "FORMAT_CONVERSION_FAILED", "Format conversion failed")
+		return h.writeDetailedErrorResponse(ctx, http.StatusBadRequest, "FORMAT_CONVERSION_FAILED",
+			"Failed to convert between the requested formats", storageErr)
 	}
 
-	// Check for validation errors
-	if storageErr, ok := domain.GetStorageError(err); ok {
+	// Handle other storage error types
+	if isStorageErr {
 		switch storageErr.Code {
 		case "INVALID_ID":
-			return h.writeErrorResponse(ctx, http.StatusBadRequest, "INVALID_ID", "Invalid resource ID")
+			return h.writeDetailedErrorResponse(ctx, http.StatusBadRequest, "INVALID_ID",
+				"The provided resource ID is invalid or malformed", storageErr)
 		case "INVALID_RESOURCE":
-			return h.writeErrorResponse(ctx, http.StatusBadRequest, "INVALID_RESOURCE", "Invalid resource data")
+			return h.writeDetailedErrorResponse(ctx, http.StatusBadRequest, "INVALID_RESOURCE",
+				"The resource data is invalid or cannot be processed", storageErr)
+		case "RESOURCE_EXISTS":
+			return h.writeDetailedErrorResponse(ctx, http.StatusConflict, "RESOURCE_EXISTS",
+				"A resource with this ID already exists", storageErr)
+		case "CHECKSUM_MISMATCH":
+			return h.writeDetailedErrorResponse(ctx, http.StatusUnprocessableEntity, "CHECKSUM_MISMATCH",
+				"Data integrity check failed. The resource may be corrupted", storageErr)
+		case "STORAGE_OPERATION_FAILED":
+			return h.writeDetailedErrorResponse(ctx, http.StatusInternalServerError, "STORAGE_OPERATION_FAILED",
+				"The storage operation could not be completed", storageErr)
 		}
 	}
 
-	// Log unexpected errors
-	log.Errorf("Unexpected storage error: %v", err)
-
-	// Generic server error
-	return h.writeErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR", "Internal server error")
+	// Generic server error for unexpected errors
+	return h.writeDetailedErrorResponse(ctx, http.StatusInternalServerError, "INTERNAL_ERROR",
+		"An unexpected error occurred while processing the request", storageErr)
 }
 
 // writeErrorResponse writes a standardized error response
 func (h *ResourceHandler) writeErrorResponse(ctx khttp.Context, status int, code, message string) error {
+	return h.writeDetailedErrorResponse(ctx, status, code, message, nil)
+}
+
+// writeDetailedErrorResponse writes a comprehensive error response with additional context
+func (h *ResourceHandler) writeDetailedErrorResponse(ctx khttp.Context, status int, code, message string, storageErr *domain.StorageError) error {
 	ctx.Response().Header().Set("Content-Type", "application/json")
+	ctx.Response().Header().Set("Cache-Control", "no-cache")
+
+	// Build error response with comprehensive information
+	errorResponse := map[string]interface{}{
+		"code":      code,
+		"message":   message,
+		"status":    status,
+		"timestamp": h.getCurrentTimestamp(),
+	}
+
+	// Add additional context from storage error if available
+	if storageErr != nil {
+		if storageErr.Operation != "" {
+			errorResponse["operation"] = storageErr.Operation
+		}
+
+		if len(storageErr.Context) > 0 {
+			// Only include safe context information (no sensitive data)
+			safeContext := make(map[string]interface{})
+			for key, value := range storageErr.Context {
+				switch key {
+				case "resourceID", "contentType", "format", "operation", "size":
+					safeContext[key] = value
+				}
+			}
+			if len(safeContext) > 0 {
+				errorResponse["context"] = safeContext
+			}
+		}
+
+		// Include cause information if it's safe to expose
+		if storageErr.Cause != nil && h.shouldExposeCause(storageErr.Cause) {
+			errorResponse["details"] = storageErr.Cause.Error()
+		}
+	}
+
+	// Add helpful information for specific error types
+	switch code {
+	case "UNSUPPORTED_FORMAT":
+		errorResponse["supportedFormats"] = []string{
+			"application/ld+json",
+			"text/turtle",
+			"application/rdf+xml",
+		}
+	case "INSUFFICIENT_STORAGE":
+		errorResponse["suggestion"] = "Try reducing the size of your request or contact the administrator"
+	case "DATA_CORRUPTION":
+		errorResponse["suggestion"] = "Please try uploading the resource again"
+	}
 
 	response := map[string]interface{}{
-		"error": map[string]interface{}{
-			"code":    code,
-			"message": message,
-			"status":  status,
-		},
+		"error": errorResponse,
 	}
 
 	return ctx.JSON(status, response)
@@ -450,4 +522,66 @@ func (h *ResourceHandler) generateResourceID() string {
 	// Generate a KSUID which provides lexicographically sortable, globally unique identifiers
 	// KSUIDs are 27-character base62-encoded strings that include a timestamp component
 	return ksuid.New().String()
+}
+
+// logError logs errors with appropriate context and level
+func (h *ResourceHandler) logError(err error, storageErr *domain.StorageError) {
+	logLevel := log.LevelError
+
+	// Adjust log level based on error type
+	if storageErr != nil {
+		switch storageErr.Code {
+		case "RESOURCE_NOT_FOUND", "UNSUPPORTED_FORMAT", "INVALID_ID", "INVALID_RESOURCE":
+			logLevel = log.LevelWarn // Client errors are warnings
+		case "INSUFFICIENT_STORAGE", "DATA_CORRUPTION", "CHECKSUM_MISMATCH":
+			logLevel = log.LevelError // System errors are errors
+		}
+	}
+
+	// Build log context
+	logContext := []interface{}{
+		"msg", "Storage operation error",
+		"error", err.Error(),
+	}
+
+	if storageErr != nil {
+		logContext = append(logContext,
+			"errorCode", storageErr.Code,
+			"operation", storageErr.Operation,
+		)
+
+		// Add safe context information
+		for key, value := range storageErr.Context {
+			switch key {
+			case "resourceID", "contentType", "format", "size":
+				logContext = append(logContext, key, value)
+			}
+		}
+	}
+
+	h.logger.Log(logLevel, logContext...)
+}
+
+// shouldExposeCause determines if the underlying cause should be exposed to clients
+func (h *ResourceHandler) shouldExposeCause(cause error) bool {
+	// Only expose certain types of errors to avoid information leakage
+	causeStr := cause.Error()
+
+	// Expose format-related errors
+	if strings.Contains(causeStr, "format") || strings.Contains(causeStr, "parse") {
+		return true
+	}
+
+	// Expose validation errors
+	if strings.Contains(causeStr, "invalid") || strings.Contains(causeStr, "validation") {
+		return true
+	}
+
+	// Don't expose filesystem, network, or other system errors
+	return false
+}
+
+// getCurrentTimestamp returns the current timestamp in ISO 8601 format
+func (h *ResourceHandler) getCurrentTimestamp() string {
+	return fmt.Sprintf("%d", time.Now().Unix())
 }

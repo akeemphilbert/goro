@@ -12,3 +12,12 @@ var InfrastructureSet = wire.NewSet(
 	NewFileSystemRepositoryProvider,
 	NewRDFConverter,
 )
+
+// OptimizedInfrastructureSet provides optimized infrastructure dependencies with caching and indexing
+var OptimizedInfrastructureSet = wire.NewSet(
+	DatabaseProvider,
+	EventStoreProvider,
+	NewEventDispatcher,
+	NewOptimizedFileSystemRepositoryProvider,
+	NewRDFConverter,
+)
