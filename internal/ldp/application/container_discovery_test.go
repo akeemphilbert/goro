@@ -23,7 +23,7 @@ func TestContainerService_GenerateBreadcrumbs(t *testing.T) {
 			name:        "root container",
 			containerID: "root",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("root", "", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				container.SetTitle("Root Container")
 				mockRepo.On("GetContainer", mock.Anything, "root").Return(container, nil)
 				mockRepo.On("GetPath", mock.Anything, "root").Return([]string{"root"}, nil)
@@ -37,9 +37,9 @@ func TestContainerService_GenerateBreadcrumbs(t *testing.T) {
 			name:        "nested container",
 			containerID: "child",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				rootContainer := domain.NewContainer("root", "", domain.BasicContainer)
+				rootContainer := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				rootContainer.SetTitle("Root")
-				childContainer := domain.NewContainer("child", "root", domain.BasicContainer)
+				childContainer := domain.NewContainer(context.Background(), "child", "root", domain.BasicContainer)
 				childContainer.SetTitle("Child")
 
 				mockRepo.On("GetContainer", mock.Anything, "child").Return(childContainer, nil)
@@ -56,11 +56,11 @@ func TestContainerService_GenerateBreadcrumbs(t *testing.T) {
 			name:        "deep hierarchy",
 			containerID: "grandchild",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				rootContainer := domain.NewContainer("root", "", domain.BasicContainer)
+				rootContainer := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				rootContainer.SetTitle("Root")
-				childContainer := domain.NewContainer("child", "root", domain.BasicContainer)
+				childContainer := domain.NewContainer(context.Background(), "child", "root", domain.BasicContainer)
 				childContainer.SetTitle("Child")
-				grandchildContainer := domain.NewContainer("grandchild", "child", domain.BasicContainer)
+				grandchildContainer := domain.NewContainer(context.Background(), "grandchild", "child", domain.BasicContainer)
 				grandchildContainer.SetTitle("Grandchild")
 
 				mockRepo.On("GetContainer", mock.Anything, "grandchild").Return(grandchildContainer, nil)
@@ -125,7 +125,7 @@ func TestContainerService_ResolveContainerPath(t *testing.T) {
 			name: "root path",
 			path: "/root",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("root", "", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				container.SetTitle("Root Container")
 				mockRepo.On("FindByPath", mock.Anything, "/root").Return(container, nil)
 				// Mocks for breadcrumb generation
@@ -145,12 +145,12 @@ func TestContainerService_ResolveContainerPath(t *testing.T) {
 			name: "nested path",
 			path: "/root/documents",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("documents", "root", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "documents", "root", domain.BasicContainer)
 				container.SetTitle("Documents")
 				mockRepo.On("FindByPath", mock.Anything, "/root/documents").Return(container, nil)
 				mockRepo.On("GetPath", mock.Anything, "documents").Return([]string{"root", "documents"}, nil)
 
-				rootContainer := domain.NewContainer("root", "", domain.BasicContainer)
+				rootContainer := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				rootContainer.SetTitle("Root")
 				mockRepo.On("GetContainer", mock.Anything, "root").Return(rootContainer, nil)
 				mockRepo.On("GetContainer", mock.Anything, "documents").Return(container, nil)
@@ -232,11 +232,11 @@ func TestContainerService_GetContainerTypeInfo(t *testing.T) {
 			name:        "basic container with members",
 			containerID: "container1",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("container1", "", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "container1", "", domain.BasicContainer)
 				container.SetTitle("Test Container")
 				container.SetDescription("A test container")
-				container.AddMember("resource1")
-				container.AddMember("resource2")
+				container.AddMember(context.Background(), "resource1")
+				container.AddMember(context.Background(), "resource2")
 
 				mockRepo.On("GetContainer", mock.Anything, "container1").Return(container, nil)
 				mockRepo.On("ListMembers", mock.Anything, "container1", mock.AnythingOfType("domain.PaginationOptions")).Return([]string{"resource1", "resource2"}, nil)
@@ -259,7 +259,7 @@ func TestContainerService_GetContainerTypeInfo(t *testing.T) {
 			name:        "empty container",
 			containerID: "empty",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("empty", "", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "empty", "", domain.BasicContainer)
 				container.SetTitle("Empty Container")
 
 				mockRepo.On("GetContainer", mock.Anything, "empty").Return(container, nil)
@@ -283,11 +283,11 @@ func TestContainerService_GetContainerTypeInfo(t *testing.T) {
 			name:        "container with children",
 			containerID: "parent",
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("parent", "", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "parent", "", domain.BasicContainer)
 				container.SetTitle("Parent Container")
 
-				child1 := domain.NewContainer("child1", "parent", domain.BasicContainer)
-				child2 := domain.NewContainer("child2", "parent", domain.BasicContainer)
+				child1 := domain.NewContainer(context.Background(), "child1", "parent", domain.BasicContainer)
+				child2 := domain.NewContainer(context.Background(), "child2", "parent", domain.BasicContainer)
 
 				mockRepo.On("GetContainer", mock.Anything, "parent").Return(container, nil)
 				mockRepo.On("ListMembers", mock.Anything, "parent", mock.AnythingOfType("domain.PaginationOptions")).Return([]string{}, nil)
@@ -358,11 +358,11 @@ func TestContainerService_GenerateStructureInfo(t *testing.T) {
 			containerID: "root",
 			depth:       1,
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("root", "", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				container.SetTitle("Root Container")
 				container.AddMember("resource1")
 
-				child1 := domain.NewContainer("child1", "root", domain.BasicContainer)
+				child1 := domain.NewContainer(context.Background(), "child1", "root", domain.BasicContainer)
 				child1.SetTitle("Child 1")
 
 				mockRepo.On("GetContainer", mock.Anything, "root").Return(container, nil)
@@ -405,13 +405,13 @@ func TestContainerService_GenerateStructureInfo(t *testing.T) {
 			containerID: "root",
 			depth:       2,
 			setupMocks: func(mockRepo *MockContainerRepository) {
-				container := domain.NewContainer("root", "", domain.BasicContainer)
+				container := domain.NewContainer(context.Background(), "root", "", domain.BasicContainer)
 				container.SetTitle("Root")
 
-				child := domain.NewContainer("child", "root", domain.BasicContainer)
+				child := domain.NewContainer(context.Background(), "child", "root", domain.BasicContainer)
 				child.SetTitle("Child")
 
-				grandchild := domain.NewContainer("grandchild", "child", domain.BasicContainer)
+				grandchild := domain.NewContainer(context.Background(), "grandchild", "child", domain.BasicContainer)
 				grandchild.SetTitle("Grandchild")
 
 				mockRepo.On("GetContainer", mock.Anything, "root").Return(container, nil)

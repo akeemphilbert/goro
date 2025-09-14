@@ -424,18 +424,18 @@ type MockErrorStorageService struct {
 	existsError   error
 }
 
-func (m *MockErrorStorageService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (*domain.Resource, error) {
+func (m *MockErrorStorageService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (domain.Resource, error) {
 	if m.storeError != nil {
 		return nil, m.storeError
 	}
-	return domain.NewResource(id, contentType, data), nil
+	return domain.NewResource(ctx, id, contentType, data), nil
 }
 
-func (m *MockErrorStorageService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (*domain.Resource, error) {
+func (m *MockErrorStorageService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (domain.Resource, error) {
 	if m.retrieveError != nil {
 		return nil, m.retrieveError
 	}
-	return domain.NewResource(id, "application/ld+json", []byte(`{"test": "data"}`)), nil
+	return domain.NewResource(ctx, id, "application/ld+json", []byte(`{"test": "data"}`)), nil
 }
 
 func (m *MockErrorStorageService) DeleteResource(ctx context.Context, id string) error {
@@ -459,7 +459,7 @@ func (m *MockErrorStorageService) StreamResource(ctx context.Context, id string,
 	return io.NopCloser(strings.NewReader(`{"test": "data"}`)), "application/ld+json", nil
 }
 
-func (m *MockErrorStorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string) (*domain.Resource, error) {
+func (m *MockErrorStorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (domain.Resource, error) {
 	if m.storeError != nil {
 		return nil, m.storeError
 	}
@@ -467,5 +467,5 @@ func (m *MockErrorStorageService) StoreResourceStream(ctx context.Context, id st
 	if err != nil {
 		return nil, err
 	}
-	return domain.NewResource(id, contentType, data), nil
+	return domain.NewResource(ctx, id, contentType, data), nil
 }

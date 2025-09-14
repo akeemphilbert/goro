@@ -215,7 +215,7 @@ func NewCachedContainerRepository(repo domain.ContainerRepository, cache *Contai
 }
 
 // GetContainer retrieves a container with caching
-func (r *CachedContainerRepository) GetContainer(ctx context.Context, id string) (*domain.Container, error) {
+func (r *CachedContainerRepository) GetContainer(ctx context.Context, id string) (domain.ContainerResource, error) {
 	// Try cache first
 	if container, found := r.cache.Get(id); found {
 		return container, nil
@@ -231,22 +231,24 @@ func (r *CachedContainerRepository) GetContainer(ctx context.Context, id string)
 	memberCount := container.GetMemberCount()
 	totalSize := int64(0) // Would be calculated from actual member sizes
 
-	// Cache the result
-	r.cache.Put(id, container, memberCount, totalSize)
+	// Cache the result - type assert to concrete Container for caching
+	if concreteContainer, ok := container.(*domain.Container); ok {
+		r.cache.Put(id, concreteContainer, memberCount, totalSize)
+	}
 
 	return container, nil
 }
 
 // CreateContainer creates a container and invalidates cache
-func (r *CachedContainerRepository) CreateContainer(ctx context.Context, container *domain.Container) error {
+func (r *CachedContainerRepository) CreateContainer(ctx context.Context, container domain.ContainerResource) error {
 	err := r.repo.CreateContainer(ctx, container)
 	if err != nil {
 		return err
 	}
 
 	// Invalidate parent container cache if it exists
-	if container.ParentID != "" {
-		r.cache.Invalidate(container.ParentID)
+	if container.GetParentID() != "" {
+		r.cache.Invalidate(container.GetParentID())
 	}
 
 	return nil
@@ -310,12 +312,12 @@ func (r *CachedContainerRepository) ListMembers(ctx context.Context, containerID
 }
 
 // GetChildren gets children (no caching for dynamic results)
-func (r *CachedContainerRepository) GetChildren(ctx context.Context, containerID string) ([]*domain.Container, error) {
+func (r *CachedContainerRepository) GetChildren(ctx context.Context, containerID string) ([]domain.ContainerResource, error) {
 	return r.repo.GetChildren(ctx, containerID)
 }
 
 // GetParent gets parent with caching
-func (r *CachedContainerRepository) GetParent(ctx context.Context, containerID string) (*domain.Container, error) {
+func (r *CachedContainerRepository) GetParent(ctx context.Context, containerID string) (domain.ContainerResource, error) {
 	return r.repo.GetParent(ctx, containerID)
 }
 
@@ -325,7 +327,7 @@ func (r *CachedContainerRepository) GetPath(ctx context.Context, containerID str
 }
 
 // FindByPath finds by path (no caching for dynamic results)
-func (r *CachedContainerRepository) FindByPath(ctx context.Context, path string) (*domain.Container, error) {
+func (r *CachedContainerRepository) FindByPath(ctx context.Context, path string) (domain.ContainerResource, error) {
 	return r.repo.FindByPath(ctx, path)
 }
 

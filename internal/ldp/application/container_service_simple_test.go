@@ -118,7 +118,7 @@ func TestContainerService_GetContainer_Logic(t *testing.T) {
 	})
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		expectedContainer := domain.NewContainer("test-container", "", domain.BasicContainer)
+		expectedContainer := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 		mockRepo.On("GetContainer", ctx, "test-container").Return(expectedContainer, nil)
 
 		container, err := service.GetContainer(ctx, "test-container")
@@ -151,7 +151,7 @@ func TestContainerService_DeleteContainer_Logic(t *testing.T) {
 	})
 
 	t.Run("container not empty", func(t *testing.T) {
-		container := domain.NewContainer("test-container", "", domain.BasicContainer)
+		container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 		container.AddMember("member1") // Make container non-empty
 
 		mockRepo.On("GetContainer", ctx, "test-container").Return(container, nil)
@@ -265,7 +265,7 @@ func TestContainerService_HierarchyNavigation_Logic(t *testing.T) {
 	})
 
 	t.Run("find by path - successful", func(t *testing.T) {
-		expectedContainer := domain.NewContainer("child", "parent", domain.BasicContainer)
+		expectedContainer := domain.NewContainer(context.Background(), "child", "parent", domain.BasicContainer)
 		mockRepo.On("FindByPath", ctx, "/root/parent/child").Return(expectedContainer, nil)
 
 		container, err := service.FindContainerByPath(ctx, "/root/parent/child")

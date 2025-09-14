@@ -55,7 +55,7 @@ func TestResourceEventHandler_HandleUpdated(t *testing.T) {
 	ctx := context.Background()
 
 	// First create a resource
-	initialResource := domain.NewResource("update-test", "text/plain", []byte("initial"))
+	initialResource := domain.NewResource(context.Background(), "update-test", "text/plain", []byte("initial"))
 	repo.Store(ctx, initialResource)
 
 	// Test resource updated event
@@ -94,7 +94,7 @@ func TestResourceEventHandler_HandleDeleted(t *testing.T) {
 	ctx := context.Background()
 
 	// First create a resource
-	initialResource := domain.NewResource("delete-test", "text/plain", []byte("to be deleted"))
+	initialResource := domain.NewResource(context.Background(), "delete-test", "text/plain", []byte("to be deleted"))
 	repo.Store(ctx, initialResource)
 
 	// Verify it exists

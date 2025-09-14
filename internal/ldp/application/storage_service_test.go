@@ -295,7 +295,7 @@ func TestStorageService_StoreResource(t *testing.T) {
 			data:        []byte(`{"@context": {}, "@id": "updated"}`),
 			contentType: "application/ld+json",
 			setupRepo: func(r *mockRepository) {
-				existing := domain.NewResource("existing-resource", "application/ld+json", []byte(`{"old": "data"}`))
+				existing := domain.NewResource(context.Background(), "existing-resource", "application/ld+json", []byte(`{"old": "data"}`))
 				r.resources["existing-resource"] = existing
 			},
 			wantErr: false,
@@ -385,7 +385,7 @@ func TestStorageService_RetrieveResource(t *testing.T) {
 			id:           "test-resource",
 			acceptFormat: "",
 			setupRepo: func(r *mockRepository) {
-				resource := domain.NewResource("test-resource", "application/ld+json", []byte(`{"test": "data"}`))
+				resource := domain.NewResource(context.Background(), "test-resource", "application/ld+json", []byte(`{"test": "data"}`))
 				r.resources["test-resource"] = resource
 			},
 			setupConv: func(c *mockConverter) {},
@@ -396,7 +396,7 @@ func TestStorageService_RetrieveResource(t *testing.T) {
 			id:           "test-resource",
 			acceptFormat: "text/turtle",
 			setupRepo: func(r *mockRepository) {
-				resource := domain.NewResource("test-resource", "application/ld+json", []byte(`{"test": "data"}`))
+				resource := domain.NewResource(context.Background(), "test-resource", "application/ld+json", []byte(`{"test": "data"}`))
 				r.resources["test-resource"] = resource
 			},
 			setupConv: func(c *mockConverter) {},
@@ -425,7 +425,7 @@ func TestStorageService_RetrieveResource(t *testing.T) {
 			id:           "test-resource",
 			acceptFormat: "text/turtle",
 			setupRepo: func(r *mockRepository) {
-				resource := domain.NewResource("test-resource", "application/ld+json", []byte(`{"test": "data"}`))
+				resource := domain.NewResource(context.Background(), "test-resource", "application/ld+json", []byte(`{"test": "data"}`))
 				r.resources["test-resource"] = resource
 			},
 			setupConv: func(c *mockConverter) {
@@ -485,7 +485,7 @@ func TestStorageService_DeleteResource(t *testing.T) {
 			name: "successful delete",
 			id:   "test-resource",
 			setupRepo: func(r *mockRepository) {
-				resource := domain.NewResource("test-resource", "application/ld+json", []byte(`{"test": "data"}`))
+				resource := domain.NewResource(context.Background(), "test-resource", "application/ld+json", []byte(`{"test": "data"}`))
 				r.resources["test-resource"] = resource
 			},
 			wantErr: false,
@@ -508,7 +508,7 @@ func TestStorageService_DeleteResource(t *testing.T) {
 			name: "repository delete error",
 			id:   "test-resource",
 			setupRepo: func(r *mockRepository) {
-				resource := domain.NewResource("test-resource", "application/ld+json", []byte(`{"test": "data"}`))
+				resource := domain.NewResource(context.Background(), "test-resource", "application/ld+json", []byte(`{"test": "data"}`))
 				r.resources["test-resource"] = resource
 				r.deleteErr = errors.New("delete failed")
 			},
@@ -563,7 +563,7 @@ func TestStorageService_StreamResource(t *testing.T) {
 
 	// Setup test resource
 	testData := []byte(`{"@context": {}, "@id": "test", "data": "streaming test"}`)
-	resource := domain.NewResource("stream-test", "application/ld+json", testData)
+	resource := domain.NewResource(context.Background(), "stream-test", "application/ld+json", testData)
 	repo.resources["stream-test"] = resource
 
 	service := NewStorageService(repo, converter, unitOfWorkFactory)
@@ -621,7 +621,7 @@ func TestStorageService_ResourceExists(t *testing.T) {
 	unitOfWorkFactory := createMockUnitOfWorkFactory()
 
 	// Setup test resource
-	resource := domain.NewResource("exists-test", "application/ld+json", []byte(`{"test": "data"}`))
+	resource := domain.NewResource(context.Background(), "exists-test", "application/ld+json", []byte(`{"test": "data"}`))
 	repo.resources["exists-test"] = resource
 
 	service := NewStorageService(repo, converter, unitOfWorkFactory)

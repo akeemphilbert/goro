@@ -38,12 +38,12 @@ func TestFileSystemContainerRepository_CreateContainer(t *testing.T) {
 	}{
 		{
 			name:      "create basic container",
-			container: domain.NewContainer("test-container", "", domain.BasicContainer),
+			container: domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer),
 			wantErr:   false,
 		},
 		{
 			name:      "create container with non-existent parent",
-			container: domain.NewContainer("child-container", "parent-id", domain.BasicContainer),
+			container: domain.NewContainer(context.Background(), "child-container", "parent-id", domain.BasicContainer),
 			wantErr:   true, // Should fail because parent doesn't exist
 		},
 		{
@@ -104,14 +104,14 @@ func TestFileSystemContainerRepository_CreateContainerWithParent(t *testing.T) {
 	}
 
 	// Create parent container first
-	parentContainer := domain.NewContainer("parent-container", "", domain.BasicContainer)
+	parentContainer := domain.NewContainer(context.Background(), "parent-container", "", domain.BasicContainer)
 	err = repo.CreateContainer(context.Background(), parentContainer)
 	if err != nil {
 		t.Fatalf("Failed to create parent container: %v", err)
 	}
 
 	// Create child container
-	childContainer := domain.NewContainer("child-container", "parent-container", domain.BasicContainer)
+	childContainer := domain.NewContainer(context.Background(), "child-container", "parent-container", domain.BasicContainer)
 	err = repo.CreateContainer(context.Background(), childContainer)
 	if err != nil {
 		t.Errorf("Failed to create child container: %v", err)
@@ -158,7 +158,7 @@ func TestFileSystemContainerRepository_GetContainer(t *testing.T) {
 	}
 
 	// Create test container
-	testContainer := domain.NewContainer("test-container", "", domain.BasicContainer)
+	testContainer := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	testContainer.SetTitle("Test Container")
 	testContainer.SetDescription("A test container")
 
@@ -235,7 +235,7 @@ func TestFileSystemContainerRepository_AddMember(t *testing.T) {
 	}
 
 	// Create test container
-	testContainer := domain.NewContainer("test-container", "", domain.BasicContainer)
+	testContainer := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	err = repo.CreateContainer(context.Background(), testContainer)
 	if err != nil {
 		t.Fatalf("Failed to create test container: %v", err)
@@ -335,7 +335,7 @@ func TestFileSystemContainerRepository_RemoveMember(t *testing.T) {
 	}
 
 	// Create test container and add a member
-	testContainer := domain.NewContainer("test-container", "", domain.BasicContainer)
+	testContainer := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	err = repo.CreateContainer(context.Background(), testContainer)
 	if err != nil {
 		t.Fatalf("Failed to create test container: %v", err)
@@ -417,14 +417,14 @@ func TestFileSystemContainerRepository_HierarchicalDirectoryStructure(t *testing
 	}
 
 	// Create parent container
-	parentContainer := domain.NewContainer("parent", "", domain.BasicContainer)
+	parentContainer := domain.NewContainer(context.Background(), "parent", "", domain.BasicContainer)
 	err = repo.CreateContainer(context.Background(), parentContainer)
 	if err != nil {
 		t.Fatalf("Failed to create parent container: %v", err)
 	}
 
 	// Create child container
-	childContainer := domain.NewContainer("child", "parent", domain.BasicContainer)
+	childContainer := domain.NewContainer(context.Background(), "child", "parent", domain.BasicContainer)
 	err = repo.CreateContainer(context.Background(), childContainer)
 	if err != nil {
 		t.Fatalf("Failed to create child container: %v", err)
@@ -488,7 +488,7 @@ func TestFileSystemContainerRepository_ContainerMetadataPersistence(t *testing.T
 	}
 
 	// Create container with metadata (no parent for this test)
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	container.SetTitle("Test Container")
 	container.SetDescription("A test container with metadata")
 	container.AddMember("member-1")
@@ -578,7 +578,7 @@ func TestFileSystemContainerRepository_MembershipTrackingIntegration(t *testing.
 	}
 
 	// Create container
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	err = repo.CreateContainer(context.Background(), container)
 	if err != nil {
 		t.Fatalf("Failed to create container: %v", err)

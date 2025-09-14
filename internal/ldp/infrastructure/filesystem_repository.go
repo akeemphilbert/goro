@@ -59,7 +59,7 @@ func NewFileSystemRepositoryWithPath(basePath string) (domain.StreamingResourceR
 }
 
 // Store saves a resource to the file system with metadata and checksum validation
-func (r *FileSystemRepository) Store(ctx context.Context, resource *domain.Resource) error {
+func (r *FileSystemRepository) Store(ctx context.Context, resource domain.Resource) error {
 	if resource == nil {
 		return domain.WrapStorageError(
 			fmt.Errorf("resource cannot be nil"),
@@ -125,7 +125,7 @@ func (r *FileSystemRepository) Store(ctx context.Context, resource *domain.Resou
 }
 
 // Retrieve loads a resource from the file system with checksum validation
-func (r *FileSystemRepository) Retrieve(ctx context.Context, id string) (*domain.Resource, error) {
+func (r *FileSystemRepository) Retrieve(ctx context.Context, id string) (domain.Resource, error) {
 	if id == "" {
 		return nil, domain.WrapStorageError(
 			fmt.Errorf("resource ID cannot be empty"),
@@ -188,7 +188,7 @@ func (r *FileSystemRepository) Retrieve(ctx context.Context, id string) (*domain
 	}
 
 	// Create resource from stored data
-	resource := domain.NewResource(id, metadata.ContentType, data)
+	resource := domain.NewResource(ctx, id, metadata.ContentType, data)
 
 	// Restore metadata
 	for key, value := range metadata.Tags {
@@ -297,7 +297,7 @@ func (r *FileSystemRepository) generateChecksum(data []byte) string {
 }
 
 // createMetadata creates metadata for a resource
-func (r *FileSystemRepository) createMetadata(resource *domain.Resource, checksum string) ResourceMetadata {
+func (r *FileSystemRepository) createMetadata(resource domain.Resource, checksum string) ResourceMetadata {
 	now := time.Now()
 
 	// Extract original format from metadata if available

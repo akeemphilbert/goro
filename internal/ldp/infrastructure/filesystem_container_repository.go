@@ -49,7 +49,7 @@ func NewFileSystemContainerRepository(basePath string, indexer MembershipIndexer
 }
 
 // CreateContainer creates a new container in the filesystem
-func (r *FileSystemContainerRepository) CreateContainer(ctx context.Context, container *domain.Container) error {
+func (r *FileSystemContainerRepository) CreateContainer(ctx context.Context, container domain.ContainerResource) error {
 	if container == nil {
 		return domain.WrapStorageError(
 			fmt.Errorf("container cannot be nil"),
@@ -107,7 +107,7 @@ func (r *FileSystemContainerRepository) CreateContainer(ctx context.Context, con
 
 	// Store the underlying resource
 	var resource domain.Resource = container
-	if err := r.FileSystemRepository.Store(ctx, &resource); err != nil {
+	if err := r.FileSystemRepository.Store(ctx, resource); err != nil {
 		// Clean up on error
 		os.RemoveAll(containerDir)
 		return domain.WrapStorageError(
@@ -143,7 +143,7 @@ func (r *FileSystemContainerRepository) CreateContainer(ctx context.Context, con
 }
 
 // GetContainer retrieves a container from the filesystem
-func (r *FileSystemContainerRepository) GetContainer(ctx context.Context, id string) (*domain.Container, error) {
+func (r *FileSystemContainerRepository) GetContainer(ctx context.Context, id string) (domain.ContainerResource, error) {
 	if id == "" {
 		return nil, domain.WrapStorageError(
 			fmt.Errorf("container ID cannot be empty"),
@@ -191,8 +191,18 @@ func (r *FileSystemContainerRepository) GetContainer(ctx context.Context, id str
 	}
 
 	// Create container from metadata and resource
+	// Type assert to get the underlying BasicResource
+	basicResource, ok := resource.(*domain.BasicResource)
+	if !ok {
+		return nil, domain.WrapStorageError(
+			fmt.Errorf("resource is not a BasicResource"),
+			domain.ErrInvalidResource.Code,
+			"invalid resource type",
+		).WithOperation("GetContainer").WithContext("containerID", id)
+	}
+
 	container := &domain.Container{
-		BasicResource: (*resource).(*domain.BasicResource),
+		BasicResource: basicResource,
 		Members:       metadata.Members,
 		ParentID:      metadata.ParentID,
 		ContainerType: domain.ContainerType(metadata.ContainerType),
@@ -211,7 +221,7 @@ func (r *FileSystemContainerRepository) GetContainer(ctx context.Context, id str
 }
 
 // UpdateContainer updates an existing container
-func (r *FileSystemContainerRepository) UpdateContainer(ctx context.Context, container *domain.Container) error {
+func (r *FileSystemContainerRepository) UpdateContainer(ctx context.Context, container domain.ContainerResource) error {
 	if container == nil {
 		return domain.WrapStorageError(
 			fmt.Errorf("container cannot be nil"),
@@ -249,7 +259,7 @@ func (r *FileSystemContainerRepository) UpdateContainer(ctx context.Context, con
 
 	// Update the underlying resource
 	var resource domain.Resource = container
-	if err := r.FileSystemRepository.Store(ctx, &resource); err != nil {
+	if err := r.FileSystemRepository.Store(ctx, resource); err != nil {
 		return domain.WrapStorageError(
 			err,
 			domain.ErrStorageOperation.Code,
@@ -403,7 +413,7 @@ func (r *FileSystemContainerRepository) AddMember(ctx context.Context, container
 	}
 
 	// Add member to container
-	if err := container.AddMember(ctx, *resource); err != nil {
+	if err := container.AddMember(ctx, resource); err != nil {
 		return domain.WrapStorageError(
 			err,
 			domain.ErrStorageOperation.Code,
@@ -511,7 +521,7 @@ func (r *FileSystemContainerRepository) ListMembers(ctx context.Context, contain
 	}
 
 	// Apply pagination to members list
-	members := container.Members
+	members := container.GetMembers()
 	if pagination.Offset >= len(members) {
 		return []string{}, nil
 	}
@@ -525,24 +535,24 @@ func (r *FileSystemContainerRepository) ListMembers(ctx context.Context, contain
 }
 
 // GetChildren returns all child containers of a container
-func (r *FileSystemContainerRepository) GetChildren(ctx context.Context, containerID string) ([]*domain.Container, error) {
+func (r *FileSystemContainerRepository) GetChildren(ctx context.Context, containerID string) ([]domain.ContainerResource, error) {
 	// This would require scanning all containers to find children
 	// For now, return empty slice - this can be optimized with indexing
-	return []*domain.Container{}, nil
+	return []domain.ContainerResource{}, nil
 }
 
 // GetParent returns the parent container of a container
-func (r *FileSystemContainerRepository) GetParent(ctx context.Context, containerID string) (*domain.Container, error) {
+func (r *FileSystemContainerRepository) GetParent(ctx context.Context, containerID string) (domain.ContainerResource, error) {
 	container, err := r.GetContainer(ctx, containerID)
 	if err != nil {
 		return nil, err
 	}
 
-	if container.ParentID == "" {
+	if container.GetParentID() == "" {
 		return nil, nil // No parent (root container)
 	}
 
-	return r.GetContainer(ctx, container.ParentID)
+	return r.GetContainer(ctx, container.GetParentID())
 }
 
 // GetPath returns the path to a container as a slice of container IDs
@@ -557,14 +567,14 @@ func (r *FileSystemContainerRepository) GetPath(ctx context.Context, containerID
 		}
 
 		path = append([]string{currentID}, path...) // Prepend to build path from root
-		currentID = container.ParentID
+		currentID = container.GetParentID()
 	}
 
 	return path, nil
 }
 
 // FindByPath finds a container by its path
-func (r *FileSystemContainerRepository) FindByPath(ctx context.Context, path string) (*domain.Container, error) {
+func (r *FileSystemContainerRepository) FindByPath(ctx context.Context, path string) (domain.ContainerResource, error) {
 	// Simple implementation - assumes path is just the container ID
 	// A more sophisticated implementation would parse hierarchical paths
 	return r.GetContainer(ctx, path)
@@ -600,18 +610,18 @@ type ContainerMetadata struct {
 }
 
 // storeContainerMetadata stores container metadata as JSON
-func (r *FileSystemContainerRepository) storeContainerMetadata(container *domain.Container) error {
+func (r *FileSystemContainerRepository) storeContainerMetadata(container domain.ContainerResource) error {
 	containerDir := r.getContainerPath(container.ID())
 	metadataPath := filepath.Join(containerDir, "container.json")
 
 	// Create metadata structure
 	metadata := ContainerMetadata{
 		ID:            container.ID(),
-		ParentID:      container.ParentID,
-		ContainerType: container.ContainerType.String(),
+		ParentID:      container.GetParentID(),
+		ContainerType: container.GetContainerType().String(),
 		Title:         container.GetTitle(),
 		Description:   container.GetDescription(),
-		Members:       container.Members,
+		Members:       container.GetMembers(),
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
 	}
@@ -658,9 +668,9 @@ func (r *FileSystemContainerRepository) loadContainerMetadata(id string) (*Conta
 }
 
 // indexContainer indexes a container in the membership indexer
-func (r *FileSystemContainerRepository) indexContainer(ctx context.Context, container *domain.Container) error {
+func (r *FileSystemContainerRepository) indexContainer(ctx context.Context, container domain.ContainerResource) error {
 	// Index all existing members
-	for _, memberID := range container.Members {
+	for _, memberID := range container.GetMembers() {
 		if err := r.indexer.IndexMembership(ctx, container.ID(), memberID); err != nil {
 			return fmt.Errorf("failed to index member %s: %w", memberID, err)
 		}
@@ -672,12 +682,12 @@ func (r *FileSystemContainerRepository) indexContainer(ctx context.Context, cont
 // Implement remaining ResourceRepository methods by delegating to base repository
 
 // Store stores a resource (delegates to base repository)
-func (r *FileSystemContainerRepository) Store(ctx context.Context, resource *domain.Resource) error {
+func (r *FileSystemContainerRepository) Store(ctx context.Context, resource domain.Resource) error {
 	return r.FileSystemRepository.Store(ctx, resource)
 }
 
 // Retrieve retrieves a resource (delegates to base repository)
-func (r *FileSystemContainerRepository) Retrieve(ctx context.Context, id string) (*domain.Resource, error) {
+func (r *FileSystemContainerRepository) Retrieve(ctx context.Context, id string) (domain.Resource, error) {
 	return r.FileSystemRepository.Retrieve(ctx, id)
 }
 
@@ -702,7 +712,7 @@ func (r *FileSystemContainerRepository) RetrieveStream(ctx context.Context, id s
 }
 
 // insertContainerIntoDatabase inserts container metadata into the database
-func (r *FileSystemContainerRepository) insertContainerIntoDatabase(ctx context.Context, container *domain.Container) error {
+func (r *FileSystemContainerRepository) insertContainerIntoDatabase(ctx context.Context, container domain.ContainerResource) error {
 	// Get database connection from indexer
 	db, err := r.getDatabaseConnection()
 	if err != nil {
@@ -711,10 +721,10 @@ func (r *FileSystemContainerRepository) insertContainerIntoDatabase(ctx context.
 
 	// Handle parent_id - use NULL if empty
 	var parentID interface{}
-	if container.ParentID == "" {
+	if container.GetParentID() == "" {
 		parentID = nil
 	} else {
-		parentID = container.ParentID
+		parentID = container.GetParentID()
 	}
 
 	// Insert container into containers table
@@ -725,7 +735,7 @@ func (r *FileSystemContainerRepository) insertContainerIntoDatabase(ctx context.
 	_, err = db.ExecContext(ctx, query,
 		container.ID(),
 		parentID,
-		container.ContainerType.String(),
+		container.GetContainerType().String(),
 		container.GetTitle(),
 		container.GetDescription(),
 	)

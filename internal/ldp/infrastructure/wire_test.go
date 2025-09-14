@@ -76,7 +76,7 @@ func TestStorageInfrastructureSetIntegration(t *testing.T) {
 
 	// Test basic functionality
 	ctx := context.Background()
-	testResource := domain.NewResource("wire-test", "text/plain", []byte("test data"))
+	testResource := domain.NewResource(ctx, "wire-test", "text/plain", []byte("test data"))
 
 	err = repo.Store(ctx, testResource)
 	assert.NoError(t, err)

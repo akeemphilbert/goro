@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,6 +13,48 @@ import (
 	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
 )
 
+// RepositoryAdapter adapts FileSystemRepository to StreamingResourceRepository interface
+type RepositoryAdapter struct {
+	*infrastructure.FileSystemRepository
+}
+
+func (r *RepositoryAdapter) Retrieve(ctx context.Context, id string) (domain.Resource, error) {
+	resource, err := r.FileSystemRepository.Retrieve(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return *resource, nil
+}
+
+func (r *RepositoryAdapter) Store(ctx context.Context, resource domain.Resource) error {
+	return r.FileSystemRepository.Store(ctx, &resource)
+}
+
+func (r *RepositoryAdapter) StreamStore(ctx context.Context, id string, contentType string, reader io.Reader) (domain.Resource, error) {
+	// For this test adapter, we'll read the entire stream
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create resource and store it
+	newResource := domain.NewResource(ctx, id, contentType, data)
+	err = r.Store(ctx, newResource)
+	if err != nil {
+		return nil, err
+	}
+
+	return newResource, nil
+}
+
+func (r *RepositoryAdapter) Delete(ctx context.Context, id string) error {
+	return r.FileSystemRepository.Delete(ctx, id)
+}
+
+func (r *RepositoryAdapter) Exists(ctx context.Context, id string) (bool, error) {
+	return r.FileSystemRepository.Exists(ctx, id)
+}
+
 func TestStorageServiceIntegration(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "storage_service_test")
@@ -21,10 +64,13 @@ func TestStorageServiceIntegration(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real infrastructure components
-	repo, err := infrastructure.NewFileSystemRepository(tempDir)
+	baseRepo, err := infrastructure.NewFileSystemRepository(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create repository: %v", err)
 	}
+
+	// Wrap with adapter to match interface
+	repo := &RepositoryAdapter{FileSystemRepository: baseRepo}
 	converter := infrastructure.NewRDFConverter()
 
 	// Create database and event infrastructure
@@ -65,8 +111,8 @@ func TestStorageServiceIntegration(t *testing.T) {
 		t.Fatalf("Failed to store resource: %v", err)
 	}
 
-	if resource.ID() != "integration-test" {
-		t.Errorf("Expected resource ID 'integration-test', got %s", resource.ID())
+	if (*resource).ID() != "integration-test" {
+		t.Errorf("Expected resource ID 'integration-test', got %s", (*resource).ID())
 	}
 
 	// Test retrieving the resource
@@ -75,7 +121,7 @@ func TestStorageServiceIntegration(t *testing.T) {
 		t.Fatalf("Failed to retrieve resource: %v", err)
 	}
 
-	if string(retrievedResource.GetData()) != string(testData) {
+	if string((*retrievedResource).GetData()) != string(testData) {
 		t.Errorf("Retrieved data doesn't match stored data")
 	}
 
@@ -85,8 +131,8 @@ func TestStorageServiceIntegration(t *testing.T) {
 		t.Fatalf("Failed to retrieve resource with format conversion: %v", err)
 	}
 
-	if convertedResource.GetContentType() != "text/turtle" {
-		t.Errorf("Expected content type 'text/turtle', got %s", convertedResource.GetContentType())
+	if (*convertedResource).GetContentType() != "text/turtle" {
+		t.Errorf("Expected content type 'text/turtle', got %s", (*convertedResource).GetContentType())
 	}
 
 	// Test resource existence
@@ -129,10 +175,13 @@ func TestStorageServiceStreamingIntegration(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real infrastructure components
-	repo, err := infrastructure.NewFileSystemRepository(tempDir)
+	baseRepo, err := infrastructure.NewFileSystemRepository(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create repository: %v", err)
 	}
+
+	// Wrap with adapter to match interface
+	repo := &RepositoryAdapter{FileSystemRepository: baseRepo}
 	converter := infrastructure.NewRDFConverter()
 
 	// Create database and event infrastructure
@@ -212,10 +261,13 @@ func TestStorageServiceErrorHandlingIntegration(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real infrastructure components
-	repo, err := infrastructure.NewFileSystemRepository(tempDir)
+	baseRepo, err := infrastructure.NewFileSystemRepository(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create repository: %v", err)
 	}
+
+	// Wrap with adapter to match interface
+	repo := &RepositoryAdapter{FileSystemRepository: baseRepo}
 	converter := infrastructure.NewRDFConverter()
 
 	// Create database and event infrastructure

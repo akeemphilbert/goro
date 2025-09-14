@@ -14,7 +14,7 @@ func TestContainerCacheBasicOperations(t *testing.T) {
 	cache := NewContainerCache(5*time.Minute, 100)
 
 	// Create test container
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 
 	// Test cache miss
 	_, found := cache.Get("test-container")
@@ -41,7 +41,7 @@ func TestContainerCacheExpiration(t *testing.T) {
 	// Short TTL for testing
 	cache := NewContainerCache(50*time.Millisecond, 100)
 
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	cache.Put("test-container", container, 5, 1024)
 
 	// Should be available immediately
@@ -62,11 +62,11 @@ func TestContainerCacheEviction(t *testing.T) {
 	cache := NewContainerCache(5*time.Minute, 2)
 
 	// Add first container
-	container1 := domain.NewContainer("container-1", "", domain.BasicContainer)
+	container1 := domain.NewContainer(context.Background(), "container-1", "", domain.BasicContainer)
 	cache.Put("container-1", container1, 1, 100)
 
 	// Add second container
-	container2 := domain.NewContainer("container-2", "", domain.BasicContainer)
+	container2 := domain.NewContainer(context.Background(), "container-2", "", domain.BasicContainer)
 	cache.Put("container-2", container2, 2, 200)
 
 	// Both should be in cache
@@ -77,7 +77,7 @@ func TestContainerCacheEviction(t *testing.T) {
 	assert.True(t, found)
 
 	// Add third container - should evict container-2 (least recently used)
-	container3 := domain.NewContainer("container-3", "", domain.BasicContainer)
+	container3 := domain.NewContainer(context.Background(), "container-3", "", domain.BasicContainer)
 	cache.Put("container-3", container3, 3, 300)
 
 	// Cache should still have 2 entries
@@ -98,7 +98,7 @@ func TestContainerCacheEviction(t *testing.T) {
 func TestContainerCacheInvalidation(t *testing.T) {
 	cache := NewContainerCache(5*time.Minute, 100)
 
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	cache.Put("test-container", container, 5, 1024)
 
 	// Verify it's cached
@@ -118,7 +118,7 @@ func TestContainerCacheInvalidation(t *testing.T) {
 func TestContainerCacheStatsUpdate(t *testing.T) {
 	cache := NewContainerCache(5*time.Minute, 100)
 
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	cache.Put("test-container", container, 5, 1024)
 
 	// Update stats
@@ -196,7 +196,7 @@ func TestContainerCacheExpiredCleanup(t *testing.T) {
 	cache := NewContainerCache(10*time.Millisecond, 100)
 
 	// Add container
-	container := domain.NewContainer("test-container", "", domain.BasicContainer)
+	container := domain.NewContainer(context.Background(), "test-container", "", domain.BasicContainer)
 	cache.Put("test-container", container, 5, 1024)
 
 	assert.Equal(t, 1, cache.Size())

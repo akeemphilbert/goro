@@ -25,11 +25,11 @@ type MockStorageServiceWithLimits struct {
 // MockUnsupportedFormatService always returns unsupported format errors
 type MockUnsupportedFormatService struct{}
 
-func (m *MockUnsupportedFormatService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (*domain.Resource, error) {
+func (m *MockUnsupportedFormatService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (domain.Resource, error) {
 	return nil, &domain.StorageError{Code: "RESOURCE_NOT_FOUND", Message: "not found"}
 }
 
-func (m *MockUnsupportedFormatService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (*domain.Resource, error) {
+func (m *MockUnsupportedFormatService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (domain.Resource, error) {
 	return nil, &domain.StorageError{
 		Code:      "UNSUPPORTED_FORMAT",
 		Message:   "unsupported format requested",
@@ -53,11 +53,11 @@ func (m *MockUnsupportedFormatService) StreamResource(ctx context.Context, id st
 	return nil, "", &domain.StorageError{Code: "RESOURCE_NOT_FOUND", Message: "not found"}
 }
 
-func (m *MockUnsupportedFormatService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string) (*domain.Resource, error) {
+func (m *MockUnsupportedFormatService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (domain.Resource, error) {
 	return nil, &domain.StorageError{Code: "RESOURCE_NOT_FOUND", Message: "not found"}
 }
 
-func (m *MockStorageServiceWithLimits) StoreResource(ctx context.Context, id string, data []byte, contentType string) (*domain.Resource, error) {
+func (m *MockStorageServiceWithLimits) StoreResource(ctx context.Context, id string, data []byte, contentType string) (domain.Resource, error) {
 	if m.simulateInsufficientStorage {
 		return nil, &domain.StorageError{
 			Code:      "INSUFFICIENT_STORAGE",
@@ -95,10 +95,10 @@ func (m *MockStorageServiceWithLimits) StoreResource(ctx context.Context, id str
 		}
 	}
 
-	return domain.NewResource(id, contentType, data), nil
+	return domain.NewResource(ctx, id, contentType, data), nil
 }
 
-func (m *MockStorageServiceWithLimits) RetrieveResource(ctx context.Context, id string, acceptFormat string) (*domain.Resource, error) {
+func (m *MockStorageServiceWithLimits) RetrieveResource(ctx context.Context, id string, acceptFormat string) (domain.Resource, error) {
 	return nil, &domain.StorageError{
 		Code:      "RESOURCE_NOT_FOUND",
 		Message:   "resource not found",
@@ -135,7 +135,7 @@ func (m *MockStorageServiceWithLimits) StreamResource(ctx context.Context, id st
 	}
 }
 
-func (m *MockStorageServiceWithLimits) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string) (*domain.Resource, error) {
+func (m *MockStorageServiceWithLimits) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (domain.Resource, error) {
 	if m.simulateInsufficientStorage {
 		return nil, &domain.StorageError{
 			Code:      "INSUFFICIENT_STORAGE",
@@ -152,7 +152,7 @@ func (m *MockStorageServiceWithLimits) StoreResourceStream(ctx context.Context, 
 		return nil, err
 	}
 
-	return domain.NewResource(id, contentType, data), nil
+	return domain.NewResource(ctx, id, contentType, data), nil
 }
 
 // TestStorageLimitErrors tests specific storage limitation error scenarios

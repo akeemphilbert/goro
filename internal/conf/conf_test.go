@@ -25,9 +25,9 @@ write_timeout: 30s
 			expected: HTTP{
 				Network:      "tcp",
 				Addr:         ":8080",
-				Timeout:      30 * time.Second,
-				ReadTimeout:  30 * time.Second,
-				WriteTimeout: 30 * time.Second,
+				Timeout:      Duration(30 * time.Second),
+				ReadTimeout:  Duration(30 * time.Second),
+				WriteTimeout: Duration(30 * time.Second),
 			},
 		},
 		{
@@ -48,10 +48,10 @@ tls:
 			expected: HTTP{
 				Network:         "tcp",
 				Addr:            ":8443",
-				Timeout:         30 * time.Second,
-				ReadTimeout:     30 * time.Second,
-				WriteTimeout:    30 * time.Second,
-				ShutdownTimeout: 10 * time.Second,
+				Timeout:         Duration(30 * time.Second),
+				ReadTimeout:     Duration(30 * time.Second),
+				WriteTimeout:    Duration(30 * time.Second),
+				ShutdownTimeout: Duration(10 * time.Second),
 				MaxHeaderBytes:  1048576,
 				TLS: TLS{
 					Enabled:  true,
@@ -115,9 +115,9 @@ func TestConfigValidation(t *testing.T) {
 			config: HTTP{
 				Network:      "tcp",
 				Addr:         ":8080",
-				Timeout:      30 * time.Second,
-				ReadTimeout:  30 * time.Second,
-				WriteTimeout: 30 * time.Second,
+				Timeout:      Duration(30 * time.Second),
+				ReadTimeout:  Duration(30 * time.Second),
+				WriteTimeout: Duration(30 * time.Second),
 			},
 			wantErr: false,
 		},
@@ -126,9 +126,9 @@ func TestConfigValidation(t *testing.T) {
 			config: HTTP{
 				Network:      "invalid",
 				Addr:         ":8080",
-				Timeout:      30 * time.Second,
-				ReadTimeout:  30 * time.Second,
-				WriteTimeout: 30 * time.Second,
+				Timeout:      Duration(30 * time.Second),
+				ReadTimeout:  Duration(30 * time.Second),
+				WriteTimeout: Duration(30 * time.Second),
 			},
 			wantErr: true,
 		},
@@ -137,9 +137,9 @@ func TestConfigValidation(t *testing.T) {
 			config: HTTP{
 				Network:      "tcp",
 				Addr:         "invalid-address",
-				Timeout:      30 * time.Second,
-				ReadTimeout:  30 * time.Second,
-				WriteTimeout: 30 * time.Second,
+				Timeout:      Duration(30 * time.Second),
+				ReadTimeout:  Duration(30 * time.Second),
+				WriteTimeout: Duration(30 * time.Second),
 			},
 			wantErr: true,
 		},
@@ -148,9 +148,9 @@ func TestConfigValidation(t *testing.T) {
 			config: HTTP{
 				Network:      "tcp",
 				Addr:         ":8443",
-				Timeout:      30 * time.Second,
-				ReadTimeout:  30 * time.Second,
-				WriteTimeout: 30 * time.Second,
+				Timeout:      Duration(30 * time.Second),
+				ReadTimeout:  Duration(30 * time.Second),
+				WriteTimeout: Duration(30 * time.Second),
 				TLS: TLS{
 					Enabled: true,
 					KeyFile: "/path/to/key.pem",
@@ -163,9 +163,9 @@ func TestConfigValidation(t *testing.T) {
 			config: HTTP{
 				Network:      "tcp",
 				Addr:         ":8443",
-				Timeout:      30 * time.Second,
-				ReadTimeout:  30 * time.Second,
-				WriteTimeout: 30 * time.Second,
+				Timeout:      Duration(30 * time.Second),
+				ReadTimeout:  Duration(30 * time.Second),
+				WriteTimeout: Duration(30 * time.Second),
 				TLS: TLS{
 					Enabled:  true,
 					CertFile: "/path/to/cert.pem",
@@ -192,10 +192,10 @@ func TestSetDefaults(t *testing.T) {
 	expectedDefaults := HTTP{
 		Network:         "tcp",
 		Addr:            ":8080",
-		Timeout:         30 * time.Second,
-		ReadTimeout:     30 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 10 * time.Second,
+		Timeout:         Duration(30 * time.Second),
+		ReadTimeout:     Duration(30 * time.Second),
+		WriteTimeout:    Duration(30 * time.Second),
+		ShutdownTimeout: Duration(10 * time.Second),
 		MaxHeaderBytes:  1048576,
 		TLS: TLS{
 			Enabled: false,

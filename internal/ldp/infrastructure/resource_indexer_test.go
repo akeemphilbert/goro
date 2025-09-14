@@ -19,6 +19,7 @@ func TestResourceIndexer(t *testing.T) {
 	// Test adding resources
 	t.Run("AddResource", func(t *testing.T) {
 		resource := domain.NewResource(
+			context.Background(),
 			"test-resource-1",
 			"text/turtle",
 			[]byte("@prefix ex: <http://example.org/> .\nex:test ex:name \"Test\" ."),
@@ -52,11 +53,13 @@ func TestResourceIndexer(t *testing.T) {
 	t.Run("FindByContentType", func(t *testing.T) {
 		// Add more resources
 		resource2 := domain.NewResource(
+			context.Background(),
 			"test-resource-2",
 			"application/ld+json",
 			[]byte(`{"@context": "http://example.org/", "@id": "test", "name": "Test"}`),
 		)
 		resource3 := domain.NewResource(
+			context.Background(),
 			"test-resource-3",
 			"text/turtle",
 			[]byte("@prefix ex: <http://example.org/> .\nex:test2 ex:name \"Test2\" ."),
@@ -204,9 +207,9 @@ func TestResourceIndexerRebuild(t *testing.T) {
 
 	ctx := context.Background()
 	resources := []*domain.Resource{
-		domain.NewResource("rebuild-1", "text/turtle", []byte("@prefix ex: <http://example.org/> .\nex:rebuild1 ex:name \"Rebuild1\" .")),
-		domain.NewResource("rebuild-2", "application/ld+json", []byte(`{"@context": "http://example.org/", "@id": "rebuild2", "name": "Rebuild2"}`)),
-		domain.NewResource("rebuild-3", "text/turtle", []byte("@prefix ex: <http://example.org/> .\nex:rebuild3 ex:name \"Rebuild3\" .")),
+		domain.NewResource(context.Background(), "rebuild-1", "text/turtle", []byte("@prefix ex: <http://example.org/> .\nex:rebuild1 ex:name \"Rebuild1\" .")),
+		domain.NewResource(context.Background(), "rebuild-2", "application/ld+json", []byte(`{"@context": "http://example.org/", "@id": "rebuild2", "name": "Rebuild2"}`)),
+		domain.NewResource(context.Background(), "rebuild-3", "text/turtle", []byte("@prefix ex: <http://example.org/> .\nex:rebuild3 ex:name \"Rebuild3\" .")),
 	}
 
 	for _, resource := range resources {

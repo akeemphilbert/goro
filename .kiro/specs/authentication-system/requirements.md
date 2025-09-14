@@ -32,15 +32,17 @@ The Authentication System provides secure user authentication for the Solid pod 
 
 ### Requirement 3
 
-**User Story:** As a security-conscious user, I want multiple authentication options so that I can choose the most secure method for my needs.
+**User Story:** As a security-conscious user, I want multiple authentication methods including optional MFA so that I can choose the most appropriate security level for my needs.
 
 #### Acceptance Criteria
 
-1. WHEN authenticating THEN the system SHALL support multiple identity providers
-2. WHEN enhanced security is needed THEN the system SHALL support multi-factor authentication
-3. WHEN using different devices THEN the system SHALL maintain consistent authentication experience
-4. WHEN authentication methods change THEN the system SHALL support method migration
-5. IF primary authentication fails THEN the system SHALL provide alternative authentication options
+1. WHEN authenticating THEN the system SHALL support username and password authentication
+2. WHEN authenticating THEN the system SHALL support WebID-OIDC authentication
+3. WHEN authenticating THEN the system SHALL support third-party OAuth providers (Google, GitHub, etc.)
+4. WHEN enhanced security is desired THEN the system SHALL support optional multi-factor authentication (MFA)
+5. WHEN using MFA THEN the system SHALL support TOTP (Time-based One-Time Password) as a second factor
+6. WHEN using different devices THEN the system SHALL maintain consistent authentication experience across all methods
+7. IF primary authentication method fails THEN the system SHALL provide alternative authentication options
 
 ### Requirement 4
 
@@ -56,6 +58,48 @@ The Authentication System provides secure user authentication for the Solid pod 
 
 ### Requirement 5
 
-**User Story:** As a pod user I would like to be able to create a new web identity by logging in with an external identity (google)
+**User Story:** As a pod user, I want to create a new WebID using external identity providers so that I can easily onboard without manual WebID setup.
 
-**User Story:** As a logged in pod user I would like to be able to link an external identity with my my web identity so i can use that to login .
+#### Acceptance Criteria
+
+1. WHEN registering with external identity THEN the system SHALL create a new WebID automatically
+2. WHEN using Google OAuth THEN the system SHALL support Google as an identity provider
+3. WHEN WebID creation succeeds THEN the system SHALL link the external identity to the new WebID
+4. WHEN external identity is already linked THEN the system SHALL prevent duplicate WebID creation
+5. IF external identity verification fails THEN the system SHALL reject registration with clear error message
+
+### Requirement 6
+
+**User Story:** As a logged-in pod user, I want to link additional external identities to my WebID so that I can use multiple authentication methods.
+
+#### Acceptance Criteria
+
+1. WHEN authenticated user requests identity linking THEN the system SHALL verify current session
+2. WHEN linking external identity THEN the system SHALL support OAuth2/OIDC flows
+3. WHEN linking succeeds THEN the system SHALL store the association securely
+4. WHEN identity is already linked THEN the system SHALL prevent duplicate associations
+5. IF linking fails THEN the system SHALL maintain existing authentication state
+
+### Requirement 7
+
+**User Story:** As a system administrator, I want secure token management so that authentication tokens are properly secured and rotated.
+
+#### Acceptance Criteria
+
+1. WHEN tokens are generated THEN the system SHALL use cryptographically secure random generation
+2. WHEN tokens are stored THEN the system SHALL encrypt sensitive token data at rest
+3. WHEN tokens approach expiration THEN the system SHALL support automatic refresh flows
+4. WHEN security breach is detected THEN the system SHALL support immediate token revocation
+5. IF token validation fails THEN the system SHALL log security events for monitoring
+
+### Requirement 8
+
+**User Story:** As someone deploying the pod, I want to configure external identity provider credentials so that I can integrate with OAuth providers securely.
+
+#### Acceptance Criteria
+
+1. WHEN configuring OAuth providers THEN the system SHALL support client ID configuration via environment variables
+2. WHEN configuring OAuth providers THEN the system SHALL support client secret configuration via environment variables
+3. WHEN using secret management systems THEN the system SHALL support specifying secret keys for external secret providers
+4. WHEN configuration is invalid THEN the system SHALL provide clear error messages during startup
+5. IF credentials are missing THEN the system SHALL disable the corresponding authentication provider gracefully 

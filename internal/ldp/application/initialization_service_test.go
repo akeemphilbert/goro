@@ -8,7 +8,6 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 // MockContainerRepository is a mock implementation of domain.ContainerRepository
@@ -107,7 +106,7 @@ func (m *MockContainerRepository) FindByPath(ctx context.Context, path string) (
 
 func TestNewInitializationService(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 
 	service := NewInitializationService(mockRepo, logger)
 
@@ -118,7 +117,7 @@ func TestNewInitializationService(t *testing.T) {
 
 func TestInitializationService_EnsureRootContainer_DoesNotExist(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -137,7 +136,7 @@ func TestInitializationService_EnsureRootContainer_DoesNotExist(t *testing.T) {
 
 func TestInitializationService_EnsureRootContainer_AlreadyExists(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -156,7 +155,7 @@ func TestInitializationService_EnsureRootContainer_AlreadyExists(t *testing.T) {
 
 func TestInitializationService_EnsureRootContainer_CheckExistenceError(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -173,7 +172,7 @@ func TestInitializationService_EnsureRootContainer_CheckExistenceError(t *testin
 
 func TestInitializationService_EnsureRootContainer_CreateError(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -193,7 +192,7 @@ func TestInitializationService_EnsureRootContainer_CreateError(t *testing.T) {
 
 func TestInitializationService_GetRootContainer(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -216,7 +215,7 @@ func TestInitializationService_GetRootContainer(t *testing.T) {
 
 func TestInitializationService_GetRootContainer_Error(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -233,7 +232,7 @@ func TestInitializationService_GetRootContainer_Error(t *testing.T) {
 
 func TestInitializationService_ValidateSystemState_Valid(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -255,7 +254,7 @@ func TestInitializationService_ValidateSystemState_Valid(t *testing.T) {
 
 func TestInitializationService_ValidateSystemState_RootDoesNotExist(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -272,7 +271,7 @@ func TestInitializationService_ValidateSystemState_RootDoesNotExist(t *testing.T
 
 func TestInitializationService_ValidateSystemState_InvalidRoot(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -295,7 +294,7 @@ func TestInitializationService_ValidateSystemState_InvalidRoot(t *testing.T) {
 
 func TestInitializationService_Initialize(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -312,7 +311,7 @@ func TestInitializationService_Initialize(t *testing.T) {
 
 func TestInitializationService_CreateRootContainer(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -338,7 +337,7 @@ func TestInitializationService_CreateRootContainer(t *testing.T) {
 
 func TestInitializationService_MigrateFromLegacyStorage(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()
@@ -350,7 +349,7 @@ func TestInitializationService_MigrateFromLegacyStorage(t *testing.T) {
 
 func TestInitializationService_RepairInconsistencies(t *testing.T) {
 	mockRepo := &MockContainerRepository{}
-	logger := log.NewStdLogger(log.NewWriter())
+	logger := log.DefaultLogger
 	service := NewInitializationService(mockRepo, logger)
 
 	ctx := context.Background()

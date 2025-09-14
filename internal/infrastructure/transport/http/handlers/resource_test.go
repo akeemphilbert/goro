@@ -16,20 +16,20 @@ type MockStorageService struct {
 	mock.Mock
 }
 
-func (m *MockStorageService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (*domain.Resource, error) {
+func (m *MockStorageService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (domain.Resource, error) {
 	args := m.Called(ctx, id, data, contentType)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.Resource), args.Error(1)
+	return args.Get(0).(domain.Resource), args.Error(1)
 }
 
-func (m *MockStorageService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (*domain.Resource, error) {
+func (m *MockStorageService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (domain.Resource, error) {
 	args := m.Called(ctx, id, acceptFormat)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.Resource), args.Error(1)
+	return args.Get(0).(domain.Resource), args.Error(1)
 }
 
 func (m *MockStorageService) DeleteResource(ctx context.Context, id string) error {
@@ -50,12 +50,12 @@ func (m *MockStorageService) StreamResource(ctx context.Context, id string, acce
 	return args.Get(0).(io.ReadCloser), args.String(1), args.Error(2)
 }
 
-func (m *MockStorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string) (*domain.Resource, error) {
-	args := m.Called(ctx, id, reader, contentType)
+func (m *MockStorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (domain.Resource, error) {
+	args := m.Called(ctx, id, reader, contentType, size)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.Resource), args.Error(1)
+	return args.Get(0).(domain.Resource), args.Error(1)
 }
 
 func TestNewResourceHandler(t *testing.T) {

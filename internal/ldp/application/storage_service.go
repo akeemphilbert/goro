@@ -39,7 +39,7 @@ func NewStorageService(
 }
 
 // StoreResource stores a resource with content negotiation support
-func (s *StorageService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (*domain.Resource, error) {
+func (s *StorageService) StoreResource(ctx context.Context, id string, data []byte, contentType string) (domain.Resource, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -66,17 +66,17 @@ func (s *StorageService) StoreResource(ctx context.Context, id string, data []by
 	}
 
 	// Create or update resource (in-memory only)
-	var resource *domain.Resource
+	var resource domain.Resource
 	if exists {
 		// Update existing resource - retrieve current state
 		resource, err = s.repo.Retrieve(ctx, id)
 		if err != nil {
 			return nil, domain.WrapStorageError(err, "RETRIEVE_FAILED", "failed to retrieve existing resource").WithOperation("StoreResource")
 		}
-		resource.Update(data, normalizedContentType)
+		resource.Update(ctx, data, normalizedContentType)
 	} else {
 		// Create new resource
-		resource = domain.NewResource(id, normalizedContentType, data)
+		resource = domain.NewResource(ctx, id, normalizedContentType, data)
 	}
 
 	// Check if resource is valid before proceeding
@@ -125,7 +125,7 @@ func (s *StorageService) StoreResource(ctx context.Context, id string, data []by
 }
 
 // RetrieveResource retrieves a resource with content negotiation
-func (s *StorageService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (*domain.Resource, error) {
+func (s *StorageService) RetrieveResource(ctx context.Context, id string, acceptFormat string) (domain.Resource, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -267,7 +267,7 @@ func (s *StorageService) StreamResource(ctx context.Context, id string, acceptFo
 }
 
 // StoreResourceStream stores a resource from a stream with efficient memory usage
-func (s *StorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (*domain.Resource, error) {
+func (s *StorageService) StoreResourceStream(ctx context.Context, id string, reader io.Reader, contentType string, size int64) (domain.Resource, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -358,7 +358,7 @@ func (s *StorageService) ResourceExists(ctx context.Context, id string) (bool, e
 }
 
 // convertResourceFormat converts a resource to the requested format
-func (s *StorageService) convertResourceFormat(resource *domain.Resource, targetFormat string) (*domain.Resource, error) {
+func (s *StorageService) convertResourceFormat(resource domain.Resource, targetFormat string) (domain.Resource, error) {
 	normalizedTargetFormat := s.normalizeContentType(targetFormat)
 
 	// Validate target format
@@ -378,7 +378,7 @@ func (s *StorageService) convertResourceFormat(resource *domain.Resource, target
 	}
 
 	// Create a new resource with converted data
-	convertedResource := domain.NewResource(resource.ID(), normalizedTargetFormat, convertedData)
+	convertedResource := domain.NewResource(context.Background(), resource.ID(), normalizedTargetFormat, convertedData)
 
 	// Copy metadata from original resource
 	for key, value := range resource.GetMetadata() {
