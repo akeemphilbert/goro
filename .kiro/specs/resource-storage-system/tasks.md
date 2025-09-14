@@ -103,7 +103,7 @@
   - Write tests for complete Wire configuration
   - _Requirements: 5.1, 5.2_
 
-- [ ] 15. Create behavior-driven tests with Gherkin scenarios
+- [x] 15. Create behavior-driven tests with Gherkin scenarios
   - Write Gherkin scenarios for all major requirements
   - Implement step definitions for BDD tests
   - Test RDF format support scenarios
