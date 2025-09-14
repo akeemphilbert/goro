@@ -62,7 +62,7 @@ goro/
 ### Testing Structure
 - **BDD scenarios** in `/features/*.feature` (Gherkin syntax)
 - **Step definitions** in `/features/*_test.go`
-- **Unit tests** alongside source files (`*_test.go`)
+- **Unit tests** alongside source files (`*_test.go`) with a package name suffixed with _test
 - **Integration tests** use temporary directories and in-memory SQLite
 - **Performance tests** validate streaming and memory efficiency
 

@@ -66,8 +66,8 @@
     - Write unit tests for WebID-OIDC authentication flow
     - _Requirements: 1.1, 1.2, 1.5_
 
-- [ ] 6. Build core authentication services
-  - [ ] 6.1 Implement authentication service
+- [x] 6. Build core authentication services
+  - [x] 6.1 Implement authentication service
     - Create AuthenticationService with multi-method support
     - Add username/password authentication with secure validation
     - Implement WebID-OIDC authentication flow
@@ -75,7 +75,7 @@
     - Write comprehensive unit tests for all authentication methods
     - _Requirements: 1.1, 1.2, 1.3, 3.1, 3.2, 3.3, 4.1, 4.2_
 
-  - [ ] 6.2 Implement session management
+  - [x] 6.2 Implement session management
     - Add secure session creation and validation
     - Implement JWT token generation and verification
     - Add session refresh and expiration handling
@@ -83,23 +83,23 @@
     - Write unit tests for session lifecycle management
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 7.3, 7.4_
 
-- [ ] 7. Create registration and identity linking services
-  - [ ] 7.1 Implement registration service
+- [x] 7. Create registration and identity linking services
+  - [x] 7.1 Implement registration service
     - Create RegistrationService for external identity registration
     - Add automatic WebID generation for new users
     - Implement user creation with external identity linking
     - Write unit tests for registration flows
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 7.2 Add identity linking functionality
+  - [x] 7.2 Add identity linking functionality
     - Implement external identity linking for existing users
     - Add duplicate identity prevention logic
     - Create identity unlinking operations
     - Write unit tests for identity management
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 8. Build JWT token management system
-  - [ ] 8.1 Implement JWT token manager
+- [x] 8. Build JWT token management system
+  - [x] 8.1 Implement JWT token manager
     - Create JWTTokenManager with secure signing
     - Add token generation with proper claims
     - Implement token validation and parsing
@@ -107,15 +107,15 @@
     - Write unit tests for token operations
     - _Requirements: 2.1, 2.4, 4.3, 7.1, 7.5_
 
-  - [ ] 8.2 Add token security features
+  - [x] 8.2 Add token security features
     - Implement token revocation capabilities
     - Add token blacklisting for security breaches
     - Create token audit logging
     - Write security tests for token management
     - _Requirements: 7.4, 7.5_
 
-- [ ] 9. Create HTTP handlers and middleware
-  - [ ] 9.1 Implement authentication HTTP handlers
+- [x] 9. Create HTTP handlers and middleware
+  - [x] 9.1 Implement authentication HTTP handlers
     - Create login handler supporting multiple authentication methods
     - Add logout handler with session invalidation
     - Implement password reset request and completion handlers
@@ -123,7 +123,7 @@
     - Write integration tests for all HTTP endpoints
     - _Requirements: 1.2, 1.4, 4.1, 4.4_
 
-  - [ ] 9.2 Add authentication middleware
+  - [x] 9.2 Add authentication middleware
     - Create session validation middleware
     - Implement JWT token extraction and validation
     - Add authentication requirement middleware
