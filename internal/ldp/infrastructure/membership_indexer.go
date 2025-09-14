@@ -256,6 +256,11 @@ func (s *SQLiteMembershipIndexer) Close() error {
 	return nil
 }
 
+// GetDB returns the database connection (for internal use by repository)
+func (s *SQLiteMembershipIndexer) GetDB() *sql.DB {
+	return s.db
+}
+
 // GetMemberCount returns the total number of members in a container
 func (s *SQLiteMembershipIndexer) GetMemberCount(ctx context.Context, containerID string) (int, error) {
 	var count int

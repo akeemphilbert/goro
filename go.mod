@@ -8,6 +8,7 @@ require (
 	github.com/go-kratos/kratos/v2 v2.8.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.11.0
 	go.uber.org/automaxprocs v1.5.1
@@ -30,8 +31,8 @@ require (
 	github.com/jackc/pgx/v5 v5.4.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
-	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

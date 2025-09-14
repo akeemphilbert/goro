@@ -90,6 +90,12 @@ var (
 		Message: "resource already exists",
 	}
 
+	// ErrResourceAlreadyExists indicates a resource already exists (alias for ErrResourceExists)
+	ErrResourceAlreadyExists = &StorageError{
+		Code:    "RESOURCE_ALREADY_EXISTS",
+		Message: "resource already exists",
+	}
+
 	// ErrInvalidID indicates an invalid resource ID
 	ErrInvalidID = &StorageError{
 		Code:    "INVALID_ID",

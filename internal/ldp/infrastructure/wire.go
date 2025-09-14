@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"github.com/akeemphilbert/goro/internal/ldp/application"
+	"github.com/akeemphilbert/goro/internal/ldp/domain"
 	pericarpdomain "github.com/akeemphilbert/pericarp/pkg/domain"
 	pericarpinfra "github.com/akeemphilbert/pericarp/pkg/infrastructure"
 	"github.com/google/wire"
@@ -13,6 +14,7 @@ var InfrastructureSet = wire.NewSet(
 	EventStoreProvider,
 	NewEventDispatcher,
 	NewOptimizedFileSystemRepositoryProvider,
+	NewFileSystemContainerRepositoryProvider,
 	NewRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
@@ -26,6 +28,7 @@ var OptimizedInfrastructureSet = wire.NewSet(
 	EventStoreProvider,
 	NewEventDispatcher,
 	NewOptimizedFileSystemRepositoryProvider,
+	NewFileSystemContainerRepositoryProvider,
 	NewRDFConverter,
 	NewUnitOfWorkFactory,
 	// Bind interfaces to implementations
@@ -41,4 +44,18 @@ func NewUnitOfWorkFactory(
 	return func() pericarpdomain.UnitOfWork {
 		return pericarpinfra.UnitOfWorkProvider(eventStore, eventDispatcher)
 	}
+}
+
+// NewFileSystemContainerRepositoryProvider provides a FileSystemContainerRepository for Wire dependency injection
+func NewFileSystemContainerRepositoryProvider() (domain.ContainerRepository, error) {
+	// Use a default base path - in production this should come from configuration
+	basePath := "./data/pod-storage"
+
+	// Create membership indexer
+	indexer, err := MembershipIndexerProvider(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewFileSystemContainerRepository(basePath, indexer)
 }

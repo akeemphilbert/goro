@@ -9,7 +9,7 @@
   - Create container-specific domain events and error types
   - _Requirements: 1.1, 2.1, 2.2_
 
-- [ ] 2. Implement container database schema and indexing (TDD)
+- [x] 2. Implement container database schema and indexing (TDD)
   - Write unit tests for membership indexing operations
   - Write unit tests for SQLite schema operations and migrations
   - Create SQLite schema for containers and membership tables
@@ -17,7 +17,7 @@
   - Add database migration support for container tables
   - _Requirements: 3.2, 4.1, 4.2, 4.3_
 
-- [ ] 3. Build filesystem container repository (TDD)
+- [x] 3. Build filesystem container repository (TDD)
   - Write unit tests for container repository operations
   - Write unit tests for hierarchical directory structure handling
   - Write unit tests for container metadata persistence
