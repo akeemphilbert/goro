@@ -154,21 +154,21 @@
     - Emit domain events for all membership operations to pass event tests
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 7. Write tests and implement event handlers
-  - [ ] 7.1 Write failing tests for user event handlers
+- [x] 7. Write tests and implement event handlers
+  - [x] 7.1 Write failing tests for user event handlers
     - Create test files for UserEventHandler with mocked write repositories
     - Write tests for database persistence (UserRegistered, UserProfileUpdated, UserDeleted)
     - Test file event handlers for WebID document creation and user file cleanup
     - Test error handling and transaction management for consistency
     - _Requirements: 1.4, 2.4, 5.4, 6.4_
 
-  - [ ] 7.2 Implement user event handlers to make tests pass
+  - [x] 7.2 Implement user event handlers to make tests pass
     - Implement UserEventHandler for database persistence to satisfy persistence tests
     - Create file event handlers for WebID document creation and cleanup to pass file tests
     - Add error handling and transaction management to satisfy consistency tests
     - _Requirements: 1.4, 2.4, 5.4, 6.4_
 
-  - [ ] 7.3 Write failing tests for account event handlers
+  - [x] 7.3 Write failing tests for account event handlers
     - Create test files for AccountEventHandler with mocked write repositories
     - Write tests for account persistence operations and validation
     - Test membership projection handlers (MemberAdded, MemberRemoved, MemberRoleUpdated)
@@ -176,7 +176,7 @@
     - Test atomic entity relationship management through events
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 7.4 Implement account event handlers to make tests pass
+  - [x] 7.4 Implement account event handlers to make tests pass
     - Implement AccountEventHandler for account persistence operations to satisfy tests
     - Create membership projection handlers to pass projection tests
     - Implement invitation lifecycle handlers to satisfy invitation tests
