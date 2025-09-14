@@ -4,6 +4,8 @@
 
 The User Management System provides comprehensive user account lifecycle management for the Solid pod, including account creation, profile management, user administration, and account deactivation. This feature enables pod administrators to manage users while giving users control over their own accounts and data.
 
+
+
 ## Requirements
 
 ### Requirement 1
@@ -32,29 +34,53 @@ The User Management System provides comprehensive user account lifecycle managem
 
 ### Requirement 3
 
-**User Story:** As a security administrator, I want user security monitoring so that I can detect compromised accounts and suspicious user activities.
+**User Story:** As a pod owner, I want account-based user organization so that I can manage users within my pod's account structure and control access through role-based invitations.
 
 #### Acceptance Criteria
 
-1. WHEN monitoring users THEN the system SHALL track login patterns, access anomalies, and security events
-2. WHEN suspicious activity is detected THEN the system SHALL alert administrators and optionally lock accounts
-3. WHEN investigating security THEN the system SHALL provide detailed user activity logs and forensic capabilities
-4. WHEN managing security THEN the system SHALL support multi-factor authentication and security policy enforcement
-5. IF security breaches are detected THEN the system SHALL provide incident response and account recovery procedures
+1. WHEN creating a pod THEN the system SHALL associate it with a primary account concept
+2. WHEN inviting users THEN the system SHALL allow account owners to send invitations with assigned roles
+3. WHEN users accept invitations THEN the system SHALL grant appropriate permissions based on assigned roles
+4. WHEN managing account membership THEN the system SHALL provide interfaces to view and modify user roles
+5. IF invitation conflicts occur THEN the system SHALL validate role assignments and prevent unauthorized access
 
 ### Requirement 4
 
-**User Story:** As a compliance officer, I want user data management so that I can ensure proper handling of personal data and meet regulatory requirements.
+**User Story:** As a user, I want to link my WebID to external identity providers so that I can authenticate using existing accounts from Google, Microsoft, or other trusted providers.
 
 #### Acceptance Criteria
 
-1. WHEN managing personal data THEN the system SHALL support GDPR compliance including data portability and deletion
-2. WHEN handling requests THEN the system SHALL process data subject requests within required timeframes
-3. WHEN maintaining records THEN the system SHALL log all user data operations and administrative actions
-4. WHEN reporting compliance THEN the system SHALL provide audit reports and compliance documentation
-5. IF regulations change THEN the system SHALL adapt user data handling to meet new compliance requirements
+1. WHEN linking identities THEN the system SHALL support OAuth2/OpenID Connect integration with external providers
+2. WHEN authenticating THEN users SHALL be able to sign in using linked external accounts
+3. WHEN managing linked accounts THEN users SHALL be able to add, remove, and view connected identity providers
+4. WHEN identity linking fails THEN the system SHALL provide clear error messages and fallback authentication options
+5. IF external provider is unavailable THEN the system SHALL maintain alternative authentication methods 
 
 ### Requirement 5
+
+**User Story:** As a new user, I want to register for an account so that I can create my own WebID and start using the pod services.
+
+#### Acceptance Criteria
+
+1. WHEN registering THEN the system SHALL collect required user information and validate input
+2. WHEN creating WebID THEN the system SHALL generate a unique WebID URI for the new user
+3. WHEN completing registration THEN the system SHALL create user profile and initialize account settings
+4. WHEN registration fails THEN the system SHALL provide specific error messages and allow retry
+5. IF WebID conflicts occur THEN the system SHALL generate alternative identifiers and notify the user
+
+### Requirement 6
+
+**User Story:** As a user, I want to delete my own account and close it permanently so that I can remove my data and terminate my access when I no longer need the service.
+
+#### Acceptance Criteria
+
+1. WHEN requesting account deletion THEN the system SHALL provide a secure self-service deletion process
+2. WHEN confirming deletion THEN the system SHALL require explicit confirmation and authentication
+3. WHEN processing deletion THEN the system SHALL remove all user data, resources, and access permissions
+4. WHEN deletion completes THEN the system SHALL invalidate all user sessions and authentication tokens
+5. IF deletion fails THEN the system SHALL maintain data integrity and provide clear error messages
+
+### Requirement 7
 
 **User Story:** As a pod owner, I want scalable user management so that the system can handle growth and maintain performance with many users.
 
